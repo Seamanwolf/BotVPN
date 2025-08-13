@@ -1,0 +1,7 @@
+# 3xUI Configuration
+XUI_BASE_URL=https://your-3xui-domain.com
+XUI_USERNAME=admin
+XUI_PASSWORD=your_password
+
+# Database
+DATABASE_URL=postgresql://username:password@localhost/vpn_bot

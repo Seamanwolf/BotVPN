@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Подписки - SeaVPN Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Подписки</h1>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="syncWithXUI()">
+                <i class="fas fa-sync-alt"></i> Синхронизировать с 3xUI
+            </button>
+            <button class="btn btn-primary" onclick="refreshSubscriptions()">
+                <i class="fas fa-refresh"></i> Обновить
+            </button>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Статус</label>
+                    <select class="form-select" id="statusFilter" onchange="filterSubscriptions()">
+                        <option value="">Все</option>
+                        <option value="active">Активные</option>
+                        <option value="expired">Истекшие</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Тариф</label>
+                    <select class="form-select" id="planFilter" onchange="filterSubscriptions()">
+                        <option value="">Все</option>
+                        <option value="test">Test</option>
+                        <option value="basic">Basic</option>
+                        <option value="premium">Premium</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Поиск по пользователю</label>
+                    <input type="text" class="form-control" id="userFilter" placeholder="Telegram ID или имя" onkeyup="filterSubscriptions()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Сортировка</label>
+                    <select class="form-select" id="sortFilter" onchange="filterSubscriptions()">
+                        <option value="created_desc">Сначала новые</option>
+                        <option value="created_asc">Сначала старые</option>
+                        <option value="expires_asc">Сначала истекающие</option>
+                        <option value="expires_desc">Сначала долгосрочные</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>Тариф</th>
+                            <th>Статус</th>
+                            <th>Создана</th>
+                            <th>Истекает</th>
+                            <th>Осталось дней</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subscriptionsTable">
+                        {% for subscription in subscriptions %}
+                        <tr data-status="{{ subscription.status }}" data-plan="{{ subscription.plan_name }}" data-user="{{ subscription.user.telegram_id if subscription.user else '' }}">
+                            <td>{{ subscription.id }}</td>
+                            <td>
+                                {% if subscription.user %}
+                                    <div>
+                                        <strong>{{ subscription.user.full_name or 'Не указано' }}</strong><br>
+                                        <small class="text-muted">ID: {{ subscription.user.telegram_id }}</small>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Пользователь не найден</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ subscription.plan_name }}</span>
+                            </td>
+                            <td>
+                                {% if subscription.status == 'active' %}
+                                    <span class="badge bg-success">Активна</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Истекла</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subscription.created_at.strftime('%d.%m.%Y %H:%M') if subscription.created_at else 'Не указано' }}</td>
+                            <td>{{ subscription.expires_at.strftime('%d.%m.%Y %H:%M') if subscription.expires_at else 'Не указано' }}</td>
+                            <td>
+                                {% if subscription.expires_at %}
+                                    {% set days_left = ((subscription.expires_at - now).days) %}
+                                    {% if days_left > 0 %}
+                                        <span class="badge bg-info">{{ days_left }} дн.</span>
+                                    {% elif days_left == 0 %}
+                                        <span class="badge bg-warning">Сегодня</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ abs(days_left) }} дн. назад</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewSubscriptionDetails({{ subscription.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if subscription.status == 'active' %}
+                                        <button class="btn btn-outline-warning" onclick="extendSubscription({{ subscription.id }})">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно с деталями подписки -->
+<div class="modal fade" id="subscriptionDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали подписки</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="subscriptionDetailsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshSubscriptions() {
+    location.reload();
+}
+
+function syncWithXUI() {
+    if (confirm('Выполнить синхронизацию с 3xUI? Это обновит статусы подписок.')) {
+        fetch('/api/sync-xui', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Синхронизация завершена успешно!');
+                    location.reload();
+                } else {
+                    alert('Ошибка синхронизации: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка синхронизации');
+            });
+    }
+}
+
+function filterSubscriptions() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const planFilter = document.getElementById('planFilter').value;
+    const userFilter = document.getElementById('userFilter').value.toLowerCase();
+    const sortFilter = document.getElementById('sortFilter').value;
+    
+    const rows = document.querySelectorAll('#subscriptionsTable tr');
+    
+    rows.forEach(row => {
+        const status = row.getAttribute('data-status');
+        const plan = row.getAttribute('data-plan');
+        const user = row.getAttribute('data-user');
+        const userText = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        
+        let show = true;
+        
+        if (statusFilter && status !== statusFilter) show = false;
+        if (planFilter && plan !== planFilter) show = false;
+        if (userFilter && !userText.includes(userFilter) && !user.includes(userFilter)) show = false;
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function viewSubscriptionDetails(subscriptionId) {
+    fetch(`/api/subscription/${subscriptionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const sub = data.subscription;
+                const user = data.user;
+                
+                document.getElementById('subscriptionDetailsContent').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Информация о подписке</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>ID:</strong></td><td>${sub.id}</td></tr>
+                                <tr><td><strong>Тариф:</strong></td><td><span class="badge bg-primary">${sub.plan_name}</span></td></tr>
+                                <tr><td><strong>Статус:</strong></td><td><span class="badge bg-${sub.status === 'active' ? 'success' : 'danger'}">${sub.status === 'active' ? 'Активна' : 'Истекла'}</span></td></tr>
+                                <tr><td><strong>Создана:</strong></td><td>${new Date(sub.created_at).toLocaleString('ru-RU')}</td></tr>
+                                <tr><td><strong>Истекает:</strong></td><td>${sub.expires_at ? new Date(sub.expires_at).toLocaleString('ru-RU') : 'Не указано'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Информация о пользователе</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>ID:</strong></td><td>${user.id}</td></tr>
+                                <tr><td><strong>Telegram ID:</strong></td><td>${user.telegram_id}</td></tr>
+                                <tr><td><strong>Имя:</strong></td><td>${user.full_name || 'Не указано'}</td></tr>
+                                <tr><td><strong>Email:</strong></td><td>${user.email || 'Не указан'}</td></tr>
+                                <tr><td><strong>Дата регистрации:</strong></td><td>${user.created_at ? new Date(user.created_at).toLocaleDateString('ru-RU') : 'Не указано'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                new bootstrap.Modal(document.getElementById('subscriptionDetailsModal')).show();
+            } else {
+                alert('Ошибка загрузки данных подписки');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка загрузки данных подписки');
+        });
+}
+
+function extendSubscription(subscriptionId) {
+    const days = prompt('Введите количество дней для продления:');
+    if (days && !isNaN(days)) {
+        fetch(`/api/subscription/${subscriptionId}/extend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ days: parseInt(days) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Подписка успешно продлена!');
+                location.reload();
+            } else {
+                alert('Ошибка продления: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка продления подписки');
+        });
+    }
+}
+</script>
+{% endblock %}

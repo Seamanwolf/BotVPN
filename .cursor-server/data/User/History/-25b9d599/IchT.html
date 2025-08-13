@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Подписки{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Подписки</h1>
+        <div>
+            <button class="btn btn-success" onclick="syncWithXUI()">
+                <i class="fas fa-sync-alt"></i> Синхронизировать с 3xUI
+            </button>
+            <button class="btn btn-primary" onclick="refreshSubscriptions()">
+                <i class="fas fa-refresh"></i> Обновить
+            </button>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="expired">Истекшие</option>
+                        <option value="paused">Приостановленные</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="planFilter">
+                        <option value="">Все планы</option>
+                        <option value="1m">1 месяц</option>
+                        <option value="3m">3 месяца</option>
+                        <option value="test">Тест</option>
+                        <option value="bonus">Бонус</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="userFilter" placeholder="Поиск по пользователю...">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Применить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица подписок -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="subscriptionsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>План</th>
+                            <th>Статус</th>
+                            <th>Действует до</th>
+                            <th>Осталось дней</th>
+                            <th>Дата создания</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subscription in subscriptions %}
+                        {% set user = users|selectattr("id", "equalto", subscription.user_id)|first %}
+                        {% set days_left = ((subscription.expires_at - now).days) if subscription.expires_at > now else 0 %}
+                        <tr>
+                            <td>{{ subscription.id }}</td>
+                            <td>
+                                {% if user %}
+                                    {{ user.full_name or user.telegram_id }}
+                                    <br><small class="text-muted">ID: {{ user.telegram_id }}</small>
+                                {% else %}
+                                    <span class="text-muted">Пользователь не найден</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if subscription.plan == 'bonus' %}
+                                    <span class="badge bg-warning">🎁 {{ subscription.plan_name or 'Бонусная' }}</span>
+                                {% elif subscription.plan == 'test' %}
+                                    <span class="badge bg-info">🧪 {{ subscription.plan_name or 'Тестовая' }}</span>
+                                {% else %}
+                                    <span class="badge bg-primary">{{ subscription.plan_name or subscription.plan }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if subscription.status == 'active' %}
+                                    <span class="badge bg-success">Активна</span>
+                                {% elif subscription.status == 'expired' %}
+                                    <span class="badge bg-danger">Истекла</span>
+                                {% elif subscription.status == 'paused' %}
+                                    <span class="badge bg-warning">Приостановлена</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ subscription.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subscription.expires_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                {% if days_left > 0 %}
+                                    <span class="badge bg-success">{{ days_left }} дн.</span>
+                                {% elif days_left == 0 %}
+                                    <span class="badge bg-warning">Сегодня</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ abs(days_left) }} дн. назад</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subscription.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails({{ subscription.id }})" title="Детали">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if subscription.status == 'active' %}
+                                    <button class="btn btn-sm btn-outline-warning" onclick="pauseSubscription({{ subscription.id }})" title="Приостановить">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                {% elif subscription.status == 'paused' %}
+                                    <button class="btn btn-sm btn-outline-success" onclick="activateSubscription({{ subscription.id }})" title="Активировать">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSubscription({{ subscription.id }})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно деталей подписки -->
+<div class="modal fade" id="subscriptionDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали подписки</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="subscriptionDetailsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно удаления подписки -->
+<div class="modal fade" id="deleteSubscriptionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление подписки</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы действительно хотите удалить эту подписку?</p>
+                <p class="text-danger">Это действие нельзя отменить!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteSubscription()">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSubscriptionId = null;
+
+function viewSubscriptionDetails(subscriptionId) {
+    fetch(`/api/subscription/${subscriptionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const sub = data.subscription;
+                const user = data.user;
+                const daysLeft = Math.ceil((new Date(sub.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+                
+                const content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Информация о подписке</h6>
+                            <p><strong>ID:</strong> ${sub.id}</p>
+                            <p><strong>План:</strong> ${sub.plan_name}</p>
+                            <p><strong>Статус:</strong> 
+                                ${sub.status === 'active' ? '<span class="badge bg-success">Активна</span>' : 
+                                  sub.status === 'expired' ? '<span class="badge bg-danger">Истекла</span>' : 
+                                  '<span class="badge bg-secondary">' + sub.status + '</span>'}
+                            </p>
+                            <p><strong>Создана:</strong> ${new Date(sub.created_at).toLocaleString()}</p>
+                            <p><strong>Действует до:</strong> ${new Date(sub.expires_at).toLocaleString()}</p>
+                            <p><strong>Осталось дней:</strong> ${daysLeft > 0 ? daysLeft : 'Истекла'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Информация о пользователе</h6>
+                            ${user ? `
+                                <p><strong>Имя:</strong> ${user.full_name || 'Не указано'}</p>
+                                <p><strong>Telegram ID:</strong> ${user.telegram_id}</p>
+                                <p><strong>Email:</strong> ${user.email || 'Не указан'}</p>
+                                <p><strong>Монеты:</strong> ${user.bonus_coins} 🪙</p>
+                            ` : '<p class="text-muted">Пользователь не найден</p>'}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('subscriptionDetailsContent').innerHTML = content;
+                new bootstrap.Modal(document.getElementById('subscriptionDetailsModal')).show();
+            } else {
+                alert('Ошибка при загрузке данных подписки');
+            }
+        });
+}
+
+function pauseSubscription(subscriptionId) {
+    if (confirm('Приостановить подписку?')) {
+        fetch(`/api/subscription/${subscriptionId}/pause`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Подписка приостановлена');
+                location.reload();
+            } else {
+                alert('Ошибка при приостановке: ' + data.message);
+            }
+        });
+    }
+}
+
+function activateSubscription(subscriptionId) {
+    if (confirm('Активировать подписку?')) {
+        fetch(`/api/subscription/${subscriptionId}/activate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Подписка активирована');
+                location.reload();
+            } else {
+                alert('Ошибка при активации: ' + data.message);
+            }
+        });
+    }
+}
+
+function deleteSubscription(subscriptionId) {
+    currentSubscriptionId = subscriptionId;
+    new bootstrap.Modal(document.getElementById('deleteSubscriptionModal')).show();
+}
+
+function confirmDeleteSubscription() {
+    if (!currentSubscriptionId) return;
+    
+    fetch(`/api/subscription/${currentSubscriptionId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Подписка успешно удалена');
+            location.reload();
+        } else {
+            alert('Ошибка при удалении: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Ошибка при удалении подписки');
+    });
+}
+
+function syncWithXUI() {
+    if (confirm('Синхронизировать подписки с 3xUI?')) {
+        fetch('/api/sync-xui', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Синхронизация завершена успешно');
+                location.reload();
+            } else {
+                alert('Ошибка синхронизации: ' + data.message);
+            }
+        });
+    }
+}
+
+function refreshSubscriptions() {
+    location.reload();
+}
+
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const planFilter = document.getElementById('planFilter').value;
+    const userFilter = document.getElementById('userFilter').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('#subscriptionsTable tbody tr');
+    
+    rows.forEach(row => {
+        const status = row.cells[3].textContent;
+        const plan = row.cells[2].textContent;
+        const user = row.cells[1].textContent.toLowerCase();
+        
+        let show = true;
+        
+        // Фильтр статуса
+        if (statusFilter && !status.includes(statusFilter)) {
+            show = false;
+        }
+        
+        // Фильтр плана
+        if (planFilter && !plan.includes(planFilter)) {
+            show = false;
+        }
+        
+        // Фильтр пользователя
+        if (userFilter && !user.includes(userFilter)) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+// Применяем фильтры при изменении
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('planFilter').addEventListener('change', applyFilters);
+document.getElementById('userFilter').addEventListener('input', applyFilters);
+</script>
+{% endblock %}

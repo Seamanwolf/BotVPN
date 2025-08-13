@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Администраторы - SeaVPN Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Администраторы</h1>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+                <i class="fas fa-plus"></i> Добавить админа
+            </button>
+            <button class="btn btn-primary" onclick="refreshAdmins()">
+                <i class="fas fa-refresh"></i> Обновить
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Telegram ID</th>
+                            <th>Логин</th>
+                            <th>Полное имя</th>
+                            <th>Роль</th>
+                            <th>Статус</th>
+                            <th>Последний вход</th>
+                            <th>Дата добавления</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for admin in admins %}
+                        <tr>
+                            <td>{{ admin.id }}</td>
+                            <td>{{ admin.telegram_id }}</td>
+                            <td>
+                                {% if admin.username %}
+                                    <code>{{ admin.username }}</code>
+                                {% else %}
+                                    <span class="text-muted">Не указан</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ admin.full_name or 'Не указано' }}</td>
+                            <td>
+                                {% if admin.is_superadmin %}
+                                    <span class="badge bg-danger">Суперадмин</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Администратор</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if admin.is_active %}
+                                    <span class="badge bg-success">Активен</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Заблокирован</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if admin.last_login %}
+                                    {{ admin.last_login.strftime('%d.%m.%Y %H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">Никогда</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ admin.created_at.strftime('%d.%m.%Y %H:%M') if admin.created_at else 'Не указано' }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewAdmin({{ admin.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if not admin.is_superadmin %}
+                                        {% if admin.is_active %}
+                                            <button class="btn btn-sm btn-outline-warning" onclick="blockAdmin({{ admin.id }})">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-success" onclick="unblockAdmin({{ admin.id }})">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="removeAdmin({{ admin.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления админа -->
+<div class="modal fade" id="addAdminModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить администратора</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAdminForm">
+                    <div class="mb-3">
+                        <label class="form-label">Telegram ID *</label>
+                        <input type="number" class="form-control" id="addTelegramId" required>
+                        <div class="form-text">ID пользователя в Telegram</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Логин *</label>
+                        <input type="text" class="form-control" id="addUsername" required>
+                        <div class="form-text">Логин для входа в админ-панель</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Полное имя</label>
+                        <input type="text" class="form-control" id="addFullName">
+                        <div class="form-text">Отображаемое имя администратора</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Пароль *</label>
+                        <input type="password" class="form-control" id="addPassword" required>
+                        <div class="form-text">Пароль для входа в админ-панель</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="addAdmin()">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для просмотра админа -->
+<div class="modal fade" id="adminModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали администратора</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="adminModalBody">
+                <!-- Контент будет загружен динамически -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addAdmin() {
+    const telegramId = document.getElementById('addTelegramId').value;
+    const username = document.getElementById('addUsername').value;
+    const fullName = document.getElementById('addFullName').value;
+    const password = document.getElementById('addPassword').value;
+    
+    if (!telegramId || !username || !password) {
+        alert('Заполните обязательные поля!');
+        return;
+    }
+    
+    fetch('/api/admin/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            telegram_id: parseInt(telegramId),
+            username: username,
+            full_name: fullName,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Администратор добавлен!');
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при добавлении администратора');
+    });
+}
+
+function viewAdmin(adminId) {
+    fetch(`/api/admin/${adminId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const admin = data.admin;
+                const user = data.user;
+                
+                const modalBody = document.getElementById('adminModalBody');
+                modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Информация об администраторе</h6>
+                            <p><strong>ID:</strong> ${admin.id}</p>
+                            <p><strong>Telegram ID:</strong> ${admin.telegram_id}</p>
+                            <p><strong>Логин:</strong> <code>${admin.username || 'Не указан'}</code></p>
+                            <p><strong>Полное имя:</strong> ${admin.full_name || 'Не указано'}</p>
+                            <p><strong>Роль:</strong> ${admin.is_superadmin ? '<span class="badge bg-danger">Суперадмин</span>' : '<span class="badge bg-primary">Администратор</span>'}</p>
+                            <p><strong>Статус:</strong> ${admin.is_active ? '<span class="badge bg-success">Активен</span>' : '<span class="badge bg-warning">Заблокирован</span>'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Дополнительная информация</h6>
+                            <p><strong>Дата добавления:</strong> ${new Date(admin.created_at).toLocaleString()}</p>
+                            <p><strong>Последний вход:</strong> ${admin.last_login ? new Date(admin.last_login).toLocaleString() : 'Никогда'}</p>
+                        </div>
+                    </div>
+                    ${user ? `
+                        <hr>
+                        <h6>Информация о пользователе</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>ID пользователя:</strong> ${user.id}</p>
+                                <p><strong>Имя:</strong> ${user.full_name || 'Не указано'}</p>
+                                <p><strong>Email:</strong> ${user.email || 'Не указан'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+                                <p><strong>Подписок:</strong> ${user.subscriptions}</p>
+                            </div>
+                        </div>
+                    ` : '<hr><p class="text-muted">Пользователь не найден в базе данных</p>'}
+                `;
+                
+                new bootstrap.Modal(document.getElementById('adminModal')).show();
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при загрузке данных');
+        });
+}
+
+function removeAdmin(adminId) {
+    if (!confirm('Удалить администратора? Это действие нельзя отменить.')) return;
+    
+    fetch(`/api/admin/${adminId}/remove`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Администратор удален!');
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при удалении администратора');
+    });
+}
+
+function blockAdmin(adminId) {
+    if (!confirm('Заблокировать администратора?')) return;
+    
+    fetch(`/api/admin/${adminId}/block`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Администратор заблокирован!');
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при блокировке администратора');
+    });
+}
+
+function unblockAdmin(adminId) {
+    if (!confirm('Разблокировать администратора?')) return;
+    
+    fetch(`/api/admin/${adminId}/unblock`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Администратор разблокирован!');
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при разблокировке администратора');
+    });
+}
+
+function refreshAdmins() {
+    location.reload();
+}
+</script>
+{% endblock %}
