@@ -273,6 +273,58 @@ def get_user_referrals(user_id):
     finally:
         db.close()
 
+@app.route('/api/subscription/<int:subscription_id>/delete', methods=['POST'])
+@login_required
+def delete_subscription(subscription_id):
+    """API для удаления подписки"""
+    db = SessionLocal()
+    try:
+        subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+        if not subscription:
+            return jsonify({'success': False, 'message': 'Подписка не найдена'})
+        
+        # Получаем пользователя
+        user = db.query(User).filter(User.id == subscription.user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'Пользователь не найден'})
+        
+        # Формируем уникальный email для поиска в 3xUI
+        unique_email = f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}"
+        
+        # Удаляем из 3xUI
+        import asyncio
+        from xui_client import XUIClient
+        
+        async def delete_from_3xui():
+            xui_client = XUIClient()
+            try:
+                success = await xui_client.delete_user(unique_email)
+                return success
+            finally:
+                await xui_client.close()
+        
+        # Запускаем асинхронную функцию
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            xui_success = loop.run_until_complete(delete_from_3xui())
+        finally:
+            loop.close()
+        
+        if xui_success:
+            # Удаляем из базы данных
+            db.delete(subscription)
+            db.commit()
+            return jsonify({'success': True, 'message': 'Подписка успешно удалена'})
+        else:
+            return jsonify({'success': False, 'message': 'Ошибка удаления из 3xUI'})
+            
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+    finally:
+        db.close()
+
 @app.route('/api/user/<int:user_id>/delete', methods=['POST'])
 @login_required
 def delete_user(user_id):
@@ -394,24 +446,7 @@ def pause_subscription(subscription_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
-@app.route('/api/subscription/<int:subscription_id>/delete', methods=['POST'])
-@login_required
-def delete_subscription(subscription_id):
-    """API для удаления подписки"""
-    try:
-        db = SessionLocal()
-        try:
-            subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
-            if subscription:
-                db.delete(subscription)
-                db.commit()
-                return jsonify({'success': True, 'message': 'Подписка удалена'})
-            else:
-                return jsonify({'success': False, 'message': 'Подписка не найдена'})
-        finally:
-            db.close()
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+
 
 @app.route('/api/subscription/create', methods=['POST'])
 @login_required

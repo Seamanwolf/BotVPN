@@ -871,3 +871,6 @@ sleep 3 && ps aux | grep bot.py
 curl -s "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/" | grep -i "sub_" | head -3
 curl -L "https://nl.universaltools.pro/sub/sub_1755081285" | head -10
 pkill -f "python3 admin_web.py" && sleep 1 && python3 admin_web.py
+python3 admin_web.py
+python3 bot.py
+python3 bot.py

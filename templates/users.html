@@ -335,7 +335,7 @@ function confirmDeleteUser() {
 }
 
 function deleteSubscription(subscriptionId, planName) {
-    if (confirm(`Вы уверены, что хотите удалить подписку "${planName}"?`)) {
+    if (confirm(`Вы уверены, что хотите удалить подписку "${planName}"?\n\n⚠️ ВНИМАНИЕ: Подписка будет удалена как из базы данных, так и из 3xUI!`)) {
         fetch(`/api/subscription/${subscriptionId}/delete`, {
             method: 'POST',
             headers: {
@@ -345,17 +345,18 @@ function deleteSubscription(subscriptionId, planName) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Подписка успешно удалена');
+                alert('✅ Подписка успешно удалена из базы данных и 3xUI!');
                 // Закрываем модальное окно и обновляем страницу
                 const modal = bootstrap.Modal.getInstance(document.getElementById('userSubscriptionsModal'));
                 if (modal) modal.hide();
                 location.reload();
             } else {
-                alert('Ошибка при удалении: ' + data.message);
+                alert('❌ Ошибка: ' + data.message);
             }
         })
         .catch(error => {
-            alert('Ошибка при удалении подписки');
+            console.error('Error:', error);
+            alert('❌ Произошла ошибка при удалении подписки');
         });
     }
 }

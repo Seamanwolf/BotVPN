@@ -258,6 +258,65 @@ class XUIClient:
     
     # Метод delete_user удален - НИКОГДА не удаляем пользователей из 3xUI!
     
+    async def delete_user(self, email: str) -> bool:
+        """Удаление пользователя из 3xUI по email"""
+        await self.ensure_login()
+        try:
+            # Получаем список inbounds
+            inbounds = await self.get_inbounds()
+            if not inbounds or not inbounds.get("obj"):
+                print("Не удалось получить inbounds")
+                return False
+            
+            # Ищем пользователя во всех inbounds
+            for inbound in inbounds["obj"]:
+                if not inbound.get("enable", False):
+                    continue
+                
+                settings = json.loads(inbound.get("settings", "{}"))
+                clients = settings.get("clients", [])
+                
+                # Ищем клиента с нужным email
+                for i, client in enumerate(clients):
+                    if client.get("email") == email:
+                        # Удаляем клиента из списка
+                        clients.pop(i)
+                        
+                        # Обновляем inbound
+                        payload = {
+                            "id": inbound.get("id"),
+                            "settings": json.dumps({
+                                "clients": clients
+                            })
+                        }
+                        
+                        update_url = f"{self.base_url}/panel/api/inbounds/update/{inbound.get('id')}"
+                        response = await self.client.post(
+                            update_url,
+                            json=payload,
+                            cookies=self.session_cookies,
+                            headers={"Content-Type": "application/json", "Accept": "application/json"}
+                        )
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            if result.get("success"):
+                                print(f"Пользователь {email} успешно удален из 3xUI")
+                                return True
+                            else:
+                                print(f"Ошибка удаления пользователя: {result.get('msg', 'Неизвестная ошибка')}")
+                                return False
+                        else:
+                            print(f"Ошибка HTTP при удалении пользователя: {response.status_code}")
+                            return False
+            
+            print(f"Пользователь {email} не найден в 3xUI")
+            return False
+            
+        except Exception as e:
+            print(f"Ошибка при удалении пользователя: {e}")
+            return False
+    
     async def close(self):
         """Закрытие соединения"""
         await self.client.aclose()
