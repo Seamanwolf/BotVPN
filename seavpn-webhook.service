@@ -1,0 +1,15 @@
+[Unit]
+Description=SeaVPN YooKassa Webhook Handler
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/bin/python3 /root/webhook_handler.py
+Restart=always
+RestartSec=10
+Environment=PYTHONPATH=/root
+
+[Install]
+WantedBy=multi-user.target
