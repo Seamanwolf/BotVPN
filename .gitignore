@@ -1,73 +1,36 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Системные файлы
+.bash_history
+.cursor-server/
+.vscode/
 
-# Virtual environments
-venv/
+# Временные файлы
+cookies.txt
+*.pyc
+__pycache__/
+*.log
+
+# Конфигурационные файлы сервера
+/etc/nginx/sites-available/
+/etc/letsencrypt/
+
+# База данных (если есть)
+*.db
+*.sqlite
+
+# Переменные окружения
+.env
+.env.local
+
+# Логи
+logs/
+*.log
+
+# Временные файлы Python
+*.pyo
+*.pyd
+.Python
 env/
+venv/
 ENV/
 env.bak/
 venv.bak/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite3
-
-# Temporary files
-*.tmp
-*.temp
-
-# SSL certificates
-*.pem
-*.key
-*.crt
-
-# System files
-systemd/
-nginx/
