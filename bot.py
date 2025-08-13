@@ -674,12 +674,7 @@ async def tariff_handler(message: Message):
         await message.answer("Выберите действие:", reply_markup=get_user_keyboard(message.from_user.id))
         return
     
-    # Для тестового тарифа - создаем сразу
-    if tariff == "test":
-        await create_test_subscription(message, user)
-        return
-    
-    # Для платных тарифов - создаем платеж в ЮKassa
+    # Для всех тарифов (включая тестовый) - создаем платеж в ЮKassa
     await create_payment_for_tariff(message, user, tariff, price, days)
 
 async def create_test_subscription(message: Message, user):
@@ -1434,6 +1429,9 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
             elif tariff == "3m":
                 days = TARIFFS["3m"]["days"]
                 tariff_name = TARIFFS["3m"]["name"]
+            elif tariff == "test":
+                days = TARIFFS["test"]["days"]
+                tariff_name = TARIFFS["test"]["name"]
             else:
                 await callback.answer("❌ Неизвестный тариф", show_alert=True)
                 return
@@ -1508,7 +1506,10 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
                     success_message += f"💰 <b>Сумма:</b> {payment.amount}₽\n"
                     success_message += f"⏰ <b>Действует до:</b> {expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
                     success_message += f"🔗 <b>Конфигурация:</b>\n"
-                    success_message += f"<code>{config['subscription_url']}</code>\n\n"
+                    if isinstance(config, dict) and 'subscription_url' in config:
+                        success_message += f"<code>{config['subscription_url']}</code>\n\n"
+                    else:
+                        success_message += f"<code>{config}</code>\n\n"
                     success_message += apps_text
                     
                     # Отправляем сообщение пользователю

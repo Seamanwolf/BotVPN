@@ -27,7 +27,7 @@ TARIFFS = {
         "name": "3 месяца"
     },
     "test": {
-        "price": 0,
+        "price": 1,
         "days": 1,
         "name": "Тест (1 день)"
     }

@@ -153,15 +153,13 @@ class YooKassaClient:
             }
             
             async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.base_url}/payments/{payment_id}/receipts",
-                    json=receipt_data,
-                    headers={
-                        "Authorization": self.auth_header,
-                        "Idempotence-Key": str(uuid.uuid4()),
-                        "Content-Type": "application/json"
-                    }
-                )
+                # ЮKassa не поддерживает создание чеков через API для физ. лиц
+                # Чек создается автоматически при создании платежа
+                print(f"Чек будет создан автоматически ЮKassa для платежа {payment_id}")
+                return {
+                    "success": True,
+                    "message": "Чек будет создан автоматически ЮKassa"
+                }
                 
                 if response.status_code == 200:
                     return {
