@@ -94,6 +94,9 @@
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewUserSubscriptions({{ user.id }})" title="Подписки">
                                     <i class="fas fa-list"></i>
                                 </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="viewUserReferrals({{ user.id }})" title="Рефералы">
+                                    <i class="fas fa-users"></i>
+                                </button>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.full_name or user.telegram_id }}')" title="Удалить">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -131,6 +134,21 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="userSubscriptionsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно рефералов пользователя -->
+<div class="modal fade" id="userReferralsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Рефералы пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userReferralsContent">
                 <!-- Контент будет загружен динамически -->
             </div>
         </div>
@@ -335,6 +353,65 @@ function deleteSubscription(subscriptionId, planName) {
             alert('Ошибка при удалении подписки');
         });
     }
+}
+
+function viewUserReferrals(userId) {
+    fetch(`/api/user/${userId}/referrals`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const referrals = data.referrals;
+                const user = data.user;
+                let content = `<h6>Рефералы пользователя ${user.full_name || user.telegram_id}</h6>`;
+                content += `<p><strong>Реферальный код:</strong> <code>${user.referral_code}</code></p>`;
+                
+                if (referrals.length > 0) {
+                    content += `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Имя</th>
+                                        <th>Telegram ID</th>
+                                        <th>Email</th>
+                                        <th>Монеты</th>
+                                        <th>Первая покупка</th>
+                                        <th>Дата регистрации</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    referrals.forEach(ref => {
+                        const purchaseBadge = ref.has_made_first_purchase ? 
+                            `<span class="badge bg-success">Да</span>` : 
+                            `<span class="badge bg-secondary">Нет</span>`;
+                        
+                        content += `
+                            <tr>
+                                <td>${ref.id}</td>
+                                <td>${ref.full_name || 'Не указано'}</td>
+                                <td>${ref.telegram_id}</td>
+                                <td>${ref.email || 'Не указан'}</td>
+                                <td><span class="badge bg-warning">${ref.bonus_coins} 🪙</span></td>
+                                <td>${purchaseBadge}</td>
+                                <td>${ref.created_at}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    content += '</tbody></table></div>';
+                } else {
+                    content += '<p class="text-muted">У пользователя пока нет рефералов</p>';
+                }
+                
+                document.getElementById('userReferralsContent').innerHTML = content;
+                new bootstrap.Modal(document.getElementById('userReferralsModal')).show();
+            } else {
+                alert('Ошибка при загрузке рефералов пользователя');
+            }
+        });
 }
 
 function refreshUsers() {

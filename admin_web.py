@@ -238,6 +238,39 @@ def get_user_subscriptions(user_id):
     finally:
         db.close()
 
+@app.route('/api/user/<int:user_id>/referrals')
+@login_required
+def get_user_referrals(user_id):
+    """API для получения списка рефералов пользователя"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            referrals = db.query(User).filter(User.referred_by == user.id).order_by(User.created_at.desc()).all()
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'telegram_id': user.telegram_id,
+                    'full_name': user.full_name,
+                    'email': user.email,
+                    'referral_code': user.referral_code
+                },
+                'referrals': [{
+                    'id': ref.id,
+                    'telegram_id': ref.telegram_id,
+                    'full_name': ref.full_name,
+                    'email': ref.email,
+                    'bonus_coins': ref.bonus_coins,
+                    'has_made_first_purchase': ref.has_made_first_purchase,
+                    'created_at': ref.created_at.strftime('%d.%m.%Y %H:%M') if ref.created_at else None
+                } for ref in referrals]
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Пользователь не найден'})
+    finally:
+        db.close()
+
 @app.route('/api/user/<int:user_id>/delete', methods=['POST'])
 @login_required
 def delete_user(user_id):
