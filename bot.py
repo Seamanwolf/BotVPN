@@ -201,14 +201,7 @@ async def save_user(telegram_id: int, phone: str, full_name: str, email: str = N
         db.commit()
         db.refresh(user)
         
-        # Если пользователь пришел по реферальной ссылке, начисляем бонус пригласившему
-        if referred_by:
-            referrer.bonus_coins += REFERRAL_BONUS
-            db.commit()
-            
-            # Отправляем уведомление о реферальном бонусе
-            if notification_manager:
-                await notification_manager.notify_referral_bonus(referrer.id, full_name)
+        # Бонусы за рефералов начисляются только при первой покупке, а не при регистрации
         
         return user
     except ValueError as e:
@@ -713,6 +706,7 @@ async def tariff_handler(message: Message):
                         f"Тариф: {tariff_name}\n"
                         f"Стоимость: {cost_text}\n"
                         f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                        f"💎 Покупка за бонусные монеты\n\n"
                         f"Ваша конфигурация:\n`{config}`\n\n"
                         f"Скопируйте эту ссылку в ваш VPN клиент."
                         f"{apps_text}",
@@ -757,7 +751,7 @@ async def tariff_handler(message: Message):
                                 
                                 # Отправляем уведомление о реферальном бонусе
                                 if notification_manager:
-                                    await notification_manager.notify_referral_bonus(referrer.id, user.full_name)
+                                    await notification_manager.notify_referral_bonus(referrer.telegram_id, user.full_name)
                         finally:
                             db.close()
                 finally:
@@ -933,6 +927,9 @@ async def exchange_bonus_handler(message: Message):
                     # Обновляем пользователя в базе данных
                     db.merge(user)
                     db.commit()
+                    
+                    # Обновляем объект user в памяти
+                    user = db.query(User).filter(User.id == user.id).first()
                     
                     # Формируем ссылки на приложения
                     apps_text = "\n📱 **Рекомендуемые приложения:**\n\n"

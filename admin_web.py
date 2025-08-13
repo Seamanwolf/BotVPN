@@ -229,6 +229,8 @@ def get_user_subscriptions(user_id):
                     'plan': sub.plan,
                     'plan_name': sub.plan_name,
                     'status': sub.status,
+                    'subscription_number': sub.subscription_number,
+                    'unique_name': f"SeaMiniVpn-{user.telegram_id}-{sub.subscription_number}",
                     'created_at': sub.created_at.strftime('%d.%m.%Y %H:%M') if sub.created_at else None,
                     'expires_at': sub.expires_at.strftime('%d.%m.%Y %H:%M') if sub.expires_at else None
                 } for sub in subscriptions]

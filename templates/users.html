@@ -272,7 +272,10 @@ function viewUserSubscriptions(userId) {
                         content += `
                             <tr>
                                 <td>${sub.id}</td>
-                                <td>${sub.plan_name}</td>
+                                <td>
+                                    <div><strong>${sub.plan_name}</strong></div>
+                                    <small class="text-muted">${sub.unique_name}</small>
+                                </td>
                                 <td>${statusBadge}</td>
                                 <td>${dateDisplay}</td>
                                 <td>
