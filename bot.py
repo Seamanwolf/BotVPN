@@ -708,51 +708,49 @@ async def create_test_subscription(message: Message, user):
         if xui_result:
             config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
             
-            if config:
-                # Сохраняем подписку в БД
-                db = SessionLocal()
-                try:
-                    expires_at = datetime.utcnow() + timedelta(days=1)
-                    
-                    subscription = Subscription(
-                        user_id=user.id,
-                        plan="test",
-                        plan_name="Тестовый (1 день)",
-                        status="active",
-                        subscription_number=next_subscription_number,
-                        expires_at=expires_at
-                    )
-                    db.add(subscription)
-                    db.commit()
-                    
-                    # Формируем сообщение
-                    apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
-                    apps_text += "<b>Android:</b>\n"
-                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
-                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
-                    apps_text += "<b>iPhone:</b>\n"
-                    apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
-                    apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
-                    apps_text += "<b>Windows:</b>\n"
-                    
-                    # Отправляем сообщение с конфигурацией
-                    success_message = f"✅ <b>Тестовая подписка активирована!</b>\n\n"
-                    success_message += f"📋 <b>Тариф:</b> Тестовый (1 день)\n"
-                    success_message += f"💰 <b>Стоимость:</b> Бесплатно\n"
-                    success_message += f"⏰ <b>Действует до:</b> {expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-                    success_message += f"🔗 <b>Конфигурация:</b>\n"
-                    success_message += f"<code>{config['subscription_url']}</code>\n\n"
-                    success_message += apps_text
-                    
-                    await message.answer(success_message, parse_mode="HTML", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
-                    
-                finally:
-                    db.close()
-                    
-                else:
-                    await message.answer("❌ Ошибка получения конфигурации. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
-            else:
-                await message.answer("❌ Ошибка создания пользователя в 3xUI. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+            if not config:
+                await message.answer("❌ Ошибка получения конфигурации. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+                return
+                
+            # Сохраняем подписку в БД
+            db = SessionLocal()
+            try:
+                expires_at = datetime.utcnow() + timedelta(days=1)
+                
+                subscription = Subscription(
+                    user_id=user.id,
+                    plan="test",
+                    plan_name="Тестовый (1 день)",
+                    status="active",
+                    subscription_number=next_subscription_number,
+                    expires_at=expires_at
+                )
+                db.add(subscription)
+                db.commit()
+                
+                # Формируем сообщение
+                apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
+                apps_text += "<b>Android:</b>\n"
+                apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+                apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+                apps_text += "<b>iPhone:</b>\n"
+                apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+                apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+                apps_text += "<b>Windows:</b>\n"
+                
+                # Отправляем сообщение с конфигурацией
+                success_message = f"✅ <b>Тестовая подписка активирована!</b>\n\n"
+                success_message += f"📋 <b>Тариф:</b> Тестовый (1 день)\n"
+                success_message += f"💰 <b>Стоимость:</b> Бесплатно\n"
+                success_message += f"⏰ <b>Действует до:</b> {expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                success_message += f"🔗 <b>Конфигурация:</b>\n"
+                success_message += f"<code>{config['subscription_url']}</code>\n\n"
+                success_message += apps_text
+                
+                await message.answer(success_message, parse_mode="HTML", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+                
+            finally:
+                db.close()
         else:
             await message.answer("❌ Ошибка создания пользователя в 3xUI. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
     except Exception as e:
@@ -814,16 +812,6 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
     except Exception as e:
         print(f"Ошибка создания платежа: {e}")
         await message.answer("❌ Произошла ошибка при создании платежа. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
-            await message.answer(
-                "Ошибка при создании пользователя в системе. Обратитесь в поддержку.",
-                reply_markup=get_main_menu_keyboard()
-            )
-    except Exception as e:
-        print(f"Ошибка при создании подписки: {e}")
-        await message.answer(
-            "Произошла ошибка при создании подписки. Попробуйте позже или обратитесь в поддержку.",
-            reply_markup=get_main_menu_keyboard()
-        )
 
 # Обработчик синхронизации с 3xUI
 @dp.message(F.text == "🔄 Синхронизировать с 3xUI")
@@ -1367,6 +1355,189 @@ async def extend_subscription_handler(callback: CallbackQuery):
     except Exception as e:
         print(f"Ошибка при продлении подписки: {e}")
         await callback.answer("Произошла ошибка при продлении")
+
+@dp.callback_query(lambda c: c.data.startswith('check_payment_'))
+async def check_payment_handler(callback: CallbackQuery):
+    """Обработчик проверки платежа"""
+    try:
+        payment_id = callback.data.split('_')[2]
+        
+        # Проверяем статус платежа в ЮKassa
+        payment_status = yookassa_client.check_payment_status(payment_id)
+        
+        if not payment_status["success"]:
+            await callback.answer("❌ Ошибка проверки платежа", show_alert=True)
+            return
+        
+        if payment_status["paid"]:
+            # Платеж оплачен - создаем подписку
+            await process_paid_payment(callback, payment_id, payment_status)
+        else:
+            await callback.answer("⏳ Платеж еще не оплачен. Попробуйте позже.", show_alert=True)
+            
+    except Exception as e:
+        print(f"Ошибка проверки платежа: {e}")
+        await callback.answer("❌ Произошла ошибка", show_alert=True)
+
+@dp.callback_query(lambda c: c.data.startswith('cancel_payment_'))
+async def cancel_payment_handler(callback: CallbackQuery):
+    """Обработчик отмены платежа"""
+    try:
+        payment_id = callback.data.split('_')[2]
+        
+        # Обновляем статус платежа в БД
+        db = SessionLocal()
+        try:
+            payment = db.query(Payment).filter(Payment.yookassa_payment_id == payment_id).first()
+            if payment:
+                payment.status = "canceled"
+                db.commit()
+                await callback.answer("✅ Платеж отменен", show_alert=True)
+            else:
+                await callback.answer("❌ Платеж не найден", show_alert=True)
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Ошибка отмены платежа: {e}")
+        await callback.answer("❌ Произошла ошибка", show_alert=True)
+
+async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment_status: dict):
+    """Обработка оплаченного платежа"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем платеж из БД
+            payment = db.query(Payment).filter(Payment.yookassa_payment_id == payment_id).first()
+            if not payment:
+                await callback.answer("❌ Платеж не найден в БД", show_alert=True)
+                return
+            
+            # Проверяем, что платеж еще не обработан
+            if payment.status == "completed":
+                await callback.answer("✅ Платеж уже обработан", show_alert=True)
+                return
+            
+            # Получаем пользователя
+            user = db.query(User).filter(User.id == payment.user_id).first()
+            if not user:
+                await callback.answer("❌ Пользователь не найден", show_alert=True)
+                return
+            
+            # Определяем параметры подписки
+            tariff = payment.subscription_type
+            if tariff == "1m":
+                days = TARIFFS["1m"]["days"]
+                tariff_name = TARIFFS["1m"]["name"]
+            elif tariff == "3m":
+                days = TARIFFS["3m"]["days"]
+                tariff_name = TARIFFS["3m"]["name"]
+            else:
+                await callback.answer("❌ Неизвестный тариф", show_alert=True)
+                return
+            
+            # Создаем подписку в 3xUI
+            user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
+            
+            # Определяем следующий номер подписки
+            existing_subscriptions = db.query(Subscription).filter(Subscription.user_id == user.id).all()
+            next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
+            
+            xui_result = await xui_client.create_user(
+                user_email, 
+                days, 
+                f"{user.full_name} (PAID)", 
+                str(user.telegram_id), 
+                next_subscription_number
+            )
+            
+            if xui_result:
+                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
+                
+                if config:
+                    # Создаем подписку в БД
+                    expires_at = datetime.utcnow() + timedelta(days=days)
+                    
+                    subscription = Subscription(
+                        user_id=user.id,
+                        plan=tariff,
+                        plan_name=tariff_name,
+                        status="active",
+                        subscription_number=next_subscription_number,
+                        expires_at=expires_at
+                    )
+                    db.add(subscription)
+                    
+                    # Обновляем статус платежа
+                    payment.status = "completed"
+                    payment.completed_at = datetime.utcnow()
+                    
+                    db.commit()
+                    
+                    # Создаем чек
+                    if user.email:
+                        receipt_result = yookassa_client.create_receipt(
+                            payment_id, 
+                            user.email, 
+                            payment.amount, 
+                            payment.description
+                        )
+                        if receipt_result["success"]:
+                            payment.receipt_sent = True
+                            db.commit()
+                    
+                    # Формируем сообщение с конфигурацией
+                    apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
+                    apps_text += "<b>Android:</b>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+                    apps_text += "<b>iPhone:</b>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+                    apps_text += "<b>Windows:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
+                    apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
+                    apps_text += "<b>Mac:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
+                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
+                    
+                    success_message = f"✅ <b>Оплата прошла успешно!</b>\n\n"
+                    success_message += f"📋 <b>Тариф:</b> {tariff_name}\n"
+                    success_message += f"💰 <b>Сумма:</b> {payment.amount}₽\n"
+                    success_message += f"⏰ <b>Действует до:</b> {expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                    success_message += f"🔗 <b>Конфигурация:</b>\n"
+                    success_message += f"<code>{config['subscription_url']}</code>\n\n"
+                    success_message += apps_text
+                    
+                    # Отправляем сообщение пользователю
+                    await callback.message.edit_text(success_message, parse_mode="HTML")
+                    await callback.answer("✅ Подписка активирована!", show_alert=True)
+                    
+                    # Начисляем реферальный бонус только при первой покупке
+                    if user.referred_by and not user.has_made_first_purchase:
+                        referrer = db.query(User).filter(User.id == user.referred_by).first()
+                        if referrer:
+                            referrer.bonus_coins += REFERRAL_BONUS
+                            user.has_made_first_purchase = True
+                            db.merge(referrer)
+                            db.merge(user)
+                            db.commit()
+                            
+                            # Отправляем уведомление о реферальном бонусе
+                            if notification_manager:
+                                await notification_manager.notify_referral_bonus(referrer.telegram_id, user.full_name)
+                    
+                else:
+                    await callback.answer("❌ Ошибка получения конфигурации", show_alert=True)
+            else:
+                await callback.answer("❌ Ошибка создания подписки", show_alert=True)
+                
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Ошибка обработки оплаченного платежа: {e}")
+        await callback.answer("❌ Произошла ошибка", show_alert=True)
 
 # Функция запуска бота
 async def main():
