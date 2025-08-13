@@ -71,7 +71,7 @@
                                 <span class="badge bg-warning">{{ user.bonus_coins }} 🪙</span>
                             </td>
                             <td>
-                                {% set user_subscriptions = subscriptions|selectattr("user_id", "equalto", user.id)|list %}
+                                {% set user_subscriptions = subscriptions|selectattr("user_id", "equalto", user.id)|selectattr("status", "equalto", "active")|list %}
                                 {% if user_subscriptions %}
                                     <span class="badge bg-success">{{ user_subscriptions|length }} активных</span>
                                 {% else %}
@@ -211,7 +211,33 @@ function viewUserSubscriptions(userId) {
                     `;
                     
                     subscriptions.forEach(sub => {
-                        const daysLeft = Math.ceil((new Date(sub.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+                        // Парсим дату из формата dd.mm.yyyy HH:MM
+                        let expiresDate = null;
+                        let daysLeft = 0;
+                        let dateDisplay = 'Не указана';
+                        
+                        if (sub.expires_at) {
+                            try {
+                                // Парсим дату из формата dd.mm.yyyy HH:MM
+                                const [datePart, timePart] = sub.expires_at.split(' ');
+                                const [day, month, year] = datePart.split('.');
+                                const [hour, minute] = timePart.split(':');
+                                
+                                expiresDate = new Date(year, month - 1, day, hour, minute);
+                                daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
+                                
+                                if (daysLeft > 0) {
+                                    dateDisplay = `${expiresDate.toLocaleDateString()} (${daysLeft} дн.)`;
+                                } else if (daysLeft === 0) {
+                                    dateDisplay = `${expiresDate.toLocaleDateString()} (истекает сегодня)`;
+                                } else {
+                                    dateDisplay = `${expiresDate.toLocaleDateString()} (истекла)`;
+                                }
+                            } catch (e) {
+                                dateDisplay = sub.expires_at;
+                            }
+                        }
+                        
                         const statusBadge = sub.status === 'active' ? 
                             `<span class="badge bg-success">Активна</span>` : 
                             `<span class="badge bg-secondary">${sub.status}</span>`;
@@ -221,10 +247,13 @@ function viewUserSubscriptions(userId) {
                                 <td>${sub.id}</td>
                                 <td>${sub.plan_name}</td>
                                 <td>${statusBadge}</td>
-                                <td>${new Date(sub.expires_at).toLocaleDateString()} (${daysLeft} дн.)</td>
+                                <td>${dateDisplay}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails(${sub.id})">
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails(${sub.id})" title="Просмотр">
                                         <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSubscription(${sub.id}, '${sub.plan_name}')" title="Удалить">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -271,6 +300,32 @@ function confirmDeleteUser() {
     .catch(error => {
         alert('Ошибка при удалении пользователя');
     });
+}
+
+function deleteSubscription(subscriptionId, planName) {
+    if (confirm(`Вы уверены, что хотите удалить подписку "${planName}"?`)) {
+        fetch(`/api/subscription/${subscriptionId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Подписка успешно удалена');
+                // Закрываем модальное окно и обновляем страницу
+                const modal = bootstrap.Modal.getInstance(document.getElementById('userSubscriptionsModal'));
+                if (modal) modal.hide();
+                location.reload();
+            } else {
+                alert('Ошибка при удалении: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Ошибка при удалении подписки');
+        });
+    }
 }
 
 function refreshUsers() {

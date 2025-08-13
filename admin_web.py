@@ -127,7 +127,11 @@ def users():
         
         # Исключаем администраторов из списка пользователей
         users = db.query(User).filter(~User.telegram_id.in_(admin_telegram_ids)).order_by(User.created_at.desc()).all()
-        return render_template('users.html', users=users)
+        
+        # Получаем все подписки для подсчета
+        subscriptions = db.query(Subscription).all()
+        
+        return render_template('users.html', users=users, subscriptions=subscriptions)
     finally:
         db.close()
 
