@@ -277,33 +277,41 @@ class XUIClient:
                 clients = settings.get("clients", [])
                 
                 # Ищем клиента с нужным email
-                for client in clients:
+                for i, client in enumerate(clients):
                     if client.get("email") == email:
-                        # Используем правильный API для удаления клиента
+                        # Удаляем клиента из списка
+                        clients.pop(i)
+                        
+                        # Обновляем inbound с новым списком клиентов
                         payload = {
                             "id": inbound.get("id"),
                             "settings": json.dumps({
-                                "clients": [client]  # Передаем только клиента для удаления
+                                "clients": clients
                             })
                         }
                         
-                        # Используем API для удаления клиента
-                        delete_url = f"{self.base_url}/panel/api/inbounds/delClient"
+                        # Используем API для обновления inbound
+                        update_url = f"{self.base_url}/panel/api/inbounds/update/{inbound.get('id')}"
                         response = await self.client.post(
-                            delete_url,
+                            update_url,
                             json=payload,
                             cookies=self.session_cookies,
                             headers={"Content-Type": "application/json", "Accept": "application/json"}
                         )
                         
                         if response.status_code == 200:
-                            result = response.json()
-                            if result.get("success"):
-                                print(f"Пользователь {email} успешно удален из 3xUI")
+                            try:
+                                result = response.json()
+                                if result.get("success"):
+                                    print(f"Пользователь {email} успешно удален из 3xUI")
+                                    return True
+                                else:
+                                    print(f"Ошибка удаления пользователя: {result.get('msg', 'Неизвестная ошибка')}")
+                                    return False
+                            except json.JSONDecodeError:
+                                # Если ответ не JSON, но статус 200, считаем успехом
+                                print(f"Пользователь {email} успешно удален из 3xUI (не JSON ответ)")
                                 return True
-                            else:
-                                print(f"Ошибка удаления пользователя: {result.get('msg', 'Неизвестная ошибка')}")
-                                return False
                         else:
                             print(f"Ошибка HTTP при удалении пользователя: {response.status_code}")
                             return False
