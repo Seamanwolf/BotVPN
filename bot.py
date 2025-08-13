@@ -393,69 +393,56 @@ async def main_menu_handler(message: Message):
         )
     
     elif message.text == "🔑 Мои ключи":
-        # Получаем активную подписку и конфигурацию
+        # Получаем все активные подписки и конфигурации
         db = SessionLocal()
         try:
-            active_subscription = db.query(Subscription).filter(
+            active_subscriptions = db.query(Subscription).filter(
                 Subscription.user_id == user.id,
                 Subscription.status == "active",
                 Subscription.expires_at > datetime.utcnow()
-            ).first()
+            ).order_by(Subscription.subscription_number).all()
             
-            if active_subscription:
-                # Получаем актуальную конфигурацию из 3xUI
-                user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
-                try:
-                    config = await xui_client.get_user_config(user_email, active_subscription.subscription_number)
-                except Exception as e:
-                    print(f"Ошибка при получении конфигурации: {e}")
-                    config = None
+            if active_subscriptions:
+                message_text = f"🔑 Ваши ключи\n\n"
+                configs_found = 0
                 
-                # Проверяем, нужно ли показывать кнопки продления
-                days_left = (active_subscription.expires_at - datetime.utcnow()).days
-                show_extend_buttons = days_left <= 7  # Показываем кнопки за неделю до истечения
+                for subscription in active_subscriptions:
+                    # Получаем актуальную конфигурацию из 3xUI по уникальному email
+                    unique_email = f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}"
+                    try:
+                        config = await xui_client.get_user_config(unique_email, subscription.subscription_number)
+                    except Exception as e:
+                        print(f"Ошибка при получении конфигурации: {e}")
+                        config = None
+                    
+                    if config:
+                        configs_found += 1
+                        days_left = (subscription.expires_at - datetime.utcnow()).days
+                        
+                        message_text += f"**Подписка #{subscription.subscription_number}**\n"
+                        message_text += f"Тариф: {subscription.plan_name}\n"
+                        message_text += f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
+                        
+                        if days_left <= 0:
+                            message_text += f"⚠️ Подписка истекла!\n"
+                        elif days_left <= 3:
+                            message_text += f"⚠️ Подписка истекает через {days_left} дней!\n"
+                        elif days_left <= 7:
+                            message_text += f"📅 Подписка истекает через {days_left} дней\n"
+                        else:
+                            message_text += f"✅ Подписка активна\n"
+                        
+                        message_text += f"Конфигурация:\n`{config}`\n\n"
                 
-                if config:
-                    message_text = (
-                        f"🔑 Ваши ключи\n\n"
-                        f"Тариф: {active_subscription.plan}\n"
-                        f"Действует до: {active_subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
-                    )
-                    
-                    if days_left <= 0:
-                        message_text += f"⚠️ Подписка истекла!\n"
-                    elif days_left <= 3:
-                        message_text += f"⚠️ Подписка истекает через {days_left} дней!\n"
-                    elif days_left <= 7:
-                        message_text += f"📅 Подписка истекает через {days_left} дней\n"
-                    else:
-                        message_text += f"✅ Подписка активна\n"
-                    
-                    message_text += f"\nКонфигурация:\n`{config}`"
-                    
-                    # Создаем клавиатуру только если подписка активна и нужно показать кнопки
-                    if show_extend_buttons and active_subscription.status == "active":
-                        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="💳 Продлить на 1 месяц (149₽)", callback_data=f"extend_1m_{active_subscription.id}"),
-                                InlineKeyboardButton(text="💳 Продлить на 3 месяца (399₽)", callback_data=f"extend_3m_{active_subscription.id}")
-                            ]
-                        ])
-                        await message.answer(
-                            message_text,
-                            parse_mode="Markdown",
-                            reply_markup=keyboard
-                        )
-                    else:
-                        await message.answer(
-                            message_text,
-                            parse_mode="Markdown",
-                            reply_markup=get_user_keyboard(message.from_user.id)
-                        )
-                else:
-                    # Если конфигурация недоступна, значит ключ удален из 3xUI
+                if configs_found > 0:
                     await message.answer(
-                        "У вас нет ключей.",
+                        message_text,
+                        parse_mode="Markdown",
+                        reply_markup=get_user_keyboard(message.from_user.id)
+                    )
+                else:
+                    await message.answer(
+                        "У вас нет активных ключей.",
                         reply_markup=get_user_keyboard(message.from_user.id)
                     )
             else:
@@ -577,26 +564,26 @@ async def main_menu_handler(message: Message):
     
     elif message.text == "❓ Помощь":
         help_text = "❓ Помощь\n\n"
-        help_text += f"• Для технической поддержки: t.me/{SUPPORT_BOT}\n"
+        help_text += f"• Для технической поддержки: t\\.me/{SUPPORT_BOT}\n"
         help_text += "• Время работы поддержки: 24/7\n\n"
         help_text += "📱 Как подключить VPN:\n\n"
-        help_text += "**Для Android:**\n"
-        help_text += "• V2rayNG: https://play.google.com/store/apps/details?id=com.v2ray.ang\n"
-        help_text += "• Clash for Android: https://play.google.com/store/apps/details?id=com.github.kr328.clash\n\n"
-        help_text += "**Для iPhone:**\n"
-        help_text += "• Streisand: https://apps.apple.com/app/streisand/id6450534064\n"
-        help_text += "• Shadowrocket: https://apps.apple.com/app/shadowrocket/id932747118\n\n"
-        help_text += "**Для Windows:**\n"
-        help_text += "• Hiddify: https://github.com/hiddify/hiddify-next/releases\n"
-        help_text += "• V2rayN: https://github.com/2dust/v2rayN/releases\n\n"
-        help_text += "**Для Mac:**\n"
-        help_text += "• FoxRay: https://github.com/hiddify/hiddify-next/releases\n"
-        help_text += "• ClashX: https://github.com/yichengchen/clashX/releases\n\n"
-        help_text += "**Инструкция по подключению:**\n"
-        help_text += "1. Скачайте приложение для вашей платформы\n"
-        help_text += "2. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
-        help_text += "3. Вставьте ссылку в приложение\n"
-        help_text += "4. Нажмите 'Подключить'\n\n"
+        help_text += "*Для Android:*\n"
+        help_text += "• V2rayNG: https://play\\.google\\.com/store/apps/details?id=com\\.v2ray\\.ang\n"
+        help_text += "• Clash for Android: https://play\\.google\\.com/store/apps/details?id=com\\.github\\.kr328\\.clash\n\n"
+        help_text += "*Для iPhone:*\n"
+        help_text += "• Streisand: https://apps\\.apple\\.com/app/streisand/id6450534064\n"
+        help_text += "• Shadowrocket: https://apps\\.apple\\.com/app/shadowrocket/id932747118\n\n"
+        help_text += "*Для Windows:*\n"
+        help_text += "• Hiddify: https://github\\.com/hiddify/hiddify\\-next/releases\n"
+        help_text += "• V2rayN: https://github\\.com/2dust/v2rayN/releases\n\n"
+        help_text += "*Для Mac:*\n"
+        help_text += "• FoxRay: https://github\\.com/hiddify/hiddify\\-next/releases\n"
+        help_text += "• ClashX: https://github\\.com/yichengchen/clashX/releases\n\n"
+        help_text += "*Инструкция по подключению:*\n"
+        help_text += "1\\. Скачайте приложение для вашей платформы\n"
+        help_text += "2\\. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
+        help_text += "3\\. Вставьте ссылку в приложение\n"
+        help_text += "4\\. Нажмите 'Подключить'\n\n"
         help_text += "Если у вас есть вопросы, не стесняйтесь обращаться!"
         
         await message.answer(
@@ -643,16 +630,32 @@ async def tariff_handler(message: Message):
             days = 1
         # Для остальных тарифов используем days из конфигурации
             
-        xui_result = await xui_client.create_user(user_email, days, f"TG: {user.telegram_id} {user.full_name} (PAID)", str(user.telegram_id))
+        # Определяем следующий номер подписки для пользователя
+        db = SessionLocal()
+        try:
+            existing_subscriptions = db.query(Subscription).filter(
+                Subscription.user_id == user.id
+            ).all()
+            next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
+        finally:
+            db.close()
+            
+        xui_result = await xui_client.create_user(
+            user_email, 
+            days, 
+            f"{user.full_name} (PAID)", 
+            str(user.telegram_id), 
+            next_subscription_number
+        )
         
         if xui_result:
             # Проверяем, был ли создан новый пользователь или используется существующий
             if xui_result.get("existing"):
                 # Используем существующую конфигурацию
-                config = await xui_client.get_user_config(user_email)
+                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
             else:
                 # Получаем конфигурацию для нового пользователя
-                config = await xui_client.get_user_config(user_email)
+                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
             
             if config:
                 # Формируем сообщение в зависимости от тарифа
@@ -671,12 +674,6 @@ async def tariff_handler(message: Message):
                         expires_at = datetime.utcnow() + timedelta(days=1)
                     else:
                         expires_at = datetime.utcnow() + timedelta(days=days)
-                    
-                    # Определяем следующий номер подписки для пользователя
-                    existing_subscriptions = db.query(Subscription).filter(
-                        Subscription.user_id == user.id
-                    ).all()
-                    next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
                     
                     subscription = Subscription(
                         user_id=user.id,
@@ -786,49 +783,57 @@ async def sync_handler(message: Message):
     await message.answer("🔄 Синхронизация с 3xUI...")
     
     try:
-        # Синхронизируем подписки
-        sync_result = await xui_client.sync_subscriptions()
+        # Получаем все активные подписки пользователя
+        db = SessionLocal()
+        try:
+            active_subscriptions = db.query(Subscription).filter(
+                Subscription.user_id == user.id,
+                Subscription.status == "active",
+                Subscription.expires_at > datetime.utcnow()
+            ).order_by(Subscription.subscription_number).all()
+        finally:
+            db.close()
         
-        if sync_result["success"]:
-            # Проверяем, есть ли активные клиенты для этого пользователя
-            user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
-            active_clients = sync_result["active_clients"]
-            
-            user_found = False
-            for client in active_clients:
-                if client["email"] == user_email:
-                    user_found = True
-                    break
-            
-            if user_found:
-                # Получаем обновленную конфигурацию
-                config = await xui_client.get_user_config(user_email)
-                
-                if config:
-                    await message.answer(
-                        f"✅ Синхронизация завершена!\n\n"
-                        f"🔗 Обновленная конфигурация:\n`{config}`",
-                        parse_mode="Markdown",
-                        reply_markup=get_main_menu_keyboard()
-                    )
-                else:
-                    await message.answer(
-                        "❌ Конфигурация недоступна после синхронизации",
-                        reply_markup=get_main_menu_keyboard()
-                    )
-            else:
-                # Пользователь не найден в 3xUI - возможно, ключ был удален
-                await message.answer(
-                    "❌ Ваш ключ не найден в 3xUI. Возможно, он был удален.\n\n"
-                    "Для восстановления доступа купите новую подписку в разделе 'Купить ключ'.",
-                    reply_markup=get_main_menu_keyboard()
-                )
-        else:
+        if not active_subscriptions:
             await message.answer(
-                f"❌ Ошибка синхронизации: {sync_result['msg']}",
+                "У вас нет активных ключей.",
                 reply_markup=get_main_menu_keyboard()
             )
-            
+            return
+        
+        # Собираем актуальные конфигурации по уникальным email
+        message_text = "✅ Синхронизация завершена!\n\n"
+        any_found = False
+        for subscription in active_subscriptions:
+            unique_email = f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}"
+            config = await xui_client.get_user_config(unique_email, subscription.subscription_number)
+            if config:
+                any_found = True
+                days_left = (subscription.expires_at - datetime.utcnow()).days
+                message_text += f"**Подписка #{subscription.subscription_number}**\n"
+                message_text += f"Тариф: {subscription.plan_name}\n"
+                message_text += f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
+                if days_left <= 0:
+                    message_text += "⚠️ Подписка истекла!\n"
+                elif days_left <= 3:
+                    message_text += f"⚠️ Подписка истекает через {days_left} дней!\n"
+                elif days_left <= 7:
+                    message_text += f"📅 Подписка истекает через {days_left} дней\n"
+                else:
+                    message_text += "✅ Подписка активна\n"
+                message_text += f"Конфигурация:\n`{config}`\n\n"
+        
+        if any_found:
+            await message.answer(
+                message_text,
+                parse_mode="Markdown",
+                reply_markup=get_main_menu_keyboard()
+            )
+        else:
+            await message.answer(
+                "❌ Конфигурации не найдены. Обратитесь в поддержку.",
+                reply_markup=get_main_menu_keyboard()
+            )
     except Exception as e:
         await message.answer(
             f"❌ Ошибка при синхронизации: {e}",
@@ -872,26 +877,38 @@ async def exchange_bonus_handler(message: Message):
     try:
         user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
         days = months * 30
-        xui_result = await xui_client.create_user(user_email, days, f"TG: {user.telegram_id} {user.full_name} (BONUS)", str(user.telegram_id))
+        
+        # Определяем следующий номер подписки для пользователя
+        db = SessionLocal()
+        try:
+            existing_subscriptions = db.query(Subscription).filter(
+                Subscription.user_id == user.id
+            ).all()
+            next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
+        finally:
+            db.close()
+            
+        xui_result = await xui_client.create_user(
+            user_email, 
+            days, 
+            f"{user.full_name} (BONUS)", 
+            str(user.telegram_id), 
+            next_subscription_number
+        )
         
         if xui_result:
             # Проверяем, был ли создан новый пользователь или используется существующий
             if xui_result.get("existing"):
                 # Используем существующую конфигурацию
-                config = await xui_client.get_user_config(user_email)
+                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
             else:
                 # Получаем конфигурацию для нового пользователя
-                config = await xui_client.get_user_config(user_email)
+                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
             
             if config:
                 # Сохраняем подписку в БД
                 db = SessionLocal()
                 try:
-                    # Определяем следующий номер подписки для пользователя
-                    existing_subscriptions = db.query(Subscription).filter(
-                        Subscription.user_id == user.id
-                    ).all()
-                    next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
                     
                     subscription = Subscription(
                         user_id=user.id,
@@ -1209,8 +1226,9 @@ async def extend_subscription_handler(callback: CallbackQuery):
                 xui_result = await xui_client.create_user(
                     user_email, 
                     days, 
-                    f"TG: {user.telegram_id} {user.full_name} (EXTENDED)", 
-                    str(user.telegram_id)
+                    f"{user.full_name} (EXTENDED)", 
+                    str(user.telegram_id),
+                    subscription.subscription_number
                 )
             else:
                 # Если подписка еще активна, добавляем дни к существующему
@@ -1221,13 +1239,14 @@ async def extend_subscription_handler(callback: CallbackQuery):
                 xui_result = await xui_client.create_user(
                     user_email, 
                     days, 
-                    f"TG: {user.telegram_id} {user.full_name} (EXTENDED)", 
-                    str(user.telegram_id)
+                    f"{user.full_name} (EXTENDED)", 
+                    str(user.telegram_id),
+                    subscription.subscription_number
                 )
             
             if xui_result:
                 # Получаем новую конфигурацию
-                config = await xui_client.get_user_config(user_email)
+                config = await xui_client.get_user_config(xui_result["email"], subscription.subscription_number)
                 
                 if config:
                     # Обновляем подписку в БД

@@ -53,17 +53,20 @@ class XUIClient:
             print(f"Ошибка при получении inbounds: {e}")
             return None
     
-    async def create_user(self, email: str, days: int = 30, note: str = "", tg_id: str = "") -> Optional[Dict[str, Any]]:
+    async def create_user(self, user_email: str, days: int = 30, note: str = "", tg_id: str = "", subscription_number: int = 1) -> Optional[Dict[str, Any]]:
         """Создание пользователя в 3xUI используя addClient API"""
         await self.ensure_login()
         try:
-            # Проверяем, существует ли уже пользователь с таким email
-            existing_config = await self.get_user_config(email)
+            # Создаем уникальный ключ для email в формате SeaMiniVpn-{tg_id}-{subscription_number}
+            unique_email = f"SeaMiniVpn-{tg_id}-{subscription_number}"
+            
+            # Проверяем, существует ли уже пользователь с таким уникальным ключом
+            existing_config = await self.get_user_config(unique_email, subscription_number)
             if existing_config:
-                print(f"Пользователь с email {email} уже существует, используем существующую конфигурацию")
+                print(f"Пользователь с уникальным ключом {unique_email} уже существует, используем существующую конфигурацию")
                 return {
                     "success": True,
-                    "email": email,
+                    "email": unique_email,
                     "existing": True
                 }
             
@@ -102,8 +105,8 @@ class XUIClient:
                 print("Не найден активный inbound")
                 return None
             
-            # Формируем комментарий с TG ID, именем и типом покупки
-            comment = f"TG: {tg_id} {note}"
+            # Формируем комментарий с полной информацией пользователя
+            comment = f"Email: {user_email} | Name: {note} | TG: {tg_id}"
             
             payload = {
                 "id": inbound_id,  # Используем правильный ID inbound
@@ -112,7 +115,7 @@ class XUIClient:
                         {
                             "id": vless_id,
                             "flow": "xtls-rprx-vision",
-                            "email": email,
+                            "email": unique_email,  # Используем уникальный ключ
                             "limitIp": 3,
                             "totalGB": 0,
                             "expiryTime": expiry_time_ms,
@@ -120,7 +123,7 @@ class XUIClient:
                             "tgId": str(tg_id),
                             "subId": sub_id,
                             "reset": 0,
-                            "comment": comment  # Добавляем комментарий с TG ID и именем
+                            "comment": comment  # Добавляем полную информацию в комментарий
                         }
                     ]
                 })
@@ -137,10 +140,11 @@ class XUIClient:
             if response.status_code == 200:
                 result = response.json()
                 if result.get("success"):
-                    print(f"Пользователь {email} успешно создан в 3xUI на inbound {inbound_id}")
+                    print(f"Пользователь {unique_email} успешно создан в 3xUI на inbound {inbound_id}")
                     return {
                         "success": True,
-                        "email": email,
+                        "email": unique_email,
+                        "user_email": user_email,  # Сохраняем оригинальный email
                         "vless_id": vless_id,
                         "sub_id": sub_id,
                         "expiry_time": expiry_time_ms
@@ -178,7 +182,6 @@ class XUIClient:
                         # Формируем ссылку в правильном формате
                         from config import XUI_BASE_URL, XUI_WEBBASEPATH
                         server_host = XUI_BASE_URL
-                        sub_id = client.get("subId", "")
                         tg_id = client.get("tgId", "")
                         
                         # Создаем ссылку в формате как на сайте
