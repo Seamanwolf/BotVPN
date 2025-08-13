@@ -133,7 +133,7 @@ def users():
         
         # Подсчитываем количество рефералов для каждого пользователя
         for user in users:
-            user.referrals_count = db.query(User).filter(User.referred_by == user.referral_code).count()
+            user.referrals_count = db.query(User).filter(User.referred_by == user.id).count()
         
         return render_template('users.html', users=users, subscriptions=subscriptions)
     finally:
@@ -175,7 +175,7 @@ def get_user_details(user_id):
         if user:
             subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
             # Подсчитываем количество рефералов
-            referrals_count = db.query(User).filter(User.referred_by == user.referral_code).count()
+            referrals_count = db.query(User).filter(User.referred_by == user.id).count()
             
             return jsonify({
                 'success': True,
