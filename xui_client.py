@@ -160,6 +160,12 @@ class XUIClient:
             print(f"Ошибка при создании пользователя: {e}")
             return None
     
+    def generate_subscription_link(self, sub_id: str, tg_id: str, subscription_number: int) -> str:
+        """Генерация правильной ссылки подписки"""
+        from config import XUI_BASE_URL, XUI_WEBBASEPATH
+        # Формируем ссылку в правильном формате для 3xUI
+        return f"https://{XUI_BASE_URL}/{XUI_WEBBASEPATH}/sub/{sub_id}"
+    
     async def get_user_config(self, email: str, subscription_number: int = 1) -> Optional[str]:
         """Получение конфигурации пользователя"""
         await self.ensure_login()
@@ -179,13 +185,17 @@ class XUIClient:
                 
                 for client in clients:
                     if client.get("email") == email:
-                        # Формируем ссылку в правильном формате
-                        from config import XUI_BASE_URL, XUI_WEBBASEPATH
-                        server_host = XUI_BASE_URL
+                        # Получаем sub_id из клиента
+                        sub_id = client.get("subId", "")
                         tg_id = client.get("tgId", "")
                         
-                        # Создаем ссылку в формате как на сайте
-                        config = f"https://{server_host}/sea/SeaMiniVpn-{tg_id}-{subscription_number}"
+                        if sub_id:
+                            # Используем правильную функцию генерации ссылки
+                            config = self.generate_subscription_link(sub_id, tg_id, subscription_number)
+                        else:
+                            # Fallback на старый формат, если sub_id не найден
+                            from config import XUI_BASE_URL
+                            config = f"https://{XUI_BASE_URL}/sea/SeaMiniVpn-{tg_id}-{subscription_number}"
                         
                         return config
             
