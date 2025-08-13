@@ -193,6 +193,37 @@ def get_user_details(user_id):
     finally:
         db.close()
 
+@app.route('/api/user/<int:user_id>/subscriptions')
+@login_required
+def get_user_subscriptions(user_id):
+    """API для получения подписок пользователя"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'telegram_id': user.telegram_id,
+                    'full_name': user.full_name,
+                    'email': user.email
+                },
+                'subscriptions': [{
+                    'id': sub.id,
+                    'plan': sub.plan,
+                    'plan_name': sub.plan_name,
+                    'status': sub.status,
+                    'created_at': sub.created_at.strftime('%d.%m.%Y %H:%M') if sub.created_at else None,
+                    'expires_at': sub.expires_at.strftime('%d.%m.%Y %H:%M') if sub.expires_at else None
+                } for sub in subscriptions]
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Пользователь не найден'})
+    finally:
+        db.close()
+
 @app.route('/api/user/<int:user_id>/delete', methods=['POST'])
 @login_required
 def delete_user(user_id):

@@ -69,8 +69,8 @@ class NotificationManager:
             
             # Кнопки для оплаты
             money_row = []
-            money_row.append(InlineKeyboardButton(text="💳 Продлить на 1 месяц (299₽)", callback_data=f"extend_1m_{subscription.id}"))
-            money_row.append(InlineKeyboardButton(text="💳 Продлить на 3 месяца (799₽)", callback_data=f"extend_3m_{subscription.id}"))
+            money_row.append(InlineKeyboardButton(text="💳 Продлить на 1 месяц (149₽)", callback_data=f"extend_1m_{subscription.id}"))
+            money_row.append(InlineKeyboardButton(text="💳 Продлить на 3 месяца (399₽)", callback_data=f"extend_3m_{subscription.id}"))
             keyboard_buttons.append(money_row)
             
             # Кнопки для бонусных монет (если у пользователя достаточно монет)
