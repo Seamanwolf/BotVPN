@@ -736,19 +736,19 @@ async def tariff_handler(message: Message):
                     db.commit()
                     
                     # Формируем ссылки на приложения
-                    apps_text = "\n📱 **Рекомендуемые приложения:**\n\n"
-                    apps_text += "**Android:**\n"
-                    apps_text += "• V2rayNG: https://play.google.com/store/apps/details?id=com.v2ray.ang\n"
-                    apps_text += "• Clash for Android: https://play.google.com/store/apps/details?id=com.github.kr328.clash\n\n"
-                    apps_text += "**iPhone:**\n"
-                    apps_text += "• Streisand: https://apps.apple.com/app/streisand/id6450534064\n"
-                    apps_text += "• Shadowrocket: https://apps.apple.com/app/shadowrocket/id932747118\n\n"
-                    apps_text += "**Windows:**\n"
-                    apps_text += "• Hiddify: https://github.com/hiddify/hiddify-next/releases\n"
-                    apps_text += "• V2rayN: https://github.com/2dust/v2rayN/releases\n\n"
-                    apps_text += "**Mac:**\n"
-                    apps_text += "• FoxRay: https://github.com/hiddify/hiddify-next/releases\n"
-                    apps_text += "• ClashX: https://github.com/yichengchen/clashX/releases\n\n"
+                    apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
+                    apps_text += "<b>Android:</b>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+                    apps_text += "<b>iPhone:</b>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+                    apps_text += "<b>Windows:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
+                    apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
+                    apps_text += "<b>Mac:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
+                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
                     
                     await message.answer(
                         f"✅ Подписка активирована!\n\n"
@@ -756,10 +756,10 @@ async def tariff_handler(message: Message):
                         f"Стоимость: {cost_text}\n"
                         f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
                         f"💎 Покупка за бонусные монеты\n\n"
-                        f"Ваша конфигурация:\n`{config}`\n\n"
+                        f"Ваша конфигурация:\n<code>{config}</code>\n\n"
                         f"Скопируйте эту ссылку в ваш VPN клиент."
                         f"{apps_text}",
-                        parse_mode="Markdown",
+                        parse_mode="HTML",
                         reply_markup=get_user_keyboard(message.from_user.id)
                     )
                     
@@ -981,19 +981,19 @@ async def exchange_bonus_handler(message: Message):
                     user = db.query(User).filter(User.id == user.id).first()
                     
                     # Формируем ссылки на приложения
-                    apps_text = "\n📱 **Рекомендуемые приложения:**\n\n"
-                    apps_text += "**Android:**\n"
-                    apps_text += "• V2rayNG: https://play.google.com/store/apps/details?id=com.v2ray.ang\n"
-                    apps_text += "• Clash for Android: https://play.google.com/store/apps/details?id=com.github.kr328.clash\n\n"
-                    apps_text += "**iPhone:**\n"
-                    apps_text += "• Streisand: https://apps.apple.com/app/streisand/id6450534064\n"
-                    apps_text += "• Shadowrocket: https://apps.apple.com/app/shadowrocket/id932747118\n\n"
-                    apps_text += "**Windows:**\n"
-                    apps_text += "• Hiddify: https://github.com/hiddify/hiddify-next/releases\n"
-                    apps_text += "• V2rayN: https://github.com/2dust/v2rayN/releases\n\n"
-                    apps_text += "**Mac:**\n"
-                    apps_text += "• FoxRay: https://github.com/hiddify/hiddify-next/releases\n"
-                    apps_text += "• ClashX: https://github.com/yichengchen/clashX/releases\n\n"
+                    apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
+                    apps_text += "<b>Android:</b>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+                    apps_text += "<b>iPhone:</b>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+                    apps_text += "<b>Windows:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
+                    apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
+                    apps_text += "<b>Mac:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
+                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
                     
                     await message.answer(
                         f"✅ Бонусная подписка активирована!\n\n"
@@ -1001,10 +1001,10 @@ async def exchange_bonus_handler(message: Message):
                         f"Списано монет: {required_coins} 🪙\n"
                         f"Остаток монет: {user.bonus_coins} 🪙\n"
                         f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y')}\n\n"
-                        f"Ваша конфигурация:\n`{config}`\n\n"
+                        f"Ваша конфигурация:\n<code>{config}</code>\n\n"
                         f"Скопируйте эту ссылку в ваш VPN клиент."
                         f"{apps_text}",
-                        parse_mode="Markdown",
+                        parse_mode="HTML",
                         reply_markup=get_user_keyboard(message.from_user.id)
                     )
                     
@@ -1321,19 +1321,19 @@ async def extend_subscription_handler(callback: CallbackQuery):
                     db.commit()
                     
                     # Формируем ссылки на приложения
-                    apps_text = "\n📱 **Рекомендуемые приложения:**\n\n"
-                    apps_text += "**Android:**\n"
-                    apps_text += "• V2rayNG: https://play.google.com/store/apps/details?id=com.v2ray.ang\n"
-                    apps_text += "• Clash for Android: https://play.google.com/store/apps/details?id=com.github.kr328.clash\n\n"
-                    apps_text += "**iPhone:**\n"
-                    apps_text += "• Streisand: https://apps.apple.com/app/streisand/id6450534064\n"
-                    apps_text += "• Shadowrocket: https://apps.apple.com/app/shadowrocket/id932747118\n\n"
-                    apps_text += "**Windows:**\n"
-                    apps_text += "• Hiddify: https://github.com/hiddify/hiddify-next/releases\n"
-                    apps_text += "• V2rayN: https://github.com/2dust/v2rayN/releases\n\n"
-                    apps_text += "**Mac:**\n"
-                    apps_text += "• FoxRay: https://github.com/hiddify/hiddify-next/releases\n"
-                    apps_text += "• ClashX: https://github.com/yichengchen/clashX/releases\n\n"
+                    apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
+                    apps_text += "<b>Android:</b>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+                    apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+                    apps_text += "<b>iPhone:</b>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+                    apps_text += "<b>Windows:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
+                    apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
+                    apps_text += "<b>Mac:</b>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
+                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
                     
                     # Формируем сообщение в зависимости от типа продления
                     if is_bonus:
@@ -1346,10 +1346,10 @@ async def extend_subscription_handler(callback: CallbackQuery):
                         f"Тариф: {tariff_name}\n"
                         f"{cost_text}\n"
                         f"Новая дата окончания: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-                        f"Ваша конфигурация:\n`{config}`\n\n"
+                        f"Ваша конфигурация:\n<code>{config}</code>\n\n"
                         f"Скопируйте эту ссылку в ваш VPN клиент."
                         f"{apps_text}",
-                        parse_mode="Markdown"
+                        parse_mode="HTML"
                     )
                     
                     await callback.answer("Подписка продлена успешно!")
