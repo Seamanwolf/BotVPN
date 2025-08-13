@@ -45,9 +45,12 @@ class Payment(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    provider = Column(String, nullable=False, default="yookassa")  # Платежный провайдер
+    invoice_id = Column(String, nullable=True)  # ID инвойса от провайдера
     amount = Column(Integer, nullable=False)
     currency = Column(String, default="RUB")
     status = Column(String, default="pending")  # "pending", "completed", "failed", "canceled"
+    payload = Column(Text, nullable=True)  # Дополнительные данные
     payment_method = Column(String, default="yookassa")
     yookassa_payment_id = Column(String, nullable=True)
     subscription_type = Column(String, nullable=True)  # "1m", "3m", "test"

@@ -776,6 +776,8 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
             try:
                 payment = Payment(
                     user_id=user.id,
+                    provider="yookassa",
+                    invoice_id=payment_result["payment_id"],
                     amount=price,
                     currency="RUB",
                     status="pending",

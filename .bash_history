@@ -901,3 +901,5 @@ pkill -f "python3 admin_web.py" && sleep 2 && python3 admin_web.py
 pkill -f "python3 admin_web.py" && sleep 2 && python3 admin_web.py
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 pkill -f "python3 admin_web.py" && sleep 2 && python3 admin_web.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 admin_web.py" && sleep 2 && python3 admin_web.py
