@@ -24,7 +24,7 @@ class YooKassaClient:
             # Данные для создания платежа
             payment_data = {
                 "amount": {
-                    "value": str(amount),
+                    "value": f"{amount:.2f}",
                     "currency": "RUB"
                 },
                 "confirmation": {
@@ -47,7 +47,7 @@ class YooKassaClient:
                             "description": description,
                             "quantity": "1",
                             "amount": {
-                                "value": str(amount),
+                                "value": f"{amount:.2f}",
                                 "currency": "RUB"
                             },
                             "vat_code": 1,
