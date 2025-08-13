@@ -114,6 +114,45 @@ def get_admin_notifications_keyboard():
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
+def get_subscription_extend_keyboard(subscription_id: int, user_bonus_coins: int) -> InlineKeyboardMarkup:
+    """Создает inline клавиатуру для продления подписки"""
+    keyboard_buttons = []
+    
+    # Кнопка продления на 1 месяц за деньги
+    keyboard_buttons.append([
+        InlineKeyboardButton(
+            text=f"💳 Продлить на 1 месяц ({TARIFFS['1m']['price']}₽)",
+            callback_data=f"extend_paid_{subscription_id}_1m"
+        )
+    ])
+    
+    # Кнопка продления на 3 месяца за деньги
+    keyboard_buttons.append([
+        InlineKeyboardButton(
+            text=f"💳 Продлить на 3 месяца ({TARIFFS['3m']['price']}₽)",
+            callback_data=f"extend_paid_{subscription_id}_3m"
+        )
+    ])
+    
+    # Кнопки продления за бонусы (если достаточно монет)
+    if user_bonus_coins >= BONUS_TO_SUBSCRIPTION:
+        keyboard_buttons.append([
+            InlineKeyboardButton(
+                text=f"💎 Продлить на 1 месяц ({BONUS_TO_SUBSCRIPTION} монет)",
+                callback_data=f"extend_bonus_{subscription_id}_1m"
+            )
+        ])
+    
+    if user_bonus_coins >= BONUS_TO_SUBSCRIPTION * 3:
+        keyboard_buttons.append([
+            InlineKeyboardButton(
+                text=f"💎 Продлить на 3 месяца ({BONUS_TO_SUBSCRIPTION * 3} монет)",
+                callback_data=f"extend_bonus_{subscription_id}_3m"
+            )
+        ])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+
 # Функции для работы с уведомлениями администраторов
 def get_admin_settings():
     """Получение настроек уведомлений администраторов"""
@@ -398,7 +437,6 @@ async def main_menu_handler(message: Message):
             ).order_by(Subscription.subscription_number).all()
             
             if active_subscriptions:
-                message_text = f"🔑 Ваши ключи\n\n"
                 configs_found = 0
                 
                 for subscription in active_subscriptions:
@@ -417,27 +455,38 @@ async def main_menu_handler(message: Message):
                         days_left = time_left.days
                         hours_left = time_left.seconds // 3600
                         
-                        message_text += f"**Подписка #{subscription.subscription_number}**\n"
-                        message_text += f"Тариф: {subscription.plan_name}\n"
-                        message_text += f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
+                        # Формируем сообщение для каждого ключа
+                        key_message = f"**Подписка #{subscription.subscription_number}**\n"
+                        key_message += f"Тариф: {subscription.plan_name}\n"
+                        key_message += f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
                         
                         if days_left <= 0 and hours_left <= 0:
-                            message_text += f"⚠️ Подписка истекает сегодня!\n"
+                            key_message += f"⚠️ Подписка истекает сегодня!\n"
                         elif days_left <= 0:
-                            message_text += f"⚠️ Подписка истекает через {hours_left} часов!\n"
+                            key_message += f"⚠️ Подписка истекает через {hours_left} часов!\n"
                         elif days_left <= 3:
-                            message_text += f"⚠️ Подписка истекает через {days_left} дней!\n"
+                            key_message += f"⚠️ Подписка истекает через {days_left} дней!\n"
                         elif days_left <= 7:
-                            message_text += f"📅 Подписка истекает через {days_left} дней\n"
+                            key_message += f"📅 Подписка истекает через {days_left} дней\n"
                         else:
-                            message_text += f"✅ Подписка активна\n"
+                            key_message += f"✅ Подписка активна\n"
                         
-                        message_text += f"Конфигурация:\n`{config}`\n\n"
+                        key_message += f"Конфигурация:\n`{config}`\n"
+                        
+                        # Создаем клавиатуру для продления
+                        extend_keyboard = get_subscription_extend_keyboard(subscription.id, user.bonus_coins)
+                        
+                        # Отправляем сообщение с кнопками продления
+                        await message.answer(
+                            key_message,
+                            parse_mode="Markdown",
+                            reply_markup=extend_keyboard
+                        )
                 
                 if configs_found > 0:
+                    # Отправляем общий заголовок
                     await message.answer(
-                        message_text,
-                        parse_mode="Markdown",
+                        "🔑 Ваши ключи\n\nВыберите ключ для продления:",
                         reply_markup=get_user_keyboard(message.from_user.id)
                     )
                 else:
@@ -564,31 +613,31 @@ async def main_menu_handler(message: Message):
     
     elif message.text == "❓ Помощь":
         help_text = "❓ Помощь\n\n"
-        help_text += f"• Для технической поддержки: t\\.me/SeaVPN_support_bot\n"
+        help_text += f"• Для технической поддержки: <a href=\"https://t.me/SeaVPN_support_bot\">@SeaVPN_support_bot</a>\n"
         help_text += "• Время работы поддержки: 24/7\n\n"
         help_text += "📱 Как подключить VPN:\n\n"
-        help_text += "*Для Android:*\n"
-        help_text += "• V2rayNG: https://play\\.google\\.com/store/apps/details?id=com\\.v2ray\\.ang\n"
-        help_text += "• Clash for Android: https://play\\.google\\.com/store/apps/details?id=com\\.github\\.kr328\\.clash\n\n"
-        help_text += "*Для iPhone:*\n"
-        help_text += "• Streisand: https://apps\\.apple\\.com/app/streisand/id6450534064\n"
-        help_text += "• Shadowrocket: https://apps\\.apple\\.com/app/shadowrocket/id932747118\n\n"
-        help_text += "*Для Windows:*\n"
-        help_text += "• Hiddify: https://github\\.com/hiddify/hiddify\\-next/releases\n"
-        help_text += "• V2rayN: https://github\\.com/2dust/v2rayN/releases\n\n"
-        help_text += "*Для Mac:*\n"
-        help_text += "• FoxRay: https://github\\.com/hiddify/hiddify\\-next/releases\n"
-        help_text += "• ClashX: https://github\\.com/yichengchen/clashX/releases\n\n"
-        help_text += "*Инструкция по подключению:*\n"
-        help_text += "1\\. Скачайте приложение для вашей платформы\n"
-        help_text += "2\\. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
-        help_text += "3\\. Вставьте ссылку в приложение\n"
-        help_text += "4\\. Нажмите 'Подключить'\n\n"
+        help_text += "<b>Для Android:</b>\n"
+        help_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+        help_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+        help_text += "<b>Для iPhone:</b>\n"
+        help_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+        help_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+        help_text += "<b>Для Windows:</b>\n"
+        help_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
+        help_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
+        help_text += "<b>Для Mac:</b>\n"
+        help_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
+        help_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
+        help_text += "<b>Инструкция по подключению:</b>\n"
+        help_text += "1. Скачайте приложение для вашей платформы\n"
+        help_text += "2. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
+        help_text += "3. Вставьте ссылку в приложение\n"
+        help_text += "4. Нажмите 'Подключить'\n\n"
         help_text += "Если у вас есть вопросы, не стесняйтесь обращаться!"
         
         await message.answer(
             help_text,
-            parse_mode="Markdown",
+            parse_mode="HTML",
             reply_markup=get_user_keyboard(message.from_user.id)
         )
 
@@ -1168,19 +1217,22 @@ async def extend_subscription_handler(callback: CallbackQuery):
     try:
         # Парсим данные из callback
         parts = callback.data.split('_')
-        if len(parts) < 3:
+        if len(parts) < 4:
             await callback.answer("Ошибка: неверный формат данных")
             return
         
         # Проверяем тип продления (обычное или за бонусы)
         if parts[1] == "bonus":
             is_bonus = True
-            tariff = parts[2]  # 1m или 3m
-            subscription_id = int(parts[3])
-        else:
-            is_bonus = False
-            tariff = parts[1]  # 1m или 3m
             subscription_id = int(parts[2])
+            tariff = parts[3]  # 1m или 3m
+        elif parts[1] == "paid":
+            is_bonus = False
+            subscription_id = int(parts[2])
+            tariff = parts[3]  # 1m или 3m
+        else:
+            await callback.answer("Ошибка: неверный тип продления")
+            return
         
         user = await get_user(callback.from_user.id)
         if not user:

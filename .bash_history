@@ -655,3 +655,79 @@ sleep 3 && ps aux | grep "python3 bot.py"
 pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
 sleep 3 && ps aux | grep "python3 bot.py"
 python3 test_bonuses.py
+pkill -f "python3 bot.py" && sleep 2
+python3 bot.py
+pkill -f "python3 bot.py" && sleep 2
+python3 bot.py
+pkill -f "python3 bot.py" && sleep 2
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+grep -n "def get_user_config" xui_client.py
+grep -n "class Subscription" database.py
+sed -n '31,45p' database.py
+grep -n "Создаем подписку" bot.py
+grep -n "subscription = Subscription" bot.py
+sed -n '670,680p' bot.py
+sed -n '880,890p' bot.py
+sed -n '885,900p' bot.py
+grep -n "Получаем активные подписки" bot.py
+grep -n "subscriptions = db.query" bot.py
+grep -n "subscriptions = db.query(Subscription).filter" bot.py
+grep -A 5 -B 5 "🔑 Мои ключи" bot.py
+sed -n '400,420p' bot.py
+sed -n '395,405p' bot.py
+python3 add_subscription_number.py
+pkill -f "python3 bot.py"
+git add .
+git commit -m "Исправлена логика уникальных подписок и отображения истекших подписок"
+git reset
+git add bot.py database.py xui_client.py add_subscription_number.py
+git commit -m "Исправлена логика уникальных подписок и отображения истекших подписок"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py"
+python3 bot.py &
+sleep 3 && ps aux | grep "python3 bot.py"
+pkill -f "python3 bot.py"
+python3 bot.py &
+sleep 3 && ps aux | grep "python3 bot.py"
+ps aux | grep "admin_web.py"
+curl -s http://localhost:8080/ | head -20
+journalctl -u seavpn-admin -n 20 --no-pager
+ls -la templates/
+curl -s http://localhost:8080/users | head -10
+journalctl -u seavpn-admin -n 10 --no-pager
+ls -la templates/
+curl -s http://localhost:8080/subscriptions | head -5
+git init
+git add .
+git status
+git reset
+git add bot.py admin_web.py database.py config.py xui_client.py notifications.py requirements.txt README.md .gitignore templates/ static/ check_*.py test_*.py migrate_*.py fix_*.py sync_*.py cleanup_*.py final_test.py env_example.txt
+git add bot.py admin_web.py database.py config.py xui_client.py notifications.py requirements.txt README.md .gitignore templates/ check_*.py test_*.py migrate_*.py fix_*.py sync_*.py cleanup_*.py final_test.py env_example.txt
+git commit -m "Initial commit: BotVPN - Telegram Bot для управления VPN подписками"
+git config user.name "Seamanwolf" && git config user.email "seamanwolf@github.com"
+git commit -m "Initial commit: BotVPN - Telegram Bot для управления VPN подписками"
+git remote add origin https://github.com/Seamanwolf/BotVPN.git
+git push -u origin master
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 admin_web.py
+python3 admin_web.py
+python3 admin_web.py
