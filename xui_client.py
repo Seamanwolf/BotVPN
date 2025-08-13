@@ -277,24 +277,18 @@ class XUIClient:
                 clients = settings.get("clients", [])
                 
                 # Ищем клиента с нужным email
-                for i, client in enumerate(clients):
+                for client in clients:
                     if client.get("email") == email:
-                        # Удаляем клиента из списка
-                        clients.pop(i)
+                        # Используем правильный API для удаления клиента
+                        client_id = client.get("id")
+                        if not client_id:
+                            print(f"Не найден ID клиента для {email}")
+                            return False
                         
-                        # Обновляем inbound с новым списком клиентов
-                        payload = {
-                            "id": inbound.get("id"),
-                            "settings": json.dumps({
-                                "clients": clients
-                            })
-                        }
-                        
-                        # Используем API для обновления inbound
-                        update_url = f"{self.base_url}/panel/api/inbounds/update/{inbound.get('id')}"
+                        # Используем API для удаления клиента по ID
+                        delete_url = f"{self.base_url}/panel/api/inbounds/{inbound.get('id')}/delClient/{client_id}"
                         response = await self.client.post(
-                            update_url,
-                            json=payload,
+                            delete_url,
                             cookies=self.session_cookies,
                             headers={"Content-Type": "application/json", "Accept": "application/json"}
                         )
