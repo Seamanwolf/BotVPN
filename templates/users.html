@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Пользователи</h1>
+        <div>
+            <button class="btn btn-primary" onclick="refreshUsers()">
+                <i class="fas fa-sync-alt"></i> Обновить
+            </button>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Поиск по имени или email...">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="subscriptionFilter">
+                        <option value="">Все подписки</option>
+                        <option value="has_subscription">С подпиской</option>
+                        <option value="no_subscription">Без подписки</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Применить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица пользователей -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Telegram ID</th>
+                            <th>Email</th>
+                            <th>Монеты</th>
+                            <th>Подписки</th>
+                            <th>Дата регистрации</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.full_name or 'Не указано' }}</td>
+                            <td>{{ user.telegram_id }}</td>
+                            <td>{{ user.email or 'Не указан' }}</td>
+                            <td>
+                                <span class="badge bg-warning">{{ user.bonus_coins }} 🪙</span>
+                            </td>
+                            <td>
+                                {% set user_subscriptions = subscriptions|selectattr("user_id", "equalto", user.id)|list %}
+                                {% if user_subscriptions %}
+                                    <span class="badge bg-success">{{ user_subscriptions|length }} активных</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Нет подписок</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewUserDetails({{ user.id }})" title="Детали">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewUserSubscriptions({{ user.id }})" title="Подписки">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.full_name or user.telegram_id }}')" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно деталей пользователя -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Детали пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userDetailsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подписок пользователя -->
+<div class="modal fade" id="userSubscriptionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подписки пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userSubscriptionsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно удаления пользователя -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы действительно хотите удалить пользователя <strong id="deleteUserName"></strong>?</p>
+                <p class="text-danger">Это действие нельзя отменить!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteUser()">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentUserId = null;
+
+function viewUserDetails(userId) {
+    fetch(`/api/user/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const user = data.user;
+                const content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Основная информация</h6>
+                            <p><strong>ID:</strong> ${user.id}</p>
+                            <p><strong>Имя:</strong> ${user.full_name || 'Не указано'}</p>
+                            <p><strong>Telegram ID:</strong> ${user.telegram_id}</p>
+                            <p><strong>Email:</strong> ${user.email || 'Не указан'}</p>
+                            <p><strong>Телефон:</strong> ${user.phone || 'Не указан'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Статистика</h6>
+                            <p><strong>Бонусные монеты:</strong> ${user.bonus_coins} 🪙</p>
+                            <p><strong>Реферальный код:</strong> <code>${user.referral_code}</code></p>
+                            <p><strong>Приглашен от:</strong> ${user.referred_by || 'Нет'}</p>
+                            <p><strong>Первая покупка:</strong> ${user.has_made_first_purchase ? 'Да' : 'Нет'}</p>
+                            <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('userDetailsContent').innerHTML = content;
+                new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+            } else {
+                alert('Ошибка при загрузке данных пользователя');
+            }
+        });
+}
+
+function viewUserSubscriptions(userId) {
+    fetch(`/api/user/${userId}/subscriptions`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const subscriptions = data.subscriptions;
+                let content = '<h6>Подписки пользователя</h6>';
+                
+                if (subscriptions.length > 0) {
+                    content += `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>План</th>
+                                        <th>Статус</th>
+                                        <th>Действует до</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    subscriptions.forEach(sub => {
+                        const daysLeft = Math.ceil((new Date(sub.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+                        const statusBadge = sub.status === 'active' ? 
+                            `<span class="badge bg-success">Активна</span>` : 
+                            `<span class="badge bg-secondary">${sub.status}</span>`;
+                        
+                        content += `
+                            <tr>
+                                <td>${sub.id}</td>
+                                <td>${sub.plan_name}</td>
+                                <td>${statusBadge}</td>
+                                <td>${new Date(sub.expires_at).toLocaleDateString()} (${daysLeft} дн.)</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails(${sub.id})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    content += '</tbody></table></div>';
+                } else {
+                    content += '<p class="text-muted">У пользователя нет подписок</p>';
+                }
+                
+                document.getElementById('userSubscriptionsContent').innerHTML = content;
+                new bootstrap.Modal(document.getElementById('userSubscriptionsModal')).show();
+            } else {
+                alert('Ошибка при загрузке подписок пользователя');
+            }
+        });
+}
+
+function deleteUser(userId, userName) {
+    currentUserId = userId;
+    document.getElementById('deleteUserName').textContent = userName;
+    new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+}
+
+function confirmDeleteUser() {
+    if (!currentUserId) return;
+    
+    fetch(`/api/user/${currentUserId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Пользователь успешно удален');
+            location.reload();
+        } else {
+            alert('Ошибка при удалении: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Ошибка при удалении пользователя');
+    });
+}
+
+function refreshUsers() {
+    location.reload();
+}
+
+function applyFilters() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const subscriptionFilter = document.getElementById('subscriptionFilter').value;
+    
+    const rows = document.querySelectorAll('#usersTable tbody tr');
+    
+    rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        const email = row.cells[3].textContent.toLowerCase();
+        const subscriptions = row.cells[5].textContent;
+        
+        let show = true;
+        
+        // Поиск
+        if (search && !name.includes(search) && !email.includes(search)) {
+            show = false;
+        }
+        
+        // Фильтр подписок
+        if (subscriptionFilter === 'has_subscription' && !subscriptions.includes('активных')) {
+            show = false;
+        } else if (subscriptionFilter === 'no_subscription' && subscriptions.includes('активных')) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+// Применяем фильтры при вводе
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('subscriptionFilter').addEventListener('change', applyFilters);
+</script>
+{% endblock %}
