@@ -907,3 +907,58 @@ pkill -f "python3 admin_web.py" && sleep 2 && python3 admin_web.py
 python3 admin_web.py
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl reload nginx
+curl -L "http://nl.universaltools.pro/sea/sub_1755081285" | head -10
+curl -L "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/sub_1755081285" | head -10
+sleep 3 && ps aux | grep bot.py
+git add . && git commit -m "Исправлен формат ссылок подписки - теперь используется /sea/ вместо /sub/" && git push
+git add . && git commit -m "Исправлены ссылки подписок - теперь работают корректно в VLESS клиентах" && git push
+git status && git log --oneline -3
+sleep 3 && ps aux | grep admin_web
+python3 -c "from admin_web import app; print('OK')"
+sleep 3 && ps aux | grep admin_web
+git add . && git commit -m "Добавлена синхронизация удаления подписок между админкой и 3xUI" && git push
+sleep 3 && ps aux | grep admin_web
+git add . && git commit -m "Исправлена проблема с повторным удалением подписок - добавлена защита от дублирования запросов" && git push
+sleep 3 && ps aux | grep admin_web
+git add . && git commit -m "ИСПРАВЛЕНО: Теперь удаляется только клиент, а не весь inbound" && git push
+sleep 3 && ps aux | grep admin_web
+git add . && git commit -m "Исправлена ошибка JSON при удалении клиента - добавлена обработка не-JSON ответов" && git push
+sleep 3 && ps aux | grep admin_web
+python3 admin_web.py
+lsof -ti:8080 | xargs kill -9
+sleep 3 && ps aux | grep admin_web
+git add . && git commit -m "ИСПРАВЛЕНО: Используется правильный API для удаления клиента - /:id/delClient/:clientId" && git push
+git add . && git commit -m "✅ ИСПРАВЛЕНО: Удаление клиентов работает корректно - используется правильный API /:id/delClient/:clientId" && git push
+git status && git log --oneline -5
+pip install yookassa
+git add . && git commit -m "Добавлена интеграция ЮKassa - создан модуль yookassa_client.py и обновлена модель Payment" && git push
+python3 -m py_compile bot.py
+git add . && git commit -m "✅ ИНТЕГРАЦИЯ ЮKASSA ЗАВЕРШЕНА: Добавлены обработчики платежей, проверка статуса и создание чеков" && git push
+sleep 5 && ps aux | grep bot
+python3 bot.py
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "✅ ЮKASSA ИНТЕГРАЦИЯ ЗАВЕРШЕНА: Исправлены импорты, добавлен правильный Shop ID, бот запускается" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Добавлен shop_id в методы ЮKassa для правильной аутентификации" && git push
+python3 -c "from yookassa import Payment; help(Payment.create)"
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Правильная аутентификация ЮKassa через переменные окружения" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Правильная настройка аутентификации ЮKassa через переменные окружения и добавлен ключ идемпотентности" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Убрана неопределенная переменная payment_id из metadata" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Полная переработка интеграции ЮKassa с использованием HTTP Basic Auth вместо SDK" && git push
+python3 update_database.py
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Обновлена структура базы данных для интеграции с ЮKassa" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Добавлены обязательные поля provider и invoice_id в модель Payment" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Тестовый тариф теперь 1 рубль, исправлены ошибки обработки платежей и создания чеков" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Формат суммы для ЮKassa - теперь передается как строка с двумя знаками после запятой" && git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 bot.py

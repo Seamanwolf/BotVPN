@@ -142,7 +142,7 @@ class YooKassaClient:
                         "description": description,
                         "quantity": "1",
                         "amount": {
-                            "value": str(amount),
+                            "value": f"{amount:.2f}",
                             "currency": "RUB"
                         },
                         "vat_code": 1,
