@@ -15,7 +15,7 @@ class YooKassaClient:
         credentials = f"{self.shop_id}:{self.secret_key}"
         self.auth_header = f"Basic {base64.b64encode(credentials.encode()).decode()}"
         
-    async def create_payment(self, amount: float, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
+    async def create_payment(self, amount: int, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
         """Создание платежа в ЮKassa"""
         try:
             # Создаем уникальный ключ идемпотентности
@@ -24,7 +24,7 @@ class YooKassaClient:
             # Данные для создания платежа
             payment_data = {
                 "amount": {
-                    "value": f"{amount:.2f}",
+                    "value": str(amount),
                     "currency": "RUB"
                 },
                 "confirmation": {
@@ -47,7 +47,7 @@ class YooKassaClient:
                             "description": description,
                             "quantity": "1",
                             "amount": {
-                                "value": f"{amount:.2f}",
+                                "value": str(amount),
                                 "currency": "RUB"
                             },
                             "vat_code": 1,
@@ -59,6 +59,9 @@ class YooKassaClient:
             }
             
             # Отправляем запрос на создание платежа
+            print(f"DEBUG: Отправляем платеж с суммой: {amount} -> {f'{amount:.2f}'}")
+            print(f"DEBUG: payment_data: {payment_data}")
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}/payments",
@@ -130,7 +133,7 @@ class YooKassaClient:
                 "error": str(e)
             }
     
-    async def create_receipt(self, payment_id: str, user_email: str, amount: float, description: str) -> Dict[str, Any]:
+    async def create_receipt(self, payment_id: str, user_email: str, amount: int, description: str) -> Dict[str, Any]:
         """Создание чека для платежа"""
         try:
             receipt_data = {
@@ -142,7 +145,7 @@ class YooKassaClient:
                         "description": description,
                         "quantity": "1",
                         "amount": {
-                            "value": f"{amount:.2f}",
+                            "value": str(amount),
                             "currency": "RUB"
                         },
                         "vat_code": 1,
