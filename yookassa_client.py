@@ -37,7 +37,7 @@ class YooKassaClient:
                 metadata={
                     "user_id": user_id,
                     "subscription_type": subscription_type,
-                    "payment_id": payment_id
+                    "idempotence_key": idempotence_key
                 },
                 receipt={
                     "customer": {
