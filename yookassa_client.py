@@ -3,9 +3,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from yookassa import Payment
 from yookassa.domain.request import PaymentRequest
-from yookassa.domain.common import Currency
 from yookassa.domain.models import Receipt, ReceiptItem, Amount
-from yookassa.domain.models.receipt import VatCode
 from config import YOOKASSA_SECRET_KEY, YOOKASSA_SHOP_ID
 
 class YooKassaClient:
@@ -23,7 +21,7 @@ class YooKassaClient:
             payment_request = PaymentRequest(
                 amount=Amount(
                     value=str(amount),
-                    currency=Currency.RUB
+                    currency="RUB"
                 ),
                 confirmation={
                     "type": "redirect",
@@ -46,9 +44,9 @@ class YooKassaClient:
                             "quantity": "1",
                             "amount": {
                                 "value": str(amount),
-                                "currency": Currency.RUB
+                                "currency": "RUB"
                             },
-                            "vat_code": VatCode.NO_VAT,
+                            "vat_code": 1,
                             "payment_subject_type": "service",
                             "payment_mode_type": "full_payment"
                         }
@@ -110,9 +108,9 @@ class YooKassaClient:
                         quantity="1",
                         amount=Amount(
                             value=str(amount),
-                            currency=Currency.RUB
+                            currency="RUB"
                         ),
-                        vat_code=VatCode.NO_VAT,
+                        vat_code=1,
                         payment_subject_type="service",
                         payment_mode_type="full_payment"
                     )

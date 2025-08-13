@@ -50,4 +50,4 @@ ADMIN_NOTIFICATIONS_ENABLED = True  # Включены ли уведомлени
 
 # ЮKassa Configuration
 YOOKASSA_SECRET_KEY = "live_QMWqzDoOaDHGhRW5vlfU9nNM8rRdjStxe1pUayD_30w"
-YOOKASSA_SHOP_ID = "123456"  # Замените на ваш Shop ID
+YOOKASSA_SHOP_ID = "1141477"  # Shop ID из личного кабинета ЮKassa
