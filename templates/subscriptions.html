@@ -59,6 +59,7 @@
                             <th>ID</th>
                             <th>Пользователь</th>
                             <th>План</th>
+                            <th>Ключ</th>
                             <th>Статус</th>
                             <th>Действует до</th>
                             <th>Осталось дней</th>
@@ -87,6 +88,13 @@
                                     <span class="badge bg-info">🧪 {{ subscription.plan_name or 'Тестовая' }}</span>
                                 {% else %}
                                     <span class="badge bg-primary">{{ subscription.plan_name or subscription.plan }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user %}
+                                    <code class="text-muted">SeaMiniVpn-{{ user.telegram_id }}-{{ subscription.subscription_number or 1 }}</code>
+                                {% else %}
+                                    <span class="text-muted">Неизвестно</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -190,6 +198,7 @@ function viewSubscriptionDetails(subscriptionId) {
                             <h6>Информация о подписке</h6>
                             <p><strong>ID:</strong> ${sub.id}</p>
                             <p><strong>План:</strong> ${sub.plan_name}</p>
+                            <p><strong>Ключ:</strong> <code class="text-muted">${sub.unique_name || 'Не указан'}</code></p>
                             <p><strong>Статус:</strong> 
                                 ${sub.status === 'active' ? '<span class="badge bg-success">Активна</span>' : 
                                   sub.status === 'expired' ? '<span class="badge bg-danger">Истекла</span>' : 

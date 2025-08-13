@@ -564,7 +564,7 @@ async def main_menu_handler(message: Message):
     
     elif message.text == "❓ Помощь":
         help_text = "❓ Помощь\n\n"
-        help_text += f"• Для технической поддержки: t\\.me/{SUPPORT_BOT}\n"
+        help_text += f"• Для технической поддержки: t\\.me/SeaVPN_support_bot\n"
         help_text += "• Время работы поддержки: 24/7\n\n"
         help_text += "📱 Как подключить VPN:\n\n"
         help_text += "*Для Android:*\n"
@@ -1065,7 +1065,7 @@ async def notifications_callback_handler(callback: CallbackQuery):
         else:
             status_text += "❌ Уведомления отключены\n"
         
-        status_text += f"\n🕐 Последнее обновление: {settings.updated_at.strftime('%d.%m.%Y %H:%M')}"
+        status_text += f"\n🕐 Последнее обновление: {settings.created_at.strftime('%d.%m.%Y %H:%M') if settings.created_at else 'Неизвестно'}"
         
         await callback.answer("📊 Статус загружен!")
         await callback.message.edit_text(
@@ -1122,7 +1122,7 @@ async def notifications_status_handler(message: Message):
     else:
         status_text += "❌ Уведомления отключены\n"
     
-    status_text += f"\n🕐 Последнее обновление: {settings.updated_at.strftime('%d.%m.%Y %H:%M')}"
+    status_text += f"\n🕐 Последнее обновление: {settings.created_at.strftime('%d.%m.%Y %H:%M') if settings.created_at else 'Неизвестно'}"
     
     await message.answer(
         status_text,
