@@ -11,16 +11,16 @@ class YooKassaClient:
         self.secret_key = YOOKASSA_SECRET_KEY
         self.shop_id = YOOKASSA_SHOP_ID
         
-        # Настраиваем аутентификацию для SDK
+        # Настраиваем аутентификацию для SDK через переменные окружения
         import os
-        os.environ['YOOKASSA_SHOP_ID'] = self.shop_id
-        os.environ['YOOKASSA_SECRET_KEY'] = self.secret_key
+        os.environ['YOOKASSA_SHOP_ID'] = str(self.shop_id)
+        os.environ['YOOKASSA_SECRET_KEY'] = str(self.secret_key)
         
     def create_payment(self, amount: float, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
         """Создание платежа в ЮKassa"""
         try:
-            # Создаем уникальный ID платежа
-            payment_id = str(uuid.uuid4())
+            # Создаем уникальный ключ идемпотентности
+            idempotence_key = str(uuid.uuid4())
             
             # Создаем запрос на платеж
             payment_request = PaymentRequest(
@@ -59,8 +59,8 @@ class YooKassaClient:
                 }
             )
             
-            # Создаем платеж
-            payment = Payment.create(payment_request)
+            # Создаем платеж с ключом идемпотентности
+            payment = Payment.create(payment_request, idempotence_key)
             
             return {
                 "success": True,
