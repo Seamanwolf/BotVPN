@@ -334,32 +334,43 @@ function confirmDeleteUser() {
     });
 }
 
-function deleteSubscription(subscriptionId, planName) {
-    if (confirm(`Вы уверены, что хотите удалить подписку "${planName}"?\n\n⚠️ ВНИМАНИЕ: Подписка будет удалена как из базы данных, так и из 3xUI!`)) {
-        fetch(`/api/subscription/${subscriptionId}/delete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+        let isDeleting = false;
+        
+        function deleteSubscription(subscriptionId, planName) {
+            if (isDeleting) {
+                alert('⏳ Удаление уже выполняется, подождите...');
+                return;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('✅ Подписка успешно удалена из базы данных и 3xUI!');
-                // Закрываем модальное окно и обновляем страницу
-                const modal = bootstrap.Modal.getInstance(document.getElementById('userSubscriptionsModal'));
-                if (modal) modal.hide();
-                location.reload();
-            } else {
-                alert('❌ Ошибка: ' + data.message);
+            
+            if (confirm(`Вы уверены, что хотите удалить подписку "${planName}"?\n\n⚠️ ВНИМАНИЕ: Подписка будет удалена как из базы данных, так и из 3xUI!`)) {
+                isDeleting = true;
+                
+                fetch(`/api/subscription/${subscriptionId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    isDeleting = false;
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        // Закрываем модальное окно и обновляем страницу
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('userSubscriptionsModal'));
+                        if (modal) modal.hide();
+                        location.reload();
+                    } else {
+                        alert('❌ Ошибка: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    isDeleting = false;
+                    console.error('Error:', error);
+                    alert('❌ Произошла ошибка при удалении подписки');
+                });
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('❌ Произошла ошибка при удалении подписки');
-        });
-    }
-}
+        }
 
 function viewUserReferrals(userId) {
     fetch(`/api/user/${userId}/referrals`)

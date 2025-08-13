@@ -312,10 +312,15 @@ def delete_subscription(subscription_id):
             loop.close()
         
         if xui_success:
-            # Удаляем из базы данных
-            db.delete(subscription)
-            db.commit()
-            return jsonify({'success': True, 'message': 'Подписка успешно удалена'})
+            # Проверяем, что подписка еще существует в БД
+            db.refresh(subscription)
+            if subscription:
+                # Удаляем из базы данных
+                db.delete(subscription)
+                db.commit()
+                return jsonify({'success': True, 'message': 'Подписка успешно удалена из БД и 3xUI'})
+            else:
+                return jsonify({'success': True, 'message': 'Подписка уже была удалена из БД, но успешно удалена из 3xUI'})
         else:
             return jsonify({'success': False, 'message': 'Ошибка удаления из 3xUI'})
             
