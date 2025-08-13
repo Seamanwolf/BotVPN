@@ -9,8 +9,9 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 from config import BOT_TOKEN, TARIFFS, REFERRAL_BONUS, BONUS_TO_SUBSCRIPTION, SUPPORT_BOT, ADMIN_IDS
-from database import SessionLocal, User, Subscription, Admin, AdminSettings, generate_referral_code, get_user_by_referral_code, check_telegram_id_exists, check_email_exists
+from database import SessionLocal, User, Subscription, Admin, AdminSettings, Payment, generate_referral_code, get_user_by_referral_code, check_telegram_id_exists, check_email_exists
 from xui_client import XUIClient
+from yookassa_client import YooKassaClient
 from notifications import NotificationManager, run_notification_scheduler
 
 # Состояния для FSM
@@ -25,6 +26,9 @@ dp = Dispatcher()
 
 # Клиент 3xUI
 xui_client = XUIClient()
+
+# Клиент ЮKassa
+yookassa_client = YooKassaClient()
 
 # Менеджер уведомлений
 notification_manager = None
@@ -670,16 +674,20 @@ async def tariff_handler(message: Message):
         await message.answer("Выберите действие:", reply_markup=get_user_keyboard(message.from_user.id))
         return
     
-    # Создаем пользователя в 3xUI (используем email пользователя)
+    # Для тестового тарифа - создаем сразу
+    if tariff == "test":
+        await create_test_subscription(message, user)
+        return
+    
+    # Для платных тарифов - создаем платеж в ЮKassa
+    await create_payment_for_tariff(message, user, tariff, price, days)
+
+async def create_test_subscription(message: Message, user):
+    """Создание тестовой подписки"""
     try:
         user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
         
-        # Для тестового тарифа - 1 день
-        if tariff == "test":
-            days = 1
-        # Для остальных тарифов используем days из конфигурации
-            
-        # Определяем следующий номер подписки для пользователя
+        # Определяем следующий номер подписки
         db = SessionLocal()
         try:
             existing_subscriptions = db.query(Subscription).filter(
@@ -691,43 +699,25 @@ async def tariff_handler(message: Message):
             
         xui_result = await xui_client.create_user(
             user_email, 
-            days, 
-            f"{user.full_name} (PAID)", 
+            1,  # 1 день
+            f"{user.full_name} (TEST)", 
             str(user.telegram_id), 
             next_subscription_number
         )
         
         if xui_result:
-            # Проверяем, был ли создан новый пользователь или используется существующий
-            if xui_result.get("existing"):
-                # Используем существующую конфигурацию
-                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
-            else:
-                # Получаем конфигурацию для нового пользователя
-                config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
+            config = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
             
             if config:
-                # Формируем сообщение в зависимости от тарифа
-                if tariff == "test":
-                    tariff_name = "Тестовый (1 день)"
-                    cost_text = "Бесплатно"
-                else:
-                    tariff_name = TARIFFS[tariff]['name']
-                    cost_text = f"{price}₽"
-                
                 # Сохраняем подписку в БД
                 db = SessionLocal()
                 try:
-                    # Для тестового тарифа - 1 день
-                    if tariff == "test":
-                        expires_at = datetime.utcnow() + timedelta(days=1)
-                    else:
-                        expires_at = datetime.utcnow() + timedelta(days=days)
+                    expires_at = datetime.utcnow() + timedelta(days=1)
                     
                     subscription = Subscription(
                         user_id=user.id,
-                        plan=tariff,
-                        plan_name=tariff_name,
+                        plan="test",
+                        plan_name="Тестовый (1 день)",
                         status="active",
                         subscription_number=next_subscription_number,
                         expires_at=expires_at
@@ -735,7 +725,7 @@ async def tariff_handler(message: Message):
                     db.add(subscription)
                     db.commit()
                     
-                    # Формируем ссылки на приложения
+                    # Формируем сообщение
                     apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
                     apps_text += "<b>Android:</b>\n"
                     apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
@@ -744,73 +734,86 @@ async def tariff_handler(message: Message):
                     apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
                     apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
                     apps_text += "<b>Windows:</b>\n"
-                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
-                    apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
-                    apps_text += "<b>Mac:</b>\n"
-                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
-                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
                     
-                    await message.answer(
-                        f"✅ Подписка активирована!\n\n"
-                        f"Тариф: {tariff_name}\n"
-                        f"Стоимость: {cost_text}\n"
-                        f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-                        f"💎 Покупка за бонусные монеты\n\n"
-                        f"Ваша конфигурация:\n<code>{config}</code>\n\n"
-                        f"Скопируйте эту ссылку в ваш VPN клиент."
-                        f"{apps_text}",
-                        parse_mode="HTML",
-                        reply_markup=get_user_keyboard(message.from_user.id)
-                    )
+                    # Отправляем сообщение с конфигурацией
+                    success_message = f"✅ <b>Тестовая подписка активирована!</b>\n\n"
+                    success_message += f"📋 <b>Тариф:</b> Тестовый (1 день)\n"
+                    success_message += f"💰 <b>Стоимость:</b> Бесплатно\n"
+                    success_message += f"⏰ <b>Действует до:</b> {expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                    success_message += f"🔗 <b>Конфигурация:</b>\n"
+                    success_message += f"<code>{config['subscription_url']}</code>\n\n"
+                    success_message += apps_text
                     
-                    # Отправляем уведомление о покупке
-                    if notification_manager and tariff != "test":
-                        await notification_manager.notify_subscription_purchased(user.id, tariff_name, price)
+                    await message.answer(success_message, parse_mode="HTML", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
                     
-                    # Отправляем уведомление администраторам о покупке подписки
-                    settings = get_admin_settings()
-                    if settings.notifications_enabled and settings.subscription_notifications:
-                        notification_text = (
-                            f"💳 **Новая покупка подписки!**\n\n"
-                            f"👤 Пользователь: {user.full_name}\n"
-                            f"🆔 Telegram ID: {user.telegram_id}\n"
-                            f"📧 Email: {user.email or 'Не указан'}\n"
-                            f"📦 Тариф: {tariff_name}\n"
-                            f"💰 Стоимость: {cost_text}\n"
-                            f"📅 Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
-                            f"🕐 Время покупки: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
-                        )
-                        await send_admin_notification(notification_text)
-                    
-                    # Начисляем реферальный бонус только при первой покупке
-                    if user.referred_by and not user.has_made_first_purchase:
-                        db = SessionLocal()
-                        try:
-                            referrer = db.query(User).filter(User.id == user.referred_by).first()
-                            if referrer:
-                                referrer.bonus_coins += REFERRAL_BONUS
-                                
-                                # Отмечаем, что пользователь сделал первую покупку
-                                user.has_made_first_purchase = True
-                                
-                                # Сохраняем изменения для обоих пользователей
-                                db.merge(referrer)
-                                db.merge(user)
-                                db.commit()
-                                
-                                # Отправляем уведомление о реферальном бонусе
-                                if notification_manager:
-                                    await notification_manager.notify_referral_bonus(referrer.telegram_id, user.full_name)
-                        finally:
-                            db.close()
                 finally:
                     db.close()
+                    
+                else:
+                    await message.answer("❌ Ошибка получения конфигурации. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
             else:
-                await message.answer(
-                    "Ошибка при получении конфигурации. Обратитесь в поддержку.",
-                    reply_markup=get_main_menu_keyboard()
-                )
+                await message.answer("❌ Ошибка создания пользователя в 3xUI. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
         else:
+            await message.answer("❌ Ошибка создания пользователя в 3xUI. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+    except Exception as e:
+        print(f"Ошибка создания тестовой подписки: {e}")
+        await message.answer("❌ Произошла ошибка. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+
+async def create_payment_for_tariff(message: Message, user, tariff: str, price: int, days: int):
+    """Создание платежа для тарифа"""
+    try:
+        # Создаем платеж в ЮKassa
+        description = f"SeaVPN - {TARIFFS[tariff]['name']}"
+        
+        payment_result = yookassa_client.create_payment(
+            amount=price,
+            description=description,
+            user_id=user.id,
+            subscription_type=tariff
+        )
+        
+        if payment_result["success"]:
+            # Сохраняем платеж в БД
+            db = SessionLocal()
+            try:
+                payment = Payment(
+                    user_id=user.id,
+                    amount=price,
+                    currency="RUB",
+                    status="pending",
+                    payment_method="yookassa",
+                    yookassa_payment_id=payment_result["payment_id"],
+                    subscription_type=tariff,
+                    description=description
+                )
+                db.add(payment)
+                db.commit()
+                
+                # Создаем клавиатуру для оплаты
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить", url=payment_result["confirmation_url"])],
+                    [InlineKeyboardButton(text="🔄 Проверить оплату", callback_data=f"check_payment_{payment_result['payment_id']}")],
+                    [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_payment_{payment_result['payment_id']}")]
+                ])
+                
+                payment_message = f"💳 <b>Оплата подписки</b>\n\n"
+                payment_message += f"📋 <b>Тариф:</b> {TARIFFS[tariff]['name']}\n"
+                payment_message += f"💰 <b>Сумма:</b> {price}₽\n"
+                payment_message += f"⏰ <b>Срок:</b> {days} дней\n\n"
+                payment_message += f"🔗 <b>Ссылка для оплаты:</b>\n"
+                payment_message += f"Нажмите кнопку 'Оплатить' ниже\n\n"
+                payment_message += f"⚠️ <b>Важно:</b> После оплаты нажмите 'Проверить оплату'"
+                
+                await message.answer(payment_message, parse_mode="HTML", reply_markup=keyboard)
+                
+            finally:
+                db.close()
+        else:
+            await message.answer(f"❌ Ошибка создания платежа: {payment_result.get('error', 'Неизвестная ошибка')}", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+            
+    except Exception as e:
+        print(f"Ошибка создания платежа: {e}")
+        await message.answer("❌ Произошла ошибка при создании платежа. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
             await message.answer(
                 "Ошибка при создании пользователя в системе. Обратитесь в поддержку.",
                 reply_markup=get_main_menu_keyboard()

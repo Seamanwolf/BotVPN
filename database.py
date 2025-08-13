@@ -47,9 +47,12 @@ class Payment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     amount = Column(Integer, nullable=False)
     currency = Column(String, default="RUB")
-    status = Column(String, default="pending")  # "pending", "completed", "failed"
-    payment_method = Column(String, nullable=True)
-    yoomoney_payment_id = Column(String, nullable=True)
+    status = Column(String, default="pending")  # "pending", "completed", "failed", "canceled"
+    payment_method = Column(String, default="yookassa")
+    yookassa_payment_id = Column(String, nullable=True)
+    subscription_type = Column(String, nullable=True)  # "1m", "3m", "test"
+    description = Column(String, nullable=True)
+    receipt_sent = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 

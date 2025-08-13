@@ -47,3 +47,7 @@ ADMIN_WEB_PASSWORD = "CegthGfzkmybr72"
 
 # Уведомления для администраторов
 ADMIN_NOTIFICATIONS_ENABLED = True  # Включены ли уведомления по умолчанию
+
+# ЮKassa Configuration
+YOOKASSA_SECRET_KEY = "live_QMWqzDoOaDHGhRW5vlfU9nNM8rRdjStxe1pUayD_30w"
+YOOKASSA_SHOP_ID = "123456"  # Замените на ваш Shop ID
