@@ -11,6 +11,11 @@ class YooKassaClient:
         self.secret_key = YOOKASSA_SECRET_KEY
         self.shop_id = YOOKASSA_SHOP_ID
         
+        # Настраиваем аутентификацию для SDK
+        import os
+        os.environ['YOOKASSA_SHOP_ID'] = self.shop_id
+        os.environ['YOOKASSA_SECRET_KEY'] = self.secret_key
+        
     def create_payment(self, amount: float, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
         """Создание платежа в ЮKassa"""
         try:
@@ -54,8 +59,8 @@ class YooKassaClient:
                 }
             )
             
-            # Создаем платеж с правильной аутентификацией
-            payment = Payment.create(payment_request, self.shop_id, self.secret_key)
+            # Создаем платеж
+            payment = Payment.create(payment_request)
             
             return {
                 "success": True,
@@ -76,7 +81,7 @@ class YooKassaClient:
     def check_payment_status(self, payment_id: str) -> Dict[str, Any]:
         """Проверка статуса платежа"""
         try:
-            payment = Payment.find_one(payment_id, self.shop_id, self.secret_key)
+            payment = Payment.find_one(payment_id)
             
             return {
                 "success": True,
@@ -118,7 +123,7 @@ class YooKassaClient:
             )
             
             # Привязываем чек к платежу
-            Payment.create_receipt(payment_id, receipt, self.shop_id, self.secret_key)
+            Payment.create_receipt(payment_id, receipt)
             
             return {
                 "success": True,
@@ -135,7 +140,7 @@ class YooKassaClient:
     def get_payment_info(self, payment_id: str) -> Dict[str, Any]:
         """Получение полной информации о платеже"""
         try:
-            payment = Payment.find_one(payment_id, self.shop_id, self.secret_key)
+            payment = Payment.find_one(payment_id)
             
             return {
                 "success": True,
