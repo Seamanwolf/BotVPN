@@ -396,10 +396,12 @@ async def main_menu_handler(message: Message):
         # Получаем все активные подписки и конфигурации
         db = SessionLocal()
         try:
+            # Получаем только действительно активные подписки (не истекшие)
+            current_time = datetime.utcnow()
             active_subscriptions = db.query(Subscription).filter(
                 Subscription.user_id == user.id,
                 Subscription.status == "active",
-                Subscription.expires_at > datetime.utcnow()
+                Subscription.expires_at > current_time
             ).order_by(Subscription.subscription_number).all()
             
             if active_subscriptions:
@@ -417,14 +419,19 @@ async def main_menu_handler(message: Message):
                     
                     if config:
                         configs_found += 1
-                        days_left = (subscription.expires_at - datetime.utcnow()).days
+                        # Более точный расчет оставшегося времени
+                        time_left = subscription.expires_at - current_time
+                        days_left = time_left.days
+                        hours_left = time_left.seconds // 3600
                         
                         message_text += f"**Подписка #{subscription.subscription_number}**\n"
                         message_text += f"Тариф: {subscription.plan_name}\n"
                         message_text += f"Действует до: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
                         
-                        if days_left <= 0:
-                            message_text += f"⚠️ Подписка истекла!\n"
+                        if days_left <= 0 and hours_left <= 0:
+                            message_text += f"⚠️ Подписка истекает сегодня!\n"
+                        elif days_left <= 0:
+                            message_text += f"⚠️ Подписка истекает через {hours_left} часов!\n"
                         elif days_left <= 3:
                             message_text += f"⚠️ Подписка истекает через {days_left} дней!\n"
                         elif days_left <= 7:
@@ -447,7 +454,7 @@ async def main_menu_handler(message: Message):
                     )
             else:
                 await message.answer(
-                    "У вас нет ключей.",
+                    "У вас нет активных ключей.",
                     reply_markup=get_user_keyboard(message.from_user.id)
                 )
         finally:

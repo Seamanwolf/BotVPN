@@ -17,12 +17,12 @@ XUI_PASSWORD = os.getenv("XUI_PASSWORD", "zclNU7rzrF")
 # Тарифы
 TARIFFS = {
     "1m": {
-        "price": 299,
+        "price": 149,
         "days": 30,
         "name": "1 месяц"
     },
     "3m": {
-        "price": 799,
+        "price": 399,
         "days": 90,
         "name": "3 месяца"
     },
