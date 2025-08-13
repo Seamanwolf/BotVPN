@@ -763,7 +763,7 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
         # Создаем платеж в ЮKassa
         description = f"SeaVPN - {TARIFFS[tariff]['name']}"
         
-        payment_result = yookassa_client.create_payment(
+        payment_result = await yookassa_client.create_payment(
             amount=price,
             description=description,
             user_id=user.id,
@@ -1363,7 +1363,7 @@ async def check_payment_handler(callback: CallbackQuery):
         payment_id = callback.data.split('_')[2]
         
         # Проверяем статус платежа в ЮKassa
-        payment_status = yookassa_client.check_payment_status(payment_id)
+        payment_status = await yookassa_client.check_payment_status(payment_id)
         
         if not payment_status["success"]:
             await callback.answer("❌ Ошибка проверки платежа", show_alert=True)
@@ -1476,7 +1476,7 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
                     
                     # Создаем чек
                     if user.email:
-                        receipt_result = yookassa_client.create_receipt(
+                        receipt_result = await yookassa_client.create_receipt(
                             payment_id, 
                             user.email, 
                             payment.amount, 
