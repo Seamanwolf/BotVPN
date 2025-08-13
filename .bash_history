@@ -734,3 +734,140 @@ python3 admin_web.py
 python3 admin_web.py
 python3 bot.py
 python3 admin_web.py
+python3 admin_web.py
+pkill -f "python3 admin_web.py"
+sleep 2 && ps aux | grep admin_web
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add .
+git status
+git reset
+git add admin_web.py templates/users.html
+git commit -m "Исправлены проблемы в админке
+
+- Исправлен парсинг дат в таблице подписок (убрано 'Invalid Date')
+- Добавлена кнопка удаления подписки в таблице подписок пользователя
+- Исправлен подсчет активных подписок в таблице пользователей
+- Добавлена функция deleteSubscription для удаления подписок
+- Улучшено отображение дат (показывает 'истекает сегодня', 'истекла' и т.д.)"
+git push
+pkill -f "python3 admin_web.py"
+sleep 2 && ps aux | grep admin_web
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add admin_web.py templates/users.html
+git commit -m "Добавлен столбец 'Рефералы' в таблицу пользователей
+
+- Добавлен столбец 'Рефералы' в таблицу пользователей
+- Показывает количество приглашенных пользователей
+- Добавлен подсчет рефералов в API деталей пользователя
+- Отображение количества рефералов в модальном окне деталей
+- Используется badge с синим цветом для активных рефералов"
+git push
+pkill -f "python3 admin_web.py"
+sleep 2 && ps aux | grep admin_web
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add admin_web.py
+git commit -m "Исправлена ошибка подсчета рефералов
+
+- Исправлена логика подсчета рефералов: теперь используется user.id вместо user.referral_code
+- Поле referred_by в базе данных имеет тип Integer и ссылается на users.id
+- Устранена ошибка 'invalid input syntax for type integer'"
+git push
+git status
+git log --oneline -5
+git status
+pkill -f "python3 admin_web.py"
+sleep 2 && ps aux | grep admin_web
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add admin_web.py templates/users.html
+git commit -m "Добавлен просмотр списка рефералов пользователя
+
+- Добавлен API маршрут /api/user/<id>/referrals для получения списка рефералов
+- Добавлена кнопка 'Рефералы' (иконка users) в таблице пользователей
+- Добавлено модальное окно для отображения списка рефералов
+- В таблице рефералов показывается: ID, имя, Telegram ID, email, монеты, первая покупка, дата регистрации
+- Рефералы отсортированы по дате регистрации (новые сверху)
+- Добавлена функция viewUserReferrals для загрузки и отображения данных"
+git push
+git status
+git log --oneline -3
+pkill -f "python3 bot.py"
+pkill -f "python3 admin_web.py"
+sleep 3 && ps aux | grep -E "(bot.py|admin_web)" | grep -v grep
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add bot.py admin_web.py templates/users.html
+git commit -m "Исправлены проблемы с реферальной системой и бонусами
+
+1. ✅ Исправлено списание монет при покупке за бонусы - теперь монеты корректно списываются и сохраняются
+2. ✅ Исправлены уведомления о реферальных бонусах - теперь отправляются при первой покупке реферала
+3. ✅ Изменена логика начисления бонусов - бонусы начисляются только при первой покупке, а не при регистрации
+4. ✅ Добавлено отображение типа покупки в подписках - показывается '💎 Покупка за бонусные монеты'
+5. ✅ Добавлено отображение уникального названия подписки в веб-панели (SeaMiniVpn-{tg_id}-{number})
+
+Теперь реферальная система работает корректно: бонусы начисляются только за первую покупку реферала, монеты корректно списываются, уведомления отправляются, и в админке видны уникальные названия подписок."
+git push
+pkill -f "python3 admin_web.py"
+sleep 2 && ps aux | grep admin_web
+curl -s "http://localhost:8080/api/user/1/subscriptions" | python3 -m json.tool
+sleep 3 && ps aux | grep admin_web
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add admin_web.py templates/users.html
+git commit -m "Исправлено отображение уникального названия подписки в админке
+
+- Добавлена обработка случая, когда subscription_number равен None (используется значение 1)
+- Добавлена отладочная информация в JavaScript для диагностики
+- Добавлена проверка на существование unique_name в шаблоне
+- Теперь уникальное название подписки должно корректно отображаться в формате SeaMiniVpn-{tg_id}-{number}"
+git push
+pkill -f "python3 admin_web.py"
+sleep 3 && ps aux | grep admin_web
+curl -s -o /dev/null -w "%{http_code}" https://admin.universaltools.pro
+git add admin_web.py templates/subscriptions.html
+pkill -f "python3 bot.py"
+sleep 3 && ps aux | grep bot.py
+git add bot.py
+git commit -m "Исправлена ошибка AdminSettings и обновлена ссылка на поддержку
+
+- Исправлена ошибка AttributeError: 'AdminSettings' object has no attribute 'updated_at'
+- Заменено на settings.created_at с проверкой на None
+- Обновлена ссылка на бот поддержки: t.me/SeaVPN_support_bot
+- Раздел помощи теперь содержит правильную ссылку на поддержку"
+git push
+git status
+git log --oneline -3
+pkill -f "python3 bot.py"
+sleep 3 && ps aux | grep bot.py
+python3 bot.py
+sleep 3 && ps aux | grep bot.py
+git add . && git commit -m "Добавлены кнопки продления под каждым ключом и исправлены ссылки в помощи" && git push
+sleep 3 && ps aux | grep bot.py
+git add . && git commit -m "Исправлены ссылки в сообщениях при покупке ключей - заменен Markdown на HTML" && git push
+sleep 3 && ps aux | grep bot.py
+git add . && git commit -m "Исправлена генерация ссылок подписки - добавлена правильная функция generate_subscription_link" && git push
+ls -la /etc/nginx/sites-available/
+ls -la /etc/nginx/sites-enabled/
+cat /etc/nginx/sites-available/default
+ln -s /etc/nginx/sites-available/universaltools-proxy /etc/nginx/sites-enabled/
+nginx -t
+ls -la /etc/letsencrypt/live/
+nginx -t
+systemctl reload nginx
+sleep 3 && ps aux | grep bot.py
+curl -I "http://nl.universaltools.pro/sub/sub_1755083430"
+curl -L "http://nl.universaltools.pro/sub/sub_1755083430" | head -20
+curl -I "http://127.0.0.1:34235/CVbzPVZjXGDiTsw/sub/sub_1755083430"
+ss -tlnp | grep 34235
+ss -tlnp | grep -E "(34235|3xui|x-ui)"
+ps aux | grep -E "(3xui|x-ui|panel)"
+systemctl reload nginx
+curl -L "http://nl.universaltools.pro/sub/sub_1755083430" | head -10
+curl -L "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/sub_1755083430" | head -10
+git add . && git commit -m "Добавлена маскировка пути 3xUI через Nginx - короткие ссылки подписок" && git push
+curl -v "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/sub_1755083430"
+ps aux | grep bot.py
+curl -s "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/" | grep -o 'sub_[0-9]*' | head -5
+curl -s "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/" | head -20
+curl -s "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/" | head -10
+sleep 3 && ps aux | grep bot.py
+curl -s "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/sub/" | grep -i "sub_" | head -3
+curl -L "https://nl.universaltools.pro/sub/sub_1755081285" | head -10
+pkill -f "python3 admin_web.py" && sleep 1 && python3 admin_web.py

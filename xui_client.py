@@ -141,6 +141,8 @@ class XUIClient:
                 result = response.json()
                 if result.get("success"):
                     print(f"Пользователь {unique_email} успешно создан в 3xUI на inbound {inbound_id}")
+                    print(f"Сгенерированный sub_id: {sub_id}")
+                    print(f"Полный ответ 3xUI: {result}")
                     return {
                         "success": True,
                         "email": unique_email,
@@ -163,8 +165,8 @@ class XUIClient:
     def generate_subscription_link(self, sub_id: str, tg_id: str, subscription_number: int) -> str:
         """Генерация правильной ссылки подписки"""
         from config import XUI_BASE_URL
-        # Формируем короткую ссылку без показа пути к панели
-        return f"https://{XUI_BASE_URL}/sub/{sub_id}"
+        # Формируем правильную ссылку с путем /sea/
+        return f"https://{XUI_BASE_URL}/sea/{sub_id}"
     
     async def get_user_config(self, email: str, subscription_number: int = 1) -> Optional[str]:
         """Получение конфигурации пользователя"""
@@ -189,13 +191,17 @@ class XUIClient:
                         sub_id = client.get("subId", "")
                         tg_id = client.get("tgId", "")
                         
+                        print(f"Найден клиент: email={email}, sub_id={sub_id}, tg_id={tg_id}")
+                        
                         if sub_id:
                             # Используем правильную функцию генерации ссылки
                             config = self.generate_subscription_link(sub_id, tg_id, subscription_number)
+                            print(f"Сгенерированная ссылка: {config}")
                         else:
                             # Fallback на старый формат, если sub_id не найден
                             from config import XUI_BASE_URL
                             config = f"https://{XUI_BASE_URL}/sea/SeaMiniVpn-{tg_id}-{subscription_number}"
+                            print(f"Fallback ссылка: {config}")
                         
                         return config
             
