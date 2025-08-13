@@ -664,8 +664,8 @@ async def tariff_handler(message: Message):
         days = TARIFFS["3m"]["days"]
     elif "Купить тест" in message.text:
         tariff = "test"
-        price = 0  # Бесплатный тест
-        days = 1  # 1 день
+        price = TARIFFS["test"]["price"]
+        days = TARIFFS["test"]["days"]
     else:
         await message.answer("Неизвестный тариф. Выберите из списка:", reply_markup=get_tariffs_keyboard())
         return
@@ -787,7 +787,6 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
                 # Создаем клавиатуру для оплаты
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
                     [InlineKeyboardButton(text="💳 Оплатить", url=payment_result["confirmation_url"])],
-                    [InlineKeyboardButton(text="🔄 Проверить оплату", callback_data=f"check_payment_{payment_result['payment_id']}")],
                     [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_payment_{payment_result['payment_id']}")]
                 ])
                 
@@ -797,7 +796,7 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
                 payment_message += f"⏰ <b>Срок:</b> {days} дней\n\n"
                 payment_message += f"🔗 <b>Ссылка для оплаты:</b>\n"
                 payment_message += f"Нажмите кнопку 'Оплатить' ниже\n\n"
-                payment_message += f"⚠️ <b>Важно:</b> После оплаты нажмите 'Проверить оплату'"
+                payment_message += f"✅ <b>После оплаты подписка активируется автоматически</b>"
                 
                 await message.answer(payment_message, parse_mode="HTML", reply_markup=keyboard)
                 
