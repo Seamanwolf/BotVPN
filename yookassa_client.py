@@ -1,21 +1,24 @@
 import uuid
-import httpx
-import base64
+import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
+from yookassa import Payment, Configuration
 from config import YOOKASSA_SECRET_KEY, YOOKASSA_SHOP_ID
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 class YooKassaClient:
     def __init__(self):
-        self.secret_key = YOOKASSA_SECRET_KEY
-        self.shop_id = YOOKASSA_SHOP_ID
-        self.base_url = "https://api.yookassa.ru/v3"
+        # Настраиваем SDK ЮKassa
+        Configuration.account_id = YOOKASSA_SHOP_ID
+        Configuration.secret_key = YOOKASSA_SECRET_KEY
         
-        # Создаем Basic Auth заголовок
-        credentials = f"{self.shop_id}:{self.secret_key}"
-        self.auth_header = f"Basic {base64.b64encode(credentials.encode()).decode()}"
-        
-    async def create_payment(self, amount: int, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
+    def create_payment(self, amount: int, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
         """Создание платежа в ЮKassa"""
         try:
             # Создаем уникальный ключ идемпотентности
@@ -24,7 +27,7 @@ class YooKassaClient:
             # Данные для создания платежа
             payment_data = {
                 "amount": {
-                    "value": str(amount),
+                    "value": f"{amount:.2f}",
                     "currency": "RUB"
                 },
                 "confirmation": {
@@ -45,50 +48,33 @@ class YooKassaClient:
                     "items": [
                         {
                             "description": description,
-                            "quantity": "1",
+                            "quantity": "1.00",
                             "amount": {
-                                "value": str(amount),
+                                "value": f"{amount:.2f}",
                                 "currency": "RUB"
                             },
-                            "vat_code": 1,
-                            "payment_subject_type": "service",
-                            "payment_mode_type": "full_payment"
+                            "vat_code": "1",
+                            "payment_mode": "full_payment",
+                            "payment_subject": "service"
                         }
                     ]
                 }
             }
             
-            # Отправляем запрос на создание платежа
             print(f"DEBUG: Отправляем платеж с суммой: {amount} -> {f'{amount:.2f}'}")
             print(f"DEBUG: payment_data: {payment_data}")
             
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.base_url}/payments",
-                    json=payment_data,
-                    headers={
-                        "Authorization": self.auth_header,
-                        "Idempotence-Key": idempotence_key,
-                        "Content-Type": "application/json"
-                    }
-                )
-                
-                if response.status_code == 200:
-                    payment_info = response.json()
-                    return {
-                        "success": True,
-                        "payment_id": payment_info["id"],
-                        "confirmation_url": payment_info["confirmation"]["confirmation_url"],
-                        "status": payment_info["status"],
-                        "amount": amount,
-                        "description": description
-                    }
-                else:
-                    print(f"Ошибка создания платежа: {response.status_code} - {response.text}")
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}"
-                    }
+            # Создаем платеж через SDK
+            payment = Payment.create(payment_data, idempotence_key)
+            
+            return {
+                "success": True,
+                "payment_id": payment.id,
+                "confirmation_url": payment.confirmation.confirmation_url,
+                "status": payment.status,
+                "amount": amount,
+                "description": description
+            }
                     
         except Exception as e:
             print(f"Ошибка создания платежа: {e}")
@@ -97,84 +83,37 @@ class YooKassaClient:
                 "error": str(e)
             }
     
-    async def check_payment_status(self, payment_id: str) -> Dict[str, Any]:
+    def check_payment_status(self, payment_id: str) -> Dict[str, Any]:
         """Проверка статуса платежа"""
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.base_url}/payments/{payment_id}",
-                    headers={
-                        "Authorization": self.auth_header,
-                        "Content-Type": "application/json"
-                    }
-                )
-                
-                if response.status_code == 200:
-                    payment_info = response.json()
-                    return {
-                        "success": True,
-                        "payment_id": payment_info["id"],
-                        "status": payment_info["status"],
-                        "paid": payment_info["paid"],
-                        "amount": float(payment_info["amount"]["value"]),
-                        "metadata": payment_info.get("metadata", {})
-                    }
-                else:
-                    print(f"Ошибка проверки статуса платежа: {response.status_code} - {response.text}")
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}"
-                    }
+            logging.info(f"Получение статуса платежа в YooKassa для payment_id: {payment_id}")
+            payment = Payment.find_one(payment_id)
+            
+            return {
+                "success": True,
+                "payment_id": payment.id,
+                "status": payment.status,
+                "paid": payment.status == 'succeeded',
+                "amount": float(payment.amount.value),
+                "metadata": payment.metadata
+            }
                     
         except Exception as e:
-            print(f"Ошибка проверки статуса платежа: {e}")
+            logging.error(f"Ошибка check_payment_status({payment_id}): {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
     
-    async def create_receipt(self, payment_id: str, user_email: str, amount: int, description: str) -> Dict[str, Any]:
+    def create_receipt(self, payment_id: str, user_email: str, amount: int, description: str) -> Dict[str, Any]:
         """Создание чека для платежа"""
         try:
-            receipt_data = {
-                "customer": {
-                    "email": user_email
-                },
-                "items": [
-                    {
-                        "description": description,
-                        "quantity": "1",
-                        "amount": {
-                            "value": str(amount),
-                            "currency": "RUB"
-                        },
-                        "vat_code": 1,
-                        "payment_subject_type": "service",
-                        "payment_mode_type": "full_payment"
-                    }
-                ]
+            # ЮKassa создает чеки автоматически при создании платежа
+            print(f"Чек будет создан автоматически ЮKassa для платежа {payment_id}")
+            return {
+                "success": True,
+                "message": "Чек будет создан автоматически ЮKassa"
             }
-            
-            async with httpx.AsyncClient() as client:
-                # ЮKassa не поддерживает создание чеков через API для физ. лиц
-                # Чек создается автоматически при создании платежа
-                print(f"Чек будет создан автоматически ЮKassa для платежа {payment_id}")
-                return {
-                    "success": True,
-                    "message": "Чек будет создан автоматически ЮKassa"
-                }
-                
-                if response.status_code == 200:
-                    return {
-                        "success": True,
-                        "message": "Чек успешно создан"
-                    }
-                else:
-                    print(f"Ошибка создания чека: {response.status_code} - {response.text}")
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}"
-                    }
                     
         except Exception as e:
             print(f"Ошибка создания чека: {e}")
@@ -183,38 +122,23 @@ class YooKassaClient:
                 "error": str(e)
             }
     
-    async def get_payment_info(self, payment_id: str) -> Dict[str, Any]:
+    def get_payment_info(self, payment_id: str) -> Dict[str, Any]:
         """Получение полной информации о платеже"""
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.base_url}/payments/{payment_id}",
-                    headers={
-                        "Authorization": self.auth_header,
-                        "Content-Type": "application/json"
-                    }
-                )
-                
-                if response.status_code == 200:
-                    payment_info = response.json()
-                    return {
-                        "success": True,
-                        "payment_id": payment_info["id"],
-                        "status": payment_info["status"],
-                        "paid": payment_info["paid"],
-                        "amount": float(payment_info["amount"]["value"]),
-                        "currency": payment_info["amount"]["currency"],
-                        "description": payment_info.get("description", ""),
-                        "metadata": payment_info.get("metadata", {}),
-                        "created_at": payment_info.get("created_at"),
-                        "paid_at": payment_info.get("paid_at")
-                    }
-                else:
-                    print(f"Ошибка получения информации о платеже: {response.status_code} - {response.text}")
-                    return {
-                        "success": False,
-                        "error": f"HTTP {response.status_code}: {response.text}"
-                    }
+            payment = Payment.find_one(payment_id)
+            
+            return {
+                "success": True,
+                "payment_id": payment.id,
+                "status": payment.status,
+                "paid": payment.status == 'succeeded',
+                "amount": float(payment.amount.value),
+                "currency": payment.amount.currency,
+                "description": payment.description,
+                "metadata": payment.metadata,
+                "created_at": payment.created_at,
+                "paid_at": payment.paid_at
+            }
                     
         except Exception as e:
             print(f"Ошибка получения информации о платеже: {e}")
