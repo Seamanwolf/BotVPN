@@ -219,6 +219,7 @@ function viewUserSubscriptions(userId) {
         .then(data => {
             if (data.success) {
                 const subscriptions = data.subscriptions;
+                console.log('Subscriptions data:', subscriptions); // Отладочная информация
                 let content = '<h6>Подписки пользователя</h6>';
                 
                 if (subscriptions.length > 0) {
@@ -238,6 +239,7 @@ function viewUserSubscriptions(userId) {
                     `;
                     
                     subscriptions.forEach(sub => {
+                        console.log('Processing subscription:', sub); // Отладочная информация
                         // Парсим дату из формата dd.mm.yyyy HH:MM
                         let expiresDate = null;
                         let daysLeft = 0;
@@ -274,7 +276,7 @@ function viewUserSubscriptions(userId) {
                                 <td>${sub.id}</td>
                                 <td>
                                     <div><strong>${sub.plan_name}</strong></div>
-                                    <small class="text-muted">${sub.unique_name}</small>
+                                    <small class="text-muted">${sub.unique_name || 'Не указано'}</small>
                                 </td>
                                 <td>${statusBadge}</td>
                                 <td>${dateDisplay}</td>
