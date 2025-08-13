@@ -162,9 +162,9 @@ class XUIClient:
     
     def generate_subscription_link(self, sub_id: str, tg_id: str, subscription_number: int) -> str:
         """Генерация правильной ссылки подписки"""
-        from config import XUI_BASE_URL, XUI_WEBBASEPATH
-        # Формируем ссылку в правильном формате для 3xUI
-        return f"https://{XUI_BASE_URL}/{XUI_WEBBASEPATH}/sub/{sub_id}"
+        from config import XUI_BASE_URL
+        # Формируем короткую ссылку без показа пути к панели
+        return f"https://{XUI_BASE_URL}/sub/{sub_id}"
     
     async def get_user_config(self, email: str, subscription_number: int = 1) -> Optional[str]:
         """Получение конфигурации пользователя"""
