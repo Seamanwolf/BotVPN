@@ -56,6 +56,7 @@
                             <th>Email</th>
                             <th>Монеты</th>
                             <th>Подписки</th>
+                            <th>Рефералы</th>
                             <th>Дата регистрации</th>
                             <th>Действия</th>
                         </tr>
@@ -76,6 +77,13 @@
                                     <span class="badge bg-success">{{ user_subscriptions|length }} активных</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Нет подписок</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.referrals_count and user.referrals_count > 0 %}
+                                    <span class="badge bg-info">{{ user.referrals_count }} приглашенных</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">0</span>
                                 {% endif %}
                             </td>
                             <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
@@ -173,6 +181,7 @@ function viewUserDetails(userId) {
                             <p><strong>Бонусные монеты:</strong> ${user.bonus_coins} 🪙</p>
                             <p><strong>Реферальный код:</strong> <code>${user.referral_code}</code></p>
                             <p><strong>Приглашен от:</strong> ${user.referred_by || 'Нет'}</p>
+                            <p><strong>Количество рефералов:</strong> <span class="badge bg-info">${user.referrals_count || 0} приглашенных</span></p>
                             <p><strong>Первая покупка:</strong> ${user.has_made_first_purchase ? 'Да' : 'Нет'}</p>
                             <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
                         </div>

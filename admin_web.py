@@ -131,6 +131,10 @@ def users():
         # Получаем все подписки для подсчета
         subscriptions = db.query(Subscription).all()
         
+        # Подсчитываем количество рефералов для каждого пользователя
+        for user in users:
+            user.referrals_count = db.query(User).filter(User.referred_by == user.referral_code).count()
+        
         return render_template('users.html', users=users, subscriptions=subscriptions)
     finally:
         db.close()
@@ -170,6 +174,9 @@ def get_user_details(user_id):
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
+            # Подсчитываем количество рефералов
+            referrals_count = db.query(User).filter(User.referred_by == user.referral_code).count()
+            
             return jsonify({
                 'success': True,
                 'user': {
@@ -181,6 +188,9 @@ def get_user_details(user_id):
                     'created_at': user.created_at.isoformat() if user.created_at else None,
                     'bonus_coins': user.bonus_coins,
                     'referral_code': user.referral_code,
+                    'referred_by': user.referred_by,
+                    'referrals_count': referrals_count,
+                    'has_made_first_purchase': user.has_made_first_purchase,
                     'is_admin': user.telegram_id in ADMIN_IDS
                 },
                 'subscriptions': [{
