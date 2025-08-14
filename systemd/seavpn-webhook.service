@@ -1,0 +1,18 @@
+[Unit]
+Description=SeaVPN Webhook Handler
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/bin/python3 /root/webhook_handler.py
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=seavpn-webhook
+
+[Install]
+WantedBy=multi-user.target
