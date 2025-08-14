@@ -73,11 +73,16 @@ from aiogram import Bot
 # Загружаем переменные окружения
 load_dotenv()
 
-# Получаем токен бота из переменной окружения
+# Получаем токен бота из переменной окружения или из config.py
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    print("Error: BOT_TOKEN environment variable is not set")
-    sys.exit(1)
+    try:
+        sys.path.append('/root')
+        from config import BOT_TOKEN
+        print(f"Using BOT_TOKEN from config.py: {BOT_TOKEN}")
+    except ImportError:
+        print("Error: BOT_TOKEN not found in environment or config.py")
+        sys.exit(1)
 
 # Создаем экземпляр бота
 bot = Bot(token=BOT_TOKEN)
@@ -173,8 +178,18 @@ def process_payment_webhook_sync(payment_data: Dict[str, Any]) -> Dict[str, Any]
                 from dotenv import load_dotenv
                 
                 load_dotenv()
-                Configuration.account_id = os.getenv("YOOKASSA_SHOPID")
-                Configuration.secret_key = os.getenv("YOOKASSA_SECRET_KEY")
+                # Используем переменные окружения или значения из config.py
+                shop_id = os.getenv("YOOKASSA_SHOPID")
+                secret_key = os.getenv("YOOKASSA_SECRET_KEY")
+                
+                if not shop_id or not secret_key:
+                    from config import YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
+                    shop_id = YOOKASSA_SHOP_ID
+                    secret_key = YOOKASSA_SECRET_KEY
+                    
+                Configuration.account_id = shop_id
+                Configuration.secret_key = secret_key
+                logging.debug(f"Настроены учетные данные YooKassa: account_id={shop_id}")
                 
                 if Configuration.account_id and Configuration.secret_key:
                     payment_check = YooKassaPayment.find_one(payment_id)
