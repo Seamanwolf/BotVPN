@@ -644,8 +644,8 @@ async def main_menu_handler(message: Message):
         help_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
         help_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
         help_text += "<b>Для Mac:</b>\n"
-        help_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
-        help_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
+        help_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases/download/v2.5.7/Hiddify-MacOS.dmg\">Hiddify</a>\n"
+        help_text += "• <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand (Только для M-процессоров)</a>\n"
         help_text += "<b>Инструкция по подключению:</b>\n"
         help_text += "1. Скачайте приложение для вашей платформы\n"
         help_text += "2. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
@@ -994,8 +994,8 @@ async def exchange_bonus_handler(message: Message):
                     apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
                     apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
                     apps_text += "<b>Mac:</b>\n"
-                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
-                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases/download/v2.5.7/Hiddify-MacOS.dmg\">Hiddify</a>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand (Только для M-процессоров)</a>\n"
                     
                     await message.answer(
                         f"✅ Бонусная подписка активирована!\n\n"
@@ -1356,8 +1356,8 @@ async def extend_subscription_with_bonus(callback: CallbackQuery, user, subscrip
                     apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
                     apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
                     apps_text += "<b>Mac:</b>\n"
-                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
-                    apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases/download/v2.5.7/Hiddify-MacOS.dmg\">Hiddify</a>\n"
+                    apps_text += "• <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand (Только для M-процессоров)</a>\n"
                     
                     await callback.message.edit_text(
                         f"✅ Подписка успешно продлена за бонусы!\n\n"
@@ -1591,7 +1591,7 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
                     apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">Hiddify</a>\n"
                     apps_text += "• <a href=\"https://github.com/2dust/v2rayN/releases\">V2rayN</a>\n\n"
                     apps_text += "<b>Mac:</b>\n"
-                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
+                    apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases/download/v2.5.7/Hiddify-MacOS.dmg\">Hiddify</a>\n"
                     apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
                     
                     success_message = f"✅ <b>Оплата прошла успешно!</b>\n\n"
