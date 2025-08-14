@@ -239,16 +239,30 @@ def create_new_subscription_from_payment_sync(payment: Payment, db: Session, use
                     else:
                         success_message += f"<code>{config}</code>\n\n"
                     success_message += apps_text
+                    success_message += "\n📋 <b>Инструкция по подключению:</b>\n"
+                    success_message += "1. Скачайте приложение для вашей платформы\n"
+                    success_message += "2. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
+                    success_message += "3. Вставьте ссылку в приложение\n"
+                    success_message += "4. Нажмите 'Подключить'\n\n"
+                    success_message += "Если у вас есть вопросы, не стесняйтесь обращаться!"
                     
                     logging.debug(f"Отправка сообщения пользователю {user.telegram_id}...")
                     # Отправляем сообщение пользователю через бота
                     from bot import bot
-                    loop.run_until_complete(bot.send_message(
-                        chat_id=user.telegram_id,
-                        text=success_message,
-                        parse_mode="HTML"
-                    ))
-                    logging.debug("Сообщение отправлено пользователю")
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        new_loop.run_until_complete(bot.send_message(
+                            chat_id=user.telegram_id,
+                            text=success_message,
+                            parse_mode="HTML"
+                        ))
+                        logging.debug("Сообщение отправлено пользователю")
+                    except Exception as e:
+                        logging.error(f"Webhook: ошибка при отправке сообщения: {e}")
+                    finally:
+                        if 'new_loop' in locals():
+                            new_loop.close()
                     
                     # Начисляем реферальный бонус только при первой покупке
                     if user.referred_by and not user.has_made_first_purchase:
@@ -263,10 +277,31 @@ def create_new_subscription_from_payment_sync(payment: Payment, db: Session, use
                             logging.debug(f"Реферальный бонус начислен: {REFERRAL_BONUS} монет")
                             
                             # Отправляем уведомление о реферальном бонусе
-                            loop.run_until_complete(notification_manager.notify_referral_bonus(referrer.telegram_id, user.full_name))
-                            logging.debug("Уведомление о реферальном бонусе отправлено")
+                            try:
+                                new_loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(new_loop)
+                                new_loop.run_until_complete(notification_manager.notify_referral_bonus(referrer.telegram_id, user.full_name))
+                                logging.debug("Уведомление о реферальном бонусе отправлено")
+                            except Exception as e:
+                                logging.error(f"Webhook: ошибка при отправке реферального уведомления: {e}")
+                            finally:
+                                if 'new_loop' in locals():
+                                    new_loop.close()
                     
                     logging.info(f"Webhook: подписка создана для пользователя {user.telegram_id}")
+                    
+                    # Отправляем уведомление администраторам о новой покупке
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        new_loop.run_until_complete(notification_manager.notify_admin_new_purchase(user, subscription, payment.amount))
+                        logging.debug("Уведомление администраторам о новой покупке отправлено")
+                    except Exception as e:
+                        logging.error(f"Webhook: ошибка при отправке уведомления администраторам: {e}")
+                    finally:
+                        if 'new_loop' in locals():
+                            new_loop.close()
+                    
                     logging.debug("=== СОЗДАНИЕ ПОДПИСКИ ЗАВЕРШЕНО УСПЕШНО ===")
                 else:
                     logging.error(f"Webhook: ошибка получения конфигурации для пользователя {user.telegram_id}")
@@ -354,16 +389,37 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
             else:
                 # Если подписка еще активна, продлеваем существующего пользователя
                 logging.debug("Подписка активна, продлеваем существующего пользователя")
-                xui_result = loop.run_until_complete(xui_client.extend_user(
-                    unique_email,
-                    days
-                ))
+                
+                # Создаем новый event loop для асинхронного вызова
+                import asyncio
+                try:
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    xui_result = new_loop.run_until_complete(xui_client.extend_user(
+                        unique_email,
+                        days
+                    ))
+                except Exception as e:
+                    logging.error(f"Webhook: ошибка при продлении в 3xUI: {e}")
+                    xui_result = None
+                finally:
+                    if 'new_loop' in locals():
+                        new_loop.close()
             
             logging.debug(f"Результат продления в XUI: {xui_result}")
             
             if xui_result:
                 # Получаем новую конфигурацию
-                config = loop.run_until_complete(xui_client.get_user_config(xui_result["email"], subscription.subscription_number))
+                try:
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    config = new_loop.run_until_complete(xui_client.get_user_config(xui_result["email"], subscription.subscription_number))
+                except Exception as e:
+                    logging.error(f"Webhook: ошибка при получении конфигурации: {e}")
+                    config = None
+                finally:
+                    if 'new_loop' in locals():
+                        new_loop.close()
                 logging.debug(f"Полученная конфигурация: {config}")
                 
                 if config:
@@ -418,18 +474,45 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
                     else:
                         success_message += f"<code>{config}</code>\n\n"
                     success_message += apps_text
+                    success_message += "\n📋 <b>Инструкция по подключению:</b>\n"
+                    success_message += "1. Скачайте приложение для вашей платформы\n"
+                    success_message += "2. Скопируйте подписочную ссылку из раздела '🔑 Мои ключи'\n"
+                    success_message += "3. Вставьте ссылку в приложение\n"
+                    success_message += "4. Нажмите 'Подключить'\n\n"
+                    success_message += "Если у вас есть вопросы, не стесняйтесь обращаться!"
                     
                     logging.debug(f"Отправка сообщения пользователю {user.telegram_id}...")
                     # Отправляем сообщение пользователю через бота
                     from bot import bot
-                    loop.run_until_complete(bot.send_message(
-                        chat_id=user.telegram_id,
-                        text=success_message,
-                        parse_mode="HTML"
-                    ))
-                    logging.debug("Сообщение отправлено пользователю")
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        new_loop.run_until_complete(bot.send_message(
+                            chat_id=user.telegram_id,
+                            text=success_message,
+                            parse_mode="HTML"
+                        ))
+                        logging.debug("Сообщение отправлено пользователю")
+                    except Exception as e:
+                        logging.error(f"Webhook: ошибка при отправке сообщения: {e}")
+                    finally:
+                        if 'new_loop' in locals():
+                            new_loop.close()
                     
                     logging.info(f"Webhook: подписка продлена для пользователя {user.telegram_id}")
+                    
+                    # Отправляем уведомление администраторам о продлении
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        new_loop.run_until_complete(notification_manager.notify_admin_extension(user, subscription, payment.amount, days))
+                        logging.debug("Уведомление администраторам о продлении отправлено")
+                    except Exception as e:
+                        logging.error(f"Webhook: ошибка при отправке уведомления администраторам о продлении: {e}")
+                    finally:
+                        if 'new_loop' in locals():
+                            new_loop.close()
+                    
                     logging.debug("=== ПРОДЛЕНИЕ ПОДПИСКИ ЗАВЕРШЕНО УСПЕШНО ===")
                 else:
                     logging.error(f"Webhook: ошибка получения конфигурации для продления пользователя {user.telegram_id}")

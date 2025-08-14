@@ -115,6 +115,75 @@ class NotificationManager:
             
         except Exception as e:
             print(f"Ошибка при отправке уведомления о реферальном бонусе: {e}")
+    
+    async def notify_admin_new_purchase(self, user, subscription, payment_amount: int):
+        """Уведомление администраторов о новой покупке"""
+        try:
+            # Получаем всех активных администраторов
+            db = SessionLocal()
+            try:
+                from database import Admin
+                admins = db.query(Admin).filter(Admin.is_active == True).all()
+            finally:
+                db.close()
+            
+            message = f"🛒 **Новая покупка!**\n\n"
+            message += f"👤 **Пользователь:** {user.full_name or 'Не указано'}\n"
+            message += f"🆔 **Telegram ID:** {user.telegram_id}\n"
+            message += f"📧 **Email:** {user.email or 'Не указан'}\n\n"
+            message += f"📦 **Тариф:** {subscription.plan_name}\n"
+            message += f"💰 **Сумма:** {payment_amount}₽\n"
+            message += f"📅 **Действует до:** {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
+            message += f"🔑 **Ключ:** SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}\n\n"
+            message += f"⏰ **Время покупки:** {datetime.utcnow().strftime('%d.%m.%Y %H:%M')}"
+            
+            for admin in admins:
+                try:
+                    await self.bot.send_message(
+                        chat_id=admin.telegram_id,
+                        text=message,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    print(f"Ошибка при отправке уведомления админу {admin.telegram_id}: {e}")
+                    
+        except Exception as e:
+            print(f"Ошибка при отправке уведомления о новой покупке: {e}")
+    
+    async def notify_admin_extension(self, user, subscription, payment_amount: int, days_added: int):
+        """Уведомление администраторов о продлении подписки"""
+        try:
+            # Получаем всех активных администраторов
+            db = SessionLocal()
+            try:
+                from database import Admin
+                admins = db.query(Admin).filter(Admin.is_active == True).all()
+            finally:
+                db.close()
+            
+            message = f"🔄 **Продление подписки!**\n\n"
+            message += f"👤 **Пользователь:** {user.full_name or 'Не указано'}\n"
+            message += f"🆔 **Telegram ID:** {user.telegram_id}\n"
+            message += f"📧 **Email:** {user.email or 'Не указан'}\n\n"
+            message += f"📦 **Тариф:** {subscription.plan_name}\n"
+            message += f"💰 **Сумма:** {payment_amount}₽\n"
+            message += f"⏰ **Добавлено дней:** {days_added}\n"
+            message += f"📅 **Новая дата окончания:** {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
+            message += f"🔑 **Ключ:** SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}\n\n"
+            message += f"⏰ **Время продления:** {datetime.utcnow().strftime('%d.%m.%Y %H:%M')}"
+            
+            for admin in admins:
+                try:
+                    await self.bot.send_message(
+                        chat_id=admin.telegram_id,
+                        text=message,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    print(f"Ошибка при отправке уведомления админу {admin.telegram_id}: {e}")
+                    
+        except Exception as e:
+            print(f"Ошибка при отправке уведомления о продлении: {e}")
 
 # Глобальный экземпляр менеджера уведомлений
 notification_manager = None

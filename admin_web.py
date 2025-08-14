@@ -334,30 +334,42 @@ def delete_subscription(subscription_id):
 @login_required
 def delete_user(user_id):
     """API для удаления пользователя"""
+    print(f"=== НАЧАЛО УДАЛЕНИЯ ПОЛЬЗОВАТЕЛЯ ID: {user_id} ===")
+    print(f"Метод: {request.method}")
+    print(f"URL: {request.url}")
+    print(f"Заголовки: {dict(request.headers)}")
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
+            print(f"Пользователь ID {user_id} не найден")
             return jsonify({'success': False, 'message': 'Пользователь не найден'})
+        
+        print(f"Найден пользователь: {user.full_name} (Telegram ID: {user.telegram_id})")
         
         # Проверяем, не является ли пользователь админом
         admin = db.query(Admin).filter(Admin.telegram_id == user.telegram_id).first()
         if admin:
+            print(f"Пользователь {user.telegram_id} является администратором, удаление запрещено")
             return jsonify({'success': False, 'message': 'Нельзя удалить администратора'})
         
         # Получаем все подписки пользователя
         subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
+        print(f"Найдено подписок у пользователя: {len(subscriptions)}")
         
         # Удаляем пользователя из 3xUI (будет удален при следующей синхронизации)
         print(f"Пользователь {user.telegram_id} будет удален из 3xUI при следующей синхронизации")
         
         # Удаляем все подписки пользователя из БД
         for subscription in subscriptions:
+            print(f"Удаляем подписку ID: {subscription.id}")
             db.delete(subscription)
         
         # Удаляем пользователя из БД
+        print(f"Удаляем пользователя ID: {user.id}")
         db.delete(user)
         db.commit()
+        print(f"Пользователь {user.full_name or user.telegram_id} успешно удален из БД")
         
         return jsonify({
             'success': True, 
