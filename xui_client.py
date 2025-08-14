@@ -205,17 +205,24 @@ class XUIClient:
                         
                         # Формируем payload для обновления клиента
                         payload = {
-                            "id": client_id,
-                            "flow": client.get("flow", ""),
-                            "email": email,
-                            "limitIp": client.get("limitIp", 3),
-                            "totalGB": client.get("totalGB", 0),
-                            "expiryTime": new_expiry_ms,
-                            "enable": client.get("enable", True),
-                            "tgId": client.get("tgId", ""),
-                            "subId": client.get("subId", ""),
-                            "reset": client.get("reset", 0),
-                            "comment": client.get("comment", "")
+                            "id": inbound.get("id"),  # ID inbound, а не клиента
+                            "settings": json.dumps({
+                                "clients": [
+                                    {
+                                        "id": client_id,
+                                        "flow": client.get("flow", ""),
+                                        "email": email,
+                                        "limitIp": client.get("limitIp", 3),
+                                        "totalGB": client.get("totalGB", 0),
+                                        "expiryTime": new_expiry_ms,
+                                        "enable": client.get("enable", True),
+                                        "tgId": client.get("tgId", ""),
+                                        "subId": client.get("subId", ""),
+                                        "reset": client.get("reset", 0),
+                                        "comment": client.get("comment", "")
+                                    }
+                                ]
+                            })
                         }
                         
                         # Используем правильный API для обновления клиента
