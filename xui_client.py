@@ -162,6 +162,94 @@ class XUIClient:
             print(f"Ошибка при создании пользователя: {e}")
             return None
     
+    async def extend_user(self, email: str, days: int) -> Optional[Dict[str, Any]]:
+        """Продление пользователя в 3xUI"""
+        await self.ensure_login()
+        try:
+            # Получаем список inbounds
+            inbounds = await self.get_inbounds()
+            if not inbounds or not inbounds.get("obj"):
+                print("Не удалось получить inbounds")
+                return None
+            
+            # Ищем пользователя во всех inbounds
+            for inbound in inbounds["obj"]:
+                if not inbound.get("enable", False):
+                    continue
+                
+                settings = json.loads(inbound.get("settings", "{}"))
+                clients = settings.get("clients", [])
+                
+                # Ищем клиента с нужным email
+                for client in clients:
+                    if client.get("email") == email:
+                        # Получаем текущее время истечения
+                        current_expiry = client.get("expiryTime", 0)
+                        
+                        # Вычисляем новое время истечения
+                        if current_expiry > 0:
+                            # Если есть текущее время истечения, добавляем дни к нему
+                            current_expiry_dt = datetime.fromtimestamp(current_expiry / 1000)
+                            new_expiry_dt = current_expiry_dt + timedelta(days=days)
+                        else:
+                            # Если нет времени истечения, устанавливаем от текущего момента
+                            new_expiry_dt = datetime.now() + timedelta(days=days)
+                        
+                        new_expiry_ms = int(new_expiry_dt.timestamp() * 1000)
+                        
+                        # Обновляем клиента
+                        updated_client = client.copy()
+                        updated_client["expiryTime"] = new_expiry_ms
+                        
+                        # Формируем payload для обновления
+                        updated_clients = []
+                        for c in clients:
+                            if c.get("email") == email:
+                                updated_clients.append(updated_client)
+                            else:
+                                updated_clients.append(c)
+                        
+                        payload = {
+                            "id": inbound.get("id"),
+                            "settings": json.dumps({
+                                "clients": updated_clients
+                            })
+                        }
+                        
+                        # Обновляем inbound
+                        update_url = f"{self.base_url}/panel/api/inbounds/update/{inbound.get('id')}"
+                        response = await self.client.post(
+                            update_url,
+                            json=payload,
+                            cookies=self.session_cookies,
+                            headers={"Content-Type": "application/json", "Accept": "application/json"}
+                        )
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            if result.get("success"):
+                                print(f"Пользователь {email} успешно продлен на {days} дней")
+                                print(f"Новое время истечения: {new_expiry_dt.strftime('%d.%m.%Y %H:%M')}")
+                                return {
+                                    "success": True,
+                                    "email": email,
+                                    "new_expiry": new_expiry_ms,
+                                    "new_expiry_date": new_expiry_dt.isoformat()
+                                }
+                            else:
+                                print(f"Ошибка обновления пользователя: {result.get('msg', 'Неизвестная ошибка')}")
+                                return None
+                        else:
+                            print(f"Ошибка HTTP при обновлении пользователя: {response.status_code}")
+                            return None
+            
+            print(f"Пользователь {email} не найден в 3xUI")
+            return None
+            
+        except Exception as e:
+            print(f"Ошибка при продлении пользователя: {e}")
+            return None
+    
     def generate_subscription_link(self, sub_id: str, tg_id: str, subscription_number: int) -> str:
         """Генерация правильной ссылки подписки"""
         from config import XUI_BASE_URL

@@ -337,6 +337,10 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            # Формируем уникальный email для поиска пользователя в 3xUI
+            unique_email = f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}"
+            logging.debug(f"Уникальный email для поиска: {unique_email}")
+            
             # Если подписка истекла, создаем нового пользователя
             if subscription.status == "expired":
                 logging.debug("Подписка истекла, создаем нового пользователя")
@@ -348,14 +352,11 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
                     subscription.subscription_number
                 ))
             else:
-                # Если подписка еще активна, добавляем дни к существующему
-                logging.debug("Подписка активна, добавляем дни")
-                xui_result = loop.run_until_complete(xui_client.create_user(
-                    user_email, 
-                    days, 
-                    f"{user.full_name} (EXTENDED)", 
-                    str(user.telegram_id),
-                    subscription.subscription_number
+                # Если подписка еще активна, продлеваем существующего пользователя
+                logging.debug("Подписка активна, продлеваем существующего пользователя")
+                xui_result = loop.run_until_complete(xui_client.extend_user(
+                    unique_email,
+                    days
                 ))
             
             logging.debug(f"Результат продления в XUI: {xui_result}")

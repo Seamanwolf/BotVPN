@@ -1298,6 +1298,7 @@ async def extend_subscription_with_bonus(callback: CallbackQuery, user, subscrip
         try:
             # Продлеваем подписку в 3xUI
             user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
+            unique_email = f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}"
             
             # Если подписка истекла, создаем нового пользователя
             if subscription.status == "expired":
@@ -1309,13 +1310,10 @@ async def extend_subscription_with_bonus(callback: CallbackQuery, user, subscrip
                     subscription.subscription_number
                 )
             else:
-                # Если подписка еще активна, добавляем дни к существующему
-                xui_result = await xui_client.create_user(
-                    user_email, 
-                    days, 
-                    f"{user.full_name} (EXTENDED)", 
-                    str(user.telegram_id),
-                    subscription.subscription_number
+                # Если подписка еще активна, продлеваем существующего пользователя
+                xui_result = await xui_client.extend_user(
+                    unique_email,
+                    days
                 )
             
             if xui_result:
