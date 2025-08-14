@@ -974,3 +974,257 @@ pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
 pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 migrate_payment_fields.py
+systemctl restart seavpn-webhook.service
+curl -X GET http://127.0.0.1:5001/webhook/health
+systemctl status seavpn-webhook.service
+curl -X GET http://127.0.0.1:5001/webhook/health
+curl -X POST https://admin.universaltools.pro/webhook/yookassa -H "Content-Type: application/json" -d '{"object": {"id": "test-extension-payment", "status": "succeeded", "paid": true}}'
+journalctl -u seavpn-webhook.service -n 20 --no-pager
+systemctl restart seavpn-bot.service
+systemctl list-units --type=service | grep -i bot
+systemctl list-units --type=service --state=running | grep -E "(bot|python)"
+ps aux | grep -E "(bot|python)" | grep -v grep
+kill 75475
+cd /root && nohup python3 bot.py > bot.log 2>&1 &
+ps aux | grep "python3 bot.py" | grep -v grep
+tail -n 10 bot.log
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+cd /root && python3 -c "from bot import *; print('Бот загружается без ошибок')"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 migrate_payment_fields.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-webhook.service -n 50 --no-pager
+netstat -tlnp | grep :5001
+ss -tlnp | grep :5001
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302ea152-000f-5001-8000-1ee40152e048').first(); print(f'Payment found: {payment is not None}'); print(f'Status: {payment.status if payment else \"Not found\"}'); print(f'Completed: {payment.completed_at if payment else \"Not found\"}'); db.close()"
+systemctl restart seavpn-webhook.service
+systemctl status seavpn-webhook.service
+journalctl -u seavpn-webhook.service -n 20 --no-pager
+curl -X GET http://127.0.0.1:5001/webhook/health
+journalctl -u seavpn-webhook.service -n 10 --no-pager
+nginx -t
+systemctl reload nginx
+curl -X POST https://admin.universaltools.pro/webhook/yookassa -H "Content-Type: application/json" -d '{"test": "data"}'
+journalctl -u seavpn-webhook.service -n 20 --no-pager
+systemctl restart seavpn-webhook.service
+curl -X POST https://admin.universaltools.pro/webhook/yookassa -H "Content-Type: application/json" -d '{"test": "data"}'
+systemctl status seavpn-webhook.service
+tail -n 20 /var/log/nginx/error.log
+ss -tlnp | grep :5001
+curl -X GET http://127.0.0.1:5001/webhook/health
+nginx -T | grep -A 10 -B 5 "location /webhook/"
+curl -X POST http://127.0.0.1/webhook/yookassa -H "Content-Type: application/json" -d '{"test": "data"}'
+curl -k -X POST https://127.0.0.1/webhook/yookassa -H "Content-Type: application/json" -d '{"test": "data"}'
+journalctl -u seavpn-webhook.service -n 30 --no-pager
+curl -X POST https://admin.universaltools.pro/webhook/yookassa -H "Content-Type: application/json" -d '{"test": "data"}'
+journalctl -u seavpn-webhook.service -n 20 --no-pager
+curl -X POST https://admin.universaltools.pro/webhook/yookassa -H "Content-Type: application/json" -d '{"object": {"id": "302ea152-000f-5001-8000-1ee40152e048", "status": "succeeded", "paid": true}}'
+journalctl -u seavpn-webhook.service -n 30 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302ea152-000f-5001-8000-1ee40152e048').first(); print(f'Payment found: {payment is not None}'); print(f'Status: {payment.status if payment else \"Not found\"}'); print(f'Completed: {payment.completed_at if payment else \"Not found\"}'); db.close()"
+systemctl restart seavpn-webhook.service
+curl -X POST https://admin.universaltools.pro/webhook/yookassa -H "Content-Type: application/json" -d '{"object": {"id": "302ea152-000f-5001-8000-1ee40152e048", "status": "succeeded", "paid": true}}'
+journalctl -u seavpn-webhook.service -n 40 --no-pager
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); subscriptions = db.query(Subscription).filter(Subscription.user_id == 1).all(); print(f'Found {len(subscriptions)} subscriptions:'); [print(f'  - ID: {s.id}, Plan: {s.plan}, Status: {s.status}, Expires: {s.expires_at}') for s in subscriptions]; db.close()"
+python3 migrate_payment_type.py
+systemctl restart seavpn-webhook.service
+curl -X GET https://admin.universaltools.pro/webhook/health
+systemctl status seavpn-webhook.service
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 admin_web.py &
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 webhook_handler.py &
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Формат суммы для ЮKassa - теперь передается как строка с двумя знаками после запятой" && git push
+sleep 3 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Упрощен формат суммы для ЮKassa - передается как строка" && git push
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Переписан клиент ЮKassa с использованием официального SDK" && git push
+cp nginx-config-seavpn-admin.conf /etc/nginx/sites-available/seavpn-admin
+nginx -t && systemctl reload nginx
+pip install yookassa==3.0.0
+sleep 3 && curl http://localhost:5001/webhook/health
+curl https://admin.universaltools.pro/webhook/health
+cp seavpn-webhook.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable seavpn-webhook && systemctl start seavpn-webhook
+systemctl status seavpn-webhook
+journalctl -u seavpn-webhook -n 20
+pkill -f "python3 webhook_handler.py" && sleep 2 && systemctl start seavpn-webhook
+systemctl status seavpn-webhook
+curl https://admin.universaltools.pro/webhook/health
+git add . && git commit -m "ДОБАВЛЕНО: Webhook обработчик для автоматических уведомлений от ЮKassa" && git push
+systemctl status seavpn-admin
+ps aux | grep admin_web
+sleep 3 && curl http://localhost:8080
+sleep 5 && ps aux | grep bot
+git add . && git commit -m "ИСПРАВЛЕНО: Убрана кнопка 'Проверить оплату', исправлена цена тестового тарифа, восстановлена админка" && git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -f "python3 bot.py" && sleep 2 && python3 bot.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+sleep 3 && python3 bot.py
+python3 bot.py
+python3 bot.py
+python3 bot.py
+python3 admin_web.py
+cd /root && python3 -c "import bot; print('Импорт успешен')"
+ps aux | grep admin_web
+curl -I http://localhost:8080
+ps aux | grep admin_web
+netstat -tlnp | grep 8080
+ss -tlnp | grep 8080
+curl -I http://localhost:8080
+ps aux | grep bot.py
+python3 -c "import bot; print('Бот импортирован успешно')"
+python3 test_multiple_keys.py
+pkill -f bot.py
+ps aux | grep bot.py
+pkill -f bot.py
+git add .
+git status
+git reset
+git add bot.py xui_client.py test_multiple_keys.py
+git commit -m "Исправлена поддержка множественных подписок и отображение ключей
+
+- Изменена логика создания пользователей в 3xUI: теперь используется уникальный email в формате SeaMiniVpn-{tg_id}-{subscription_number}
+- Обновлено отображение ключей: показываются все активные подписки пользователя
+- Исправлена синхронизация с 3xUI для работы с новым форматом
+- Исправлена ошибка с Markdown разметкой в разделе помощи
+- Добавлен тестовый скрипт для проверки множественных ключей"
+git push
+ps aux | grep bot.py
+pkill -f bot.py
+ps aux | grep bot.py
+python3 bot.py
+pkill -f "python3 bot.py"
+ps aux | grep bot.py
+python3 bot.py &
+ps aux | grep bot.py
+pkill -f "python3 bot.py"
+git add bot.py config.py
+git commit -m "Исправлено отображение подписок и обновлены цены
+
+- Исправлена логика отображения статуса подписок (дни + часы)
+- Истекшие подписки больше не показываются в списке
+- Обновлены цены: 1 месяц 149₽, 3 месяца 399₽
+- Улучшена точность определения активных подписок"
+git push
+ps aux | grep admin_web
+curl -I http://localhost:8080
+curl -I http://localhost:8080/login
+curl http://localhost:8080/login
+python3 -c "from database import SessionLocal, Admin; db = SessionLocal(); admins = db.query(Admin).all(); print(f'Найдено администраторов: {len(admins)}'); [print(f'ID: {a.id}, Telegram: {a.telegram_id}, Username: {a.username}, Active: {a.is_active}, Super: {a.is_superadmin}') for a in admins]; db.close()"
+python3 test_admin_auth.py
+curl -X POST -d "username=Admin&password=CegthGfzkmybr72" -c cookies.txt http://localhost:8080/login
+curl -b cookies.txt http://localhost:8080/
+python3 bot.py &
+ps aux | grep bot.py
+curl -I http://147.45.214.68:8080
+nslookup admin.universaltools.pro
+curl -I http://admin.universaltools.pro:8080
+which nginx
+systemctl status nginx
+ls -la /etc/nginx/sites-enabled/
+cat /etc/nginx/sites-available/seavpn-admin
+rm /etc/nginx/sites-enabled/seavpn-admin
+ln -s /etc/nginx/sites-available/seavpn-admin /etc/nginx/sites-enabled/
+nginx -t
+systemctl start nginx
+systemctl status nginx
+curl -I http://admin.universaltools.pro
+pkill -f "python3 admin_web.py"
+python3 admin_web.py &
+git add notifications.py admin_web.py
+git commit -m "Исправлены проблемы с админкой и ценами
+
+- Исправлены цены продления в уведомлениях (149₽ и 399₽)
+- Добавлен API маршрут для просмотра подписок пользователя
+- Настроен nginx для проксирования админки на домен admin.universaltools.pro
+- Кнопка 'посмотреть подписки' теперь работает корректно"
+git push
+ps aux | grep bot.py
+ls -la /etc/letsencrypt/live/
+ls -la /etc/letsencrypt/live/admin.universaltools.pro/
+nginx -t
+systemctl reload nginx
+curl -I https://admin.universaltools.pro
+curl -I http://admin.universaltools.pro
+ps aux | grep admin_web
+ps aux | grep bot.py
+git add /etc/nginx/sites-available/seavpn-admin
+cp /etc/nginx/sites-available/seavpn-admin nginx-config-seavpn-admin.conf
+git add nginx-config-seavpn-admin.conf
+git commit -m "Настроен HTTPS для админки
+
+- Добавлена поддержка SSL/HTTPS для admin.universaltools.pro
+- Автоматическое перенаправление с HTTP на HTTPS
+- Использование Let's Encrypt сертификатов
+- Оптимизированные SSL настройки для безопасности"
+git push
+git status
+git add .gitignore
+git add .gitignore 2>/dev/null || echo "Файл .gitignore не существует"
+git add .gitignore
+git status
+git commit -m "Обновлен .gitignore для исключения системных файлов
+
+- Добавлены исключения для .cursor-server/
+- Добавлены исключения для временных файлов
+- Добавлены исключения для конфигураций сервера
+- Улучшена структура .gitignore"
+git push
+ps aux | grep bot.py
+ps aux | grep admin_web
+systemctl status nginx --no-pager

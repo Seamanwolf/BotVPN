@@ -55,6 +55,8 @@ class Payment(Base):
     yookassa_payment_id = Column(String, nullable=True)
     subscription_type = Column(String, nullable=True)  # "1m", "3m", "test"
     description = Column(String, nullable=True)
+    payment_type = Column(String, nullable=True)  # "new", "extension" - тип платежа
+    payment_metadata = Column(Text, nullable=True)  # JSON метаданные (например, subscription_id для продления)
     receipt_sent = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)

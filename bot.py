@@ -6,6 +6,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, Contact,
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+import json
 
 
 from config import BOT_TOKEN, TARIFFS, REFERRAL_BONUS, BONUS_TO_SUBSCRIPTION, SUPPORT_BOT, ADMIN_IDS
@@ -121,6 +122,14 @@ def get_admin_notifications_keyboard():
 def get_subscription_extend_keyboard(subscription_id: int, user_bonus_coins: int) -> InlineKeyboardMarkup:
     """Создает inline клавиатуру для продления подписки"""
     keyboard_buttons = []
+    
+    # Кнопка тестового продления за 1 рубль
+    keyboard_buttons.append([
+        InlineKeyboardButton(
+            text=f"🧪 Продлить тест ({TARIFFS['test']['price']}₽)",
+            callback_data=f"extend_paid_{subscription_id}_test"
+        )
+    ])
     
     # Кнопка продления на 1 месяц за деньги
     keyboard_buttons.append([
@@ -1235,7 +1244,15 @@ async def extend_subscription_handler(callback: CallbackQuery):
                 return
             
             # Определяем параметры продления
-            if tariff == "1m":
+            if tariff == "test":
+                days = 1
+                if is_bonus:
+                    required_coins = 5  # Минимальная стоимость для бонусного продления
+                    tariff_name = "Тест (1 день) (бонусная)"
+                else:
+                    price = TARIFFS['test']['price']
+                    tariff_name = "Тест (1 день)"
+            elif tariff == "1m":
                 days = 30
                 if is_bonus:
                     required_coins = 150
@@ -1260,7 +1277,25 @@ async def extend_subscription_handler(callback: CallbackQuery):
                 if user.bonus_coins < required_coins:
                     await callback.answer(f"Недостаточно монет! Нужно: {required_coins}, у вас: {user.bonus_coins}")
                     return
+                
+                # Продлеваем подписку за бонусы
+                await extend_subscription_with_bonus(callback, user, subscription, tariff, days, required_coins, tariff_name)
+            else:
+                # Создаем платеж для платного продления
+                await create_payment_for_extension(callback, user, subscription, tariff, price, days, tariff_name)
+                
+        finally:
+            db.close()
             
+    except Exception as e:
+        print(f"Ошибка при продлении подписки: {e}")
+        await callback.answer("Произошла ошибка при продлении")
+
+async def extend_subscription_with_bonus(callback: CallbackQuery, user, subscription, tariff: str, days: int, required_coins: int, tariff_name: str):
+    """Продление подписки за бонусы"""
+    try:
+        db = SessionLocal()
+        try:
             # Продлеваем подписку в 3xUI
             user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
             
@@ -1275,10 +1310,6 @@ async def extend_subscription_handler(callback: CallbackQuery):
                 )
             else:
                 # Если подписка еще активна, добавляем дни к существующему
-                current_expiry = subscription.expires_at
-                new_expiry = current_expiry + timedelta(days=days)
-                
-                # Обновляем в 3xUI (создаем нового пользователя с новым сроком)
                 xui_result = await xui_client.create_user(
                     user_email, 
                     days, 
@@ -1300,11 +1331,9 @@ async def extend_subscription_handler(callback: CallbackQuery):
                     
                     subscription.status = "active"
                     
-                    # Списываем монеты если это продление за бонусы
-                    if is_bonus:
-                        user.bonus_coins -= required_coins
-                        db.merge(user)
-                    
+                    # Списываем монеты
+                    user.bonus_coins -= required_coins
+                    db.merge(user)
                     db.commit()
                     
                     # Формируем ссылки на приложения
@@ -1322,16 +1351,11 @@ async def extend_subscription_handler(callback: CallbackQuery):
                     apps_text += "• <a href=\"https://github.com/hiddify/hiddify-next/releases\">FoxRay</a>\n"
                     apps_text += "• <a href=\"https://github.com/yichengchen/clashX/releases\">ClashX</a>\n\n"
                     
-                    # Формируем сообщение в зависимости от типа продления
-                    if is_bonus:
-                        cost_text = f"Списано монет: {required_coins} 🪙\nОстаток монет: {user.bonus_coins} 🪙"
-                    else:
-                        cost_text = f"Стоимость: {price}₽"
-                    
                     await callback.message.edit_text(
-                        f"✅ Подписка успешно продлена!\n\n"
+                        f"✅ Подписка успешно продлена за бонусы!\n\n"
                         f"Тариф: {tariff_name}\n"
-                        f"{cost_text}\n"
+                        f"Списано монет: {required_coins} 🪙\n"
+                        f"Остаток монет: {user.bonus_coins} 🪙\n"
                         f"Новая дата окончания: {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
                         f"Ваша конфигурация:\n<code>{config}</code>\n\n"
                         f"Скопируйте эту ссылку в ваш VPN клиент."
@@ -1349,8 +1373,68 @@ async def extend_subscription_handler(callback: CallbackQuery):
             db.close()
             
     except Exception as e:
-        print(f"Ошибка при продлении подписки: {e}")
+        print(f"Ошибка при продлении подписки за бонусы: {e}")
         await callback.answer("Произошла ошибка при продлении")
+
+async def create_payment_for_extension(callback: CallbackQuery, user, subscription, tariff: str, price: int, days: int, tariff_name: str):
+    """Создание платежа для продления подписки"""
+    try:
+        # Создаем платеж в ЮKassa
+        description = f"SeaVPN - Продление {tariff_name}"
+        
+        payment_result = yookassa_client.create_payment(
+            amount=price,
+            description=description,
+            user_id=user.id,
+            subscription_type=tariff
+        )
+        
+        if payment_result["success"]:
+            # Сохраняем платеж в БД с метаданными для продления
+            db = SessionLocal()
+            try:
+                payment = Payment(
+                    user_id=user.id,
+                    provider="yookassa",
+                    invoice_id=payment_result["payment_id"],
+                    amount=price,
+                    currency="RUB",
+                    status="pending",
+                    payment_method="yookassa",
+                    yookassa_payment_id=payment_result["payment_id"],
+                    subscription_type=tariff,
+                    description=description,
+                    payment_type="extension",  # Указываем тип платежа
+                    payment_metadata=json.dumps({"subscription_id": subscription.id})  # Сохраняем ID подписки для продления
+                )
+                db.add(payment)
+                db.commit()
+                
+                # Создаем клавиатуру для оплаты
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить", url=payment_result["confirmation_url"])],
+                    [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_payment_{payment_result['payment_id']}")]
+                ])
+                
+                payment_message = f"💳 <b>Оплата продления подписки</b>\n\n"
+                payment_message += f"📋 <b>Тариф:</b> {tariff_name}\n"
+                payment_message += f"💰 <b>Сумма:</b> {price}₽\n"
+                payment_message += f"⏰ <b>Дополнительно дней:</b> {days}\n"
+                payment_message += f"📅 <b>Текущая дата окончания:</b> {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                payment_message += f"🔗 <b>Ссылка для оплаты:</b>\n"
+                payment_message += f"Нажмите кнопку 'Оплатить' ниже\n\n"
+                payment_message += f"✅ <b>После оплаты подписка продлится автоматически</b>"
+                
+                await callback.message.edit_text(payment_message, parse_mode="HTML", reply_markup=keyboard)
+                
+            finally:
+                db.close()
+        else:
+            await callback.answer(f"❌ Ошибка создания платежа: {payment_result.get('error', 'Неизвестная ошибка')}")
+            
+    except Exception as e:
+        print(f"Ошибка создания платежа для продления: {e}")
+        await callback.answer("❌ Произошла ошибка при создании платежа. Попробуйте позже.")
 
 @dp.callback_query(lambda c: c.data.startswith('check_payment_'))
 async def check_payment_handler(callback: CallbackQuery):
@@ -1422,15 +1506,15 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
             
             # Определяем параметры подписки
             tariff = payment.subscription_type
-            if tariff == "1m":
+            if tariff == "test":
+                days = TARIFFS["test"]["days"]
+                tariff_name = TARIFFS["test"]["name"]
+            elif tariff == "1m":
                 days = TARIFFS["1m"]["days"]
                 tariff_name = TARIFFS["1m"]["name"]
             elif tariff == "3m":
                 days = TARIFFS["3m"]["days"]
                 tariff_name = TARIFFS["3m"]["name"]
-            elif tariff == "test":
-                days = TARIFFS["test"]["days"]
-                tariff_name = TARIFFS["test"]["name"]
             else:
                 await callback.answer("❌ Неизвестный тариф", show_alert=True)
                 return
