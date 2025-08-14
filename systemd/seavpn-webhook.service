@@ -7,6 +7,9 @@ Wants=network.target
 Type=simple
 User=root
 WorkingDirectory=/root
+Environment="YOOKASSA_SHOPID=1141477"
+Environment="YOOKASSA_SECRET_KEY=live_QMWqzDoOaDHGhRW5vlfU9nNM8rRdjStxe1pUayD_30w"
+Environment="BOT_TOKEN=8394863099:AAGQ3w7Y7WnYr9kfji_UcFc3jV-I--TIIvQ"
 ExecStart=/usr/bin/python3 /root/webhook_handler.py
 Restart=always
 RestartSec=10

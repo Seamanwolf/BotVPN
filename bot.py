@@ -62,15 +62,20 @@ def get_main_menu_keyboard(is_admin=False):
     )
     return keyboard
 
-def get_tariffs_keyboard():
+def get_tariffs_keyboard(is_admin=False):
     """Клавиатура с тарифами"""
+    keyboard_buttons = [
+        [KeyboardButton(text=f"1 месяц - {TARIFFS['1m']['price']}₽")],
+        [KeyboardButton(text=f"3 месяца - {TARIFFS['3m']['price']}₽")],
+        [KeyboardButton(text="Назад")]
+    ]
+    
+    # Добавляем кнопку тестового тарифа только для администраторов
+    if is_admin:
+        keyboard_buttons.insert(2, [KeyboardButton(text="Купить тест (1 день)")])
+    
     keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=f"1 месяц - {TARIFFS['1m']['price']}₽")],
-            [KeyboardButton(text=f"3 месяца - {TARIFFS['3m']['price']}₽")],
-            [KeyboardButton(text="Купить тест (1 день)")],
-            [KeyboardButton(text="Назад")]
-        ],
+        keyboard=keyboard_buttons,
         resize_keyboard=True
     )
     return keyboard
@@ -520,7 +525,7 @@ async def main_menu_handler(message: Message):
             "💳 Выберите тариф:\n\n"
             f"• 1 месяц - {TARIFFS['1m']['price']}₽\n"
             f"• 3 месяца - {TARIFFS['3m']['price']}₽",
-            reply_markup=get_tariffs_keyboard()
+            reply_markup=get_tariffs_keyboard(is_admin(message.from_user.id))
         )
     
     elif message.text == "🎁 Реферальная система":
@@ -676,7 +681,7 @@ async def tariff_handler(message: Message):
         price = TARIFFS["test"]["price"]
         days = TARIFFS["test"]["days"]
     else:
-        await message.answer("Неизвестный тариф. Выберите из списка:", reply_markup=get_tariffs_keyboard())
+        await message.answer("Неизвестный тариф. Выберите из списка:", reply_markup=get_tariffs_keyboard(is_admin(message.from_user.id)))
         return
     
     if message.text == "Назад":
