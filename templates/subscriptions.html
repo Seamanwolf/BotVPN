@@ -63,6 +63,7 @@
                             <th>Статус</th>
                             <th>Действует до</th>
                             <th>Осталось дней</th>
+                            <th>Продления</th>
                             <th>Дата создания</th>
                             <th>Действия</th>
                         </tr>
@@ -116,6 +117,19 @@
                                     <span class="badge bg-warning">Сегодня</span>
                                 {% else %}
                                     <span class="badge bg-danger">{{ abs(days_left) }} дн. назад</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if subscription.extensions_count and subscription.extensions_count > 0 %}
+                                    <span class="badge bg-info">{{ subscription.extensions_count }} раз</span>
+                                    {% if subscription.last_extension_date %}
+                                        <br><small class="text-muted">Последнее: {{ subscription.last_extension_date.strftime('%d.%m.%Y') }}</small>
+                                    {% endif %}
+                                    {% if subscription.total_days_added %}
+                                        <br><small class="text-muted">+{{ subscription.total_days_added }} дн.</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Нет</span>
                                 {% endif %}
                             </td>
                             <td>{{ subscription.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
@@ -207,6 +221,9 @@ function viewSubscriptionDetails(subscriptionId) {
                             <p><strong>Создана:</strong> ${new Date(sub.created_at).toLocaleString()}</p>
                             <p><strong>Действует до:</strong> ${new Date(sub.expires_at).toLocaleString()}</p>
                             <p><strong>Осталось дней:</strong> ${daysLeft > 0 ? daysLeft : 'Истекла'}</p>
+                            <p><strong>Продлений:</strong> ${sub.extensions_count || 0} раз</p>
+                            ${sub.last_extension_date ? `<p><strong>Последнее продление:</strong> ${new Date(sub.last_extension_date).toLocaleString()}</p>` : ''}
+                            <p><strong>Добавлено дней:</strong> ${sub.total_days_added || 0} дн.</p>
                         </div>
                         <div class="col-md-6">
                             <h6>Информация о пользователе</h6>

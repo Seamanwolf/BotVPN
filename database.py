@@ -38,6 +38,9 @@ class Subscription(Base):
     status = Column(String, default="active")  # "active", "expired", "paused"
     subscription_number = Column(Integer, default=1)  # Уникальный номер подписки для пользователя
     expires_at = Column(DateTime, nullable=False)
+    extensions_count = Column(Integer, default=0)  # Количество продлений
+    last_extension_date = Column(DateTime, nullable=True)  # Дата последнего продления
+    total_days_added = Column(Integer, default=0)  # Общее количество добавленных дней
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Payment(Base):

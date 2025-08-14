@@ -375,8 +375,13 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
                         subscription.expires_at = subscription.expires_at + timedelta(days=days)
                         logging.debug(f"Подписка продлена, новая дата истечения: {subscription.expires_at}")
                     
+                    # Обновляем поля продлений
+                    subscription.extensions_count += 1
+                    subscription.last_extension_date = datetime.utcnow()
+                    subscription.total_days_added += days
                     subscription.status = "active"
                     logging.debug("Статус подписки обновлен на 'active'")
+                    logging.debug(f"Продлений: {subscription.extensions_count}, добавлено дней: {subscription.total_days_added}")
                     
                     # Обновляем статус платежа
                     payment.status = "completed"

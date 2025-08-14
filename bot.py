@@ -1327,6 +1327,10 @@ async def extend_subscription_with_bonus(callback: CallbackQuery, user, subscrip
                     else:
                         subscription.expires_at = subscription.expires_at + timedelta(days=days)
                     
+                    # Обновляем поля продлений
+                    subscription.extensions_count += 1
+                    subscription.last_extension_date = datetime.utcnow()
+                    subscription.total_days_added += days
                     subscription.status = "active"
                     
                     # Списываем монеты

@@ -389,6 +389,9 @@ def get_subscription_details(subscription_id):
                     'status': subscription.status,
                     'subscription_number': subscription.subscription_number or 1,
                     'unique_name': f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number or 1}" if user else None,
+                    'extensions_count': subscription.extensions_count or 0,
+                    'last_extension_date': subscription.last_extension_date.isoformat() if subscription.last_extension_date else None,
+                    'total_days_added': subscription.total_days_added or 0,
                     'created_at': subscription.created_at.isoformat() if subscription.created_at else None,
                     'expires_at': subscription.expires_at.isoformat() if subscription.expires_at else None
                 },
