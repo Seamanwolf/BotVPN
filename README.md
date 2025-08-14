@@ -37,6 +37,13 @@ Telegram бот для управления VPN подписками с инте
 
 ## 📋 Требования
 
+### Для Docker (рекомендуется)
+- Docker и Docker Compose
+- 3xUI панель
+- YooMoney аккаунт
+- Telegram Bot Token
+
+### Для ручной установки
 - Python 3.10+
 - PostgreSQL
 - 3xUI панель
@@ -51,50 +58,78 @@ git clone https://github.com/Seamanwolf/BotVPN.git
 cd BotVPN
 ```
 
-### 2. Установка зависимостей
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Настройка базы данных
-```bash
-# Создание базы данных PostgreSQL
-createdb vpn_bot
-```
-
-### 4. Настройка переменных окружения
+### 2. Настройка переменных окружения
 Создайте файл `.env`:
 ```env
 BOT_TOKEN=your_telegram_bot_token
 DATABASE_URL=postgresql://user:password@localhost/vpn_bot
-YOO_MONEY_TOKEN=your_yoomoney_token
+YOOKASSA_SHOPID=your_yookassa_shopid
+YOOKASSA_SECRET_KEY=your_yookassa_secret
 XUI_BASE_URL=your_3xui_server
 XUI_PORT=54321
 XUI_USERNAME=admin
 XUI_PASSWORD=your_password
 XUI_WEBBASEPATH=your_webpath
+ADMIN_IDS=123456789,987654321
 ```
 
-### 5. Инициализация базы данных
+### Установка через Docker (рекомендуется)
+
+```bash
+# Сделать скрипты исполняемыми
+chmod +x start.sh stop.sh logs.sh
+
+# Запустить бота в Docker
+./start.sh
+```
+
+### Ручная установка
+
+#### 1. Установка зависимостей
+```bash
+pip install -r requirements.txt
+```
+
+#### 2. Настройка базы данных
+```bash
+# Создание базы данных PostgreSQL
+createdb vpn_bot
+```
+
+#### 3. Инициализация базы данных
 ```bash
 python3 -c "from database import Base, engine; Base.metadata.create_all(engine)"
 ```
 
-### 6. Создание супер-админа
+#### 4. Создание супер-админа
 ```bash
 python3 create_superadmin.py
 ```
 
 ## 🏃‍♂️ Запуск
 
-### Telegram Bot
+### Через Docker (рекомендуется)
 ```bash
-python3 bot.py
+# Запуск бота в Docker
+./start.sh
+
+# Остановка бота
+./stop.sh
+
+# Просмотр логов
+./logs.sh
 ```
 
-### Веб-админ панель
+### Ручной запуск
 ```bash
+# Telegram Bot
+python3 bot.py
+
+# Веб-админ панель
 python3 admin_web.py
+
+# Webhook сервер
+python3 webhook_handler.py
 ```
 
 ### Системные сервисы (systemd)
@@ -102,12 +137,15 @@ python3 admin_web.py
 # Копирование сервисных файлов
 sudo cp systemd/seavpn-bot.service /etc/systemd/system/
 sudo cp systemd/seavpn-admin.service /etc/systemd/system/
+sudo cp systemd/seavpn-webhook.service /etc/systemd/system/
 
 # Включение и запуск сервисов
 sudo systemctl enable seavpn-bot
 sudo systemctl enable seavpn-admin
+sudo systemctl enable seavpn-webhook
 sudo systemctl start seavpn-bot
 sudo systemctl start seavpn-admin
+sudo systemctl start seavpn-webhook
 ```
 
 ## 📁 Структура проекта
@@ -116,6 +154,7 @@ sudo systemctl start seavpn-admin
 BotVPN/
 ├── bot.py                 # Основной Telegram бот
 ├── admin_web.py           # Веб-админ панель
+├── webhook_handler.py     # Обработчик webhook'ов для платежей
 ├── database.py            # Модели базы данных
 ├── config.py              # Конфигурация
 ├── xui_client.py          # Клиент для 3xUI API
@@ -129,6 +168,11 @@ BotVPN/
 │   └── login.html
 ├── static/                # Статические файлы
 ├── systemd/               # Systemd сервисы
+├── Dockerfile             # Docker конфигурация
+├── docker-compose.yml     # Docker Compose конфигурация
+├── start.sh              # Скрипт запуска Docker
+├── stop.sh               # Скрипт остановки Docker
+├── logs.sh               # Скрипт просмотра логов Docker
 ├── requirements.txt       # Python зависимости
 └── README.md
 ```
