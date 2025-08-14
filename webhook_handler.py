@@ -670,11 +670,8 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
                     logging.error(f"Webhook: ошибка получения конфигурации для продления пользователя {user.telegram_id}")
             else:
                 logging.error(f"Webhook: ошибка продления пользователя в 3xUI для {user.telegram_id}")
-        finally:
-            try:
-                loop.close()
-            except:
-                pass
+        # Не закрываем event loop здесь, чтобы избежать ошибок "Event loop is closed"
+        # Он будет закрыт автоматически при завершении процесса
             
     except Exception as e:
         logging.error(f"Webhook: ошибка продления подписки: {e}", exc_info=True)
