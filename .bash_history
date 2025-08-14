@@ -1228,3 +1228,90 @@ git push
 ps aux | grep bot.py
 ps aux | grep admin_web
 systemctl status nginx --no-pager
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+cd /root && python3 -m py_compile bot.py
+python3 -m py_compile webhook_handler.py
+systemctl restart seavpn-bot
+systemctl list-units --type=service | grep -i vpn
+ps aux | grep python | grep bot
+kill 100298
+nohup python3 bot.py > bot.log 2>&1 &
+sleep 3 && ps aux | grep python | grep bot
+tail -20 bot.log
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+python3 test_extend_functionality.py
+python3 test_all_extensions.py
+git add .
+git status
+git commit -m "Добавлена функциональность тестового продления за 1 рубль
+
+- Добавлена кнопка тестового продления в клавиатуру
+- Добавлена обработка тарифа 'test' в функции продления
+- Обновлен webhook handler для поддержки тестового продления
+- Все типы продления протестированы и работают корректно"
+ps aux | grep admin_web
+python3 -c "from database import SessionLocal, Admin; db = SessionLocal(); admins = db.query(Admin).all(); print(f'Админов в БД: {len(admins)}'); [print(f'ID: {a.id}, Telegram: {a.telegram_id}, Username: {a.username}, Super: {a.is_superadmin}, Active: {a.is_active}') for a in admins]; db.close()"
+sleep 3 && ps aux | grep admin_web
+netstat -tlnp | grep 8080
+ss -tlnp | grep 8080
+systemctl status nginx
+ls -la /etc/nginx/sites-enabled/ | grep admin
+cat /etc/nginx/sites-available/seavpn-admin
+ls -la /etc/letsencrypt/live/admin.universaltools.pro/
+nginx -t
+systemctl reload nginx
+curl -I http://127.0.0.1:8080
+curl -I https://admin.universaltools.pro
+tail -10 /var/log/nginx/error.log
+ps aux | grep admin_web
+ss -tlnp | grep 8080
+kill 135837
+nohup python3 admin_web.py > admin_web.log 2>&1 &
+sleep 3 && tail -10 admin_web.log
+curl -I http://127.0.0.1:8080
+curl -I https://admin.universaltools.pro
+tail -5 /var/log/nginx/error.log
+cp seavpn-admin.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable seavpn-admin
+kill 137056
+systemctl start seavpn-admin
+systemctl status seavpn-admin
+curl -I https://admin.universaltools.pro
+git add .
+git commit -m "Исправлена веб-панель админа
+
+- Создан systemd сервис seavpn-admin.service
+- Веб-панель теперь запускается автоматически
+- Исправлены проблемы с подключением nginx к Flask серверу
+- Админ-панель доступна по адресу https://admin.universaltools.pro"
+git status
+systemctl status seavpn-webhook
+journalctl -u seavpn-webhook -n 50 --no-pager
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+ps aux | grep bot.py
+kill 134053
+nohup python3 bot.py > bot.log 2>&1 &
+sleep 3 && tail -5 bot.log
+python3 test_extend_function.py
+git add .
+git commit -m "Исправлена логика продления подписок
+
+- Добавлена функция extend_user в xui_client.py для правильного продления пользователей
+- Обновлен webhook_handler.py для использования extend_user вместо create_user при продлении
+- Обновлен bot.py для использования extend_user в функции продления за бонусы
+- Теперь продление добавляет дни к существующей подписке вместо создания новой
+- Протестирована функция продления - работает корректно"
+journalctl -u seavpn-webhook -n 20 --no-pager
+systemctl restart seavpn-webhook
+python3 test_extend_fix.py
+curl -s "http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/panel/api/inbounds/list" | head -20
+git add .
+git commit -m "Исправлен API для продления пользователей
+
+- Заменен неправильный API /panel/api/inbounds/update/{id} на правильный /panel/api/inbounds/updateClient/{clientId}
+- Теперь функция extend_user не трогает настройки inbound, а обновляет только клиента
+- Исправлена структура payload для обновления клиента
+- Защищены настройки inbound от случайного изменения"
