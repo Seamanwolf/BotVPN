@@ -66,7 +66,21 @@ def safe_send_message(chat_id, text, parse_mode="HTML"):
 import json
 import asyncio
 import sys
-from bot import bot
+import os
+from dotenv import load_dotenv
+from aiogram import Bot
+
+# Загружаем переменные окружения
+load_dotenv()
+
+# Получаем токен бота из переменной окружения
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    print("Error: BOT_TOKEN environment variable is not set")
+    sys.exit(1)
+
+# Создаем экземпляр бота
+bot = Bot(token=BOT_TOKEN)
 
 async def send_message_async(data_file):
     with open(data_file, 'r') as f:
@@ -78,9 +92,16 @@ async def send_message_async(data_file):
             text=data["text"],
             parse_mode=data.get("parse_mode", "HTML")
         )
+        # Закрываем сессию бота
+        await bot.session.close()
         return True
     except Exception as e:
         print(f"Error sending message: {e}")
+        # Закрываем сессию бота даже в случае ошибки
+        try:
+            await bot.session.close()
+        except:
+            pass
         return False
 
 if __name__ == "__main__":
@@ -192,9 +213,11 @@ def process_payment_webhook_sync(payment_data: Dict[str, Any]) -> Dict[str, Any]
                     logging.debug("Платеж еще не обработан, проверяем тип платежа")
                     if payment.payment_type == "extension":
                         logging.debug("Это платеж для продления подписки")
+                        logging.debug("Вызываем create_subscription_from_payment_sync для продления")
                         create_subscription_from_payment_sync(payment, db)
                     else:
                         logging.debug("Это платеж для новой подписки")
+                        logging.debug("Вызываем create_subscription_from_payment_sync для новой подписки")
                         create_subscription_from_payment_sync(payment, db)
                 else:
                     logging.debug("Платеж уже обработан, пропускаем создание подписки")
@@ -455,6 +478,7 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
     """
     try:
         logging.debug(f"=== НАЧАЛО ПРОДЛЕНИЯ ПОДПИСКИ ===")
+        logging.debug(f"Платеж: ID={payment.id}, user_id={payment.user_id}, subscription_type={payment.subscription_type}, payment_type={payment.payment_type}, status={payment.status}")
         
         # Проверяем, не был ли уже обработан этот платеж (как в oldwork.py)
         if payment.status == "completed":
@@ -463,14 +487,23 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
         
         # Получаем подписку из метаданных платежа
         subscription_id = None
+        logging.debug(f"Метаданные платежа: {payment.payment_metadata}")
+        
         if payment.payment_metadata:
             try:
                 metadata = json.loads(payment.payment_metadata)
+                logging.debug(f"Распарсенные метаданные: {metadata}")
                 if 'subscription_id' in metadata:
                     subscription_id = metadata['subscription_id']
-            except json.JSONDecodeError:
-                logging.error("Webhook: ошибка парсинга payment_metadata")
+                    logging.debug(f"Найден subscription_id в метаданных: {subscription_id}")
+                else:
+                    logging.error(f"Webhook: ключ subscription_id не найден в метаданных: {metadata}")
+            except json.JSONDecodeError as e:
+                logging.error(f"Webhook: ошибка парсинга payment_metadata: {e}")
+                logging.error(f"Содержимое метаданных: {payment.payment_metadata}")
                 return
+        else:
+            logging.error("Webhook: payment_metadata отсутствует")
         
         if not subscription_id:
             logging.error("Webhook: subscription_id не найден в метаданных платежа")
@@ -670,8 +703,10 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
                     logging.error(f"Webhook: ошибка получения конфигурации для продления пользователя {user.telegram_id}")
             else:
                 logging.error(f"Webhook: ошибка продления пользователя в 3xUI для {user.telegram_id}")
-        # Не закрываем event loop здесь, чтобы избежать ошибок "Event loop is closed"
-        # Он будет закрыт автоматически при завершении процесса
+        finally:
+            # Не закрываем event loop здесь, чтобы избежать ошибок "Event loop is closed"
+            # Он будет закрыт автоматически при завершении процесса
+            pass
             
     except Exception as e:
         logging.error(f"Webhook: ошибка продления подписки: {e}", exc_info=True)

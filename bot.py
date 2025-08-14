@@ -1,6 +1,5 @@
 import asyncio
 import re
-import os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, Contact, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -8,10 +7,7 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import json
-from dotenv import load_dotenv
 
-# Загружаем переменные окружения из .env файла
-load_dotenv()
 
 from config import BOT_TOKEN, TARIFFS, REFERRAL_BONUS, BONUS_TO_SUBSCRIPTION, SUPPORT_BOT, ADMIN_IDS
 from database import SessionLocal, User, Subscription, Admin, AdminSettings, Payment, generate_referral_code, get_user_by_referral_code, check_telegram_id_exists, check_email_exists
@@ -775,7 +771,8 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
             amount=price,
             description=description,
             user_id=user.id,
-            subscription_type=tariff
+            subscription_type=tariff,
+            payment_type="new"
         )
         
         if payment_result["success"]:
@@ -1392,7 +1389,9 @@ async def create_payment_for_extension(callback: CallbackQuery, user, subscripti
             amount=price,
             description=description,
             user_id=user.id,
-            subscription_type=tariff
+            subscription_type=tariff,
+            payment_type="extension",
+            subscription_id=subscription.id
         )
         
         if payment_result["success"]:

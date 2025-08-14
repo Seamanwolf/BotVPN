@@ -18,7 +18,7 @@ class YooKassaClient:
         Configuration.account_id = YOOKASSA_SHOP_ID
         Configuration.secret_key = YOOKASSA_SECRET_KEY
         
-    def create_payment(self, amount: int, description: str, user_id: int, subscription_type: str) -> Dict[str, Any]:
+    def create_payment(self, amount: int, description: str, user_id: int, subscription_type: str, payment_type: str = "new", subscription_id: Optional[int] = None) -> Dict[str, Any]:
         """Создание платежа в ЮKassa"""
         try:
             # Создаем уникальный ключ идемпотентности
@@ -39,7 +39,9 @@ class YooKassaClient:
                 "metadata": {
                     "user_id": user_id,
                     "subscription_type": subscription_type,
-                    "idempotence_key": idempotence_key
+                    "payment_type": payment_type,
+                    "idempotence_key": idempotence_key,
+                    **({"subscription_id": subscription_id} if subscription_id else {})
                 },
                 "receipt": {
                     "customer": {
