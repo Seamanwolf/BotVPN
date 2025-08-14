@@ -8,10 +8,15 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import check_password_hash, generate_password_hash
 import json
 from datetime import datetime, timedelta
-from database import SessionLocal, User, Subscription, Admin
-from config import ADMIN_IDS
 import os
 import asyncio
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
+
+from database import SessionLocal, User, Subscription, Admin
+from config import ADMIN_IDS
 from xui_client import XUIClient
 
 app = Flask(__name__)

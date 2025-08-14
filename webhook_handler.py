@@ -7,10 +7,15 @@ import asyncio
 import json
 import logging
 import threading
+import os
 from datetime import datetime, timedelta
 from typing import Dict, Any
 from flask import Flask, request, jsonify
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 
 from database import SessionLocal, Payment, User, Subscription
 from xui_client import XUIClient
