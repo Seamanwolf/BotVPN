@@ -197,27 +197,29 @@ class XUIClient:
                         
                         new_expiry_ms = int(new_expiry_dt.timestamp() * 1000)
                         
-                        # Обновляем клиента
-                        updated_client = client.copy()
-                        updated_client["expiryTime"] = new_expiry_ms
+                        # Получаем ID клиента
+                        client_id = client.get("id")
+                        if not client_id:
+                            print(f"Не найден ID клиента для {email}")
+                            return None
                         
-                        # Формируем payload для обновления
-                        updated_clients = []
-                        for c in clients:
-                            if c.get("email") == email:
-                                updated_clients.append(updated_client)
-                            else:
-                                updated_clients.append(c)
-                        
+                        # Формируем payload для обновления клиента
                         payload = {
-                            "id": inbound.get("id"),
-                            "settings": json.dumps({
-                                "clients": updated_clients
-                            })
+                            "id": client_id,
+                            "flow": client.get("flow", ""),
+                            "email": email,
+                            "limitIp": client.get("limitIp", 3),
+                            "totalGB": client.get("totalGB", 0),
+                            "expiryTime": new_expiry_ms,
+                            "enable": client.get("enable", True),
+                            "tgId": client.get("tgId", ""),
+                            "subId": client.get("subId", ""),
+                            "reset": client.get("reset", 0),
+                            "comment": client.get("comment", "")
                         }
                         
-                        # Обновляем inbound
-                        update_url = f"{self.base_url}/panel/api/inbounds/update/{inbound.get('id')}"
+                        # Используем правильный API для обновления клиента
+                        update_url = f"{self.base_url}/panel/api/inbounds/updateClient/{client_id}"
                         response = await self.client.post(
                             update_url,
                             json=payload,
