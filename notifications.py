@@ -119,13 +119,8 @@ class NotificationManager:
     async def notify_admin_new_purchase(self, user, subscription, payment_amount: int):
         """Уведомление администраторов о новой покупке"""
         try:
-            # Получаем всех активных администраторов
-            db = SessionLocal()
-            try:
-                from database import Admin
-                admins = db.query(Admin).filter(Admin.is_active == True).all()
-            finally:
-                db.close()
+            # Получаем ID администраторов из конфигурации
+            from config import ADMIN_IDS
             
             message = f"🛒 **Новая покупка!**\n\n"
             message += f"👤 **Пользователь:** {user.full_name or 'Не указано'}\n"
@@ -137,15 +132,15 @@ class NotificationManager:
             message += f"🔑 **Ключ:** SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}\n\n"
             message += f"⏰ **Время покупки:** {datetime.utcnow().strftime('%d.%m.%Y %H:%M')}"
             
-            for admin in admins:
+            for admin_id in ADMIN_IDS:
                 try:
                     await self.bot.send_message(
-                        chat_id=admin.telegram_id,
+                        chat_id=admin_id,
                         text=message,
                         parse_mode="Markdown"
                     )
                 except Exception as e:
-                    print(f"Ошибка при отправке уведомления админу {admin.telegram_id}: {e}")
+                    print(f"Ошибка при отправке уведомления админу {admin_id}: {e}")
                     
         except Exception as e:
             print(f"Ошибка при отправке уведомления о новой покупке: {e}")
