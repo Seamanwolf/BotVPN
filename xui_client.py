@@ -1,6 +1,7 @@
 import httpx
 import json
 import asyncio
+import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import re
@@ -13,13 +14,24 @@ class XUIClient:
         self.username = XUI_USERNAME
         self.password = XUI_PASSWORD
         self.session_cookies = None
-        self.client = httpx.AsyncClient(verify=False, timeout=30.0)
+        self.client = None
+    
+    async def _get_client(self):
+        """Создает новый httpx клиент для каждого запроса"""
+        try:
+            # Всегда создаем новый клиент для каждого запроса
+            return httpx.AsyncClient(verify=False, timeout=30.0)
+        except Exception as e:
+            logging.error(f"Ошибка создания httpx клиента: {e}")
+            # Создаем новый клиент при ошибке
+            return httpx.AsyncClient(verify=False, timeout=30.0)
     
     async def ensure_login(self):
         """Обеспечивает авторизацию в 3xUI"""
         if self.session_cookies:
             return
         
+        client = await self._get_client()
         login_url = f"{self.base_url}/login"
         login_data = {
             "username": self.username,
@@ -27,7 +39,7 @@ class XUIClient:
         }
         
         try:
-            response = await self.client.post(login_url, json=login_data)
+            response = await client.post(login_url, json=login_data)
             if response.status_code == 200:
                 self.session_cookies = response.cookies
                 print("Успешная авторизация в 3xUI")
@@ -37,13 +49,20 @@ class XUIClient:
         except Exception as e:
             print(f"Ошибка при авторизации: {e}")
             raise
+        finally:
+            try:
+                await client.aclose()
+            except:
+                pass
     
     async def get_inbounds(self) -> Optional[Dict[str, Any]]:
         """Получение списка inbounds"""
         await self.ensure_login()
+        client = None
         try:
+            client = await self._get_client()
             url = f"{self.base_url}/panel/api/inbounds/list"
-            response = await self.client.get(url, cookies=self.session_cookies)
+            response = await client.get(url, cookies=self.session_cookies)
             if response.status_code == 200:
                 return response.json()
             else:
@@ -52,6 +71,12 @@ class XUIClient:
         except Exception as e:
             print(f"Ошибка при получении inbounds: {e}")
             return None
+        finally:
+            if client:
+                try:
+                    await client.aclose()
+                except:
+                    pass
     
     async def create_user(self, user_email: str, days: int = 30, note: str = "", tg_id: str = "", subscription_number: int = 1) -> Optional[Dict[str, Any]]:
         """Создание пользователя в 3xUI используя addClient API"""
@@ -130,7 +155,8 @@ class XUIClient:
             }
             
             add_client_url = f"{self.base_url}/panel/api/inbounds/addClient"
-            response = await self.client.post(
+            client = await self._get_client()
+            response = await client.post(
                 add_client_url, 
                 json=payload, 
                 cookies=self.session_cookies,
@@ -164,25 +190,56 @@ class XUIClient:
     
     async def extend_user(self, email: str, days: int) -> Optional[Dict[str, Any]]:
         """Продление пользователя в 3xUI"""
-        await self.ensure_login()
+        import logging
+        logging.debug(f"XUI: Начало продления пользователя {email} на {days} дней")
+        
+        # Создаем новый клиент для каждого запроса
+        try:
+            await self.ensure_login()
+        except Exception as e:
+            logging.error(f"XUI: Ошибка при авторизации: {e}")
+            # Сбрасываем клиент и пробуем снова
+            self.client = None
+            try:
+                await self.ensure_login()
+            except Exception as e2:
+                logging.error(f"XUI: Повторная ошибка при авторизации: {e2}")
+                return None
+        
         try:
             # Получаем список inbounds
-            inbounds = await self.get_inbounds()
-            if not inbounds or not inbounds.get("obj"):
-                print("Не удалось получить inbounds")
-                return None
+            try:
+                inbounds = await self.get_inbounds()
+                if not inbounds or not inbounds.get("obj"):
+                    logging.error("XUI: Не удалось получить inbounds")
+                    return None
+            except Exception as e:
+                logging.error(f"XUI: Ошибка при получении inbounds: {e}")
+                # Сбрасываем клиент и пробуем снова
+                self.client = None
+                try:
+                    inbounds = await self.get_inbounds()
+                    if not inbounds or not inbounds.get("obj"):
+                        logging.error("XUI: Повторная ошибка получения inbounds")
+                        return None
+                except Exception as e2:
+                    logging.error(f"XUI: Повторная ошибка при получении inbounds: {e2}")
+                    return None
             
             # Ищем пользователя во всех inbounds
+            logging.debug(f"XUI: Ищем пользователя {email} в {len(inbounds['obj'])} inbounds")
             for inbound in inbounds["obj"]:
                 if not inbound.get("enable", False):
                     continue
                 
                 settings = json.loads(inbound.get("settings", "{}"))
                 clients = settings.get("clients", [])
+                logging.debug(f"XUI: Проверяем inbound {inbound.get('id')} с {len(clients)} клиентами")
                 
                 # Ищем клиента с нужным email
                 for client in clients:
                     if client.get("email") == email:
+                        logging.debug(f"XUI: Найден клиент {email} в inbound {inbound.get('id')}")
                         # Получаем текущее время истечения
                         current_expiry = client.get("expiryTime", 0)
                         
@@ -227,36 +284,46 @@ class XUIClient:
                         
                         # Используем правильный API для обновления клиента
                         update_url = f"{self.base_url}/panel/api/inbounds/updateClient/{client_id}"
-                        response = await self.client.post(
-                            update_url,
-                            json=payload,
-                            cookies=self.session_cookies,
-                            headers={"Content-Type": "application/json", "Accept": "application/json"}
-                        )
-                        
-                        if response.status_code == 200:
-                            result = response.json()
-                            if result.get("success"):
-                                print(f"Пользователь {email} успешно продлен на {days} дней")
-                                print(f"Новое время истечения: {new_expiry_dt.strftime('%d.%m.%Y %H:%M')}")
-                                return {
-                                    "success": True,
-                                    "email": email,
-                                    "new_expiry": new_expiry_ms,
-                                    "new_expiry_date": new_expiry_dt.isoformat()
-                                }
+                        http_client = None
+                        try:
+                            http_client = await self._get_client()
+                            response = await http_client.post(
+                                update_url,
+                                json=payload,
+                                cookies=self.session_cookies,
+                                headers={"Content-Type": "application/json", "Accept": "application/json"}
+                            )
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                logging.debug(f"XUI: Ответ от API: {result}")
+                                if result.get("success"):
+                                    logging.info(f"XUI: Пользователь {email} успешно продлен на {days} дней")
+                                    logging.debug(f"XUI: Новое время истечения: {new_expiry_dt.strftime('%d.%m.%Y %H:%M')}")
+                                    return {
+                                        "success": True,
+                                        "email": email,
+                                        "new_expiry": new_expiry_ms,
+                                        "new_expiry_date": new_expiry_dt.isoformat()
+                                    }
+                                else:
+                                    logging.error(f"XUI: Ошибка обновления пользователя: {result.get('msg', 'Неизвестная ошибка')}")
+                                    return None
                             else:
-                                print(f"Ошибка обновления пользователя: {result.get('msg', 'Неизвестная ошибка')}")
+                                logging.error(f"XUI: Ошибка HTTP при обновлении пользователя: {response.status_code}")
                                 return None
-                        else:
-                            print(f"Ошибка HTTP при обновлении пользователя: {response.status_code}")
-                            return None
+                        finally:
+                            if http_client:
+                                try:
+                                    await http_client.aclose()
+                                except:
+                                    pass
             
-            print(f"Пользователь {email} не найден в 3xUI")
+            logging.warning(f"XUI: Пользователь {email} не найден в 3xUI")
             return None
             
         except Exception as e:
-            print(f"Ошибка при продлении пользователя: {e}")
+            logging.error(f"XUI: Ошибка при продлении пользователя: {e}")
             return None
     
     def generate_subscription_link(self, sub_id: str, tg_id: str, subscription_number: int) -> str:
@@ -384,7 +451,8 @@ class XUIClient:
                         
                         # Используем API для удаления клиента по ID
                         delete_url = f"{self.base_url}/panel/api/inbounds/{inbound.get('id')}/delClient/{client_id}"
-                        response = await self.client.post(
+                        client = await self._get_client()
+                        response = await client.post(
                             delete_url,
                             cookies=self.session_cookies,
                             headers={"Content-Type": "application/json", "Accept": "application/json"}
@@ -416,4 +484,5 @@ class XUIClient:
     
     async def close(self):
         """Закрытие соединения"""
-        await self.client.aclose()
+        if self.client:
+            await self.client.aclose()
