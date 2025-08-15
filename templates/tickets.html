@@ -397,6 +397,12 @@ function applyFilters() {
     });
 }
 
+// Функция для просмотра деталей пользователя
+function viewUserDetails(userId) {
+    // Перенаправляем на страницу пользователей с открытием деталей пользователя
+    window.location.href = `/users?open_user=${userId}`;
+}
+
 // Применяем фильтры при вводе
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('statusFilter').addEventListener('change', applyFilters);

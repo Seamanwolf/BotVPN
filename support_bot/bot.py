@@ -230,13 +230,22 @@ async def process_issue(message: Message, state: FSMContext):
         # Отправляем уведомление администраторам
         for admin_id in ADMIN_IDS:
             try:
+                # Отправляем уведомление о новом тикете с более заметным форматированием
                 await bot.send_message(
                     admin_id,
-                    f"📢 **Новый тикет #{ticket_number}**\n\n"
-                    f"От: {user_name} (ID: {telegram_id})\n"
-                    f"Время: {ticket.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                    f"Сообщение:\n{issue_text}",
+                    f"🆕 *НОВЫЙ ТИКЕТ #{ticket_number}*\n\n"
+                    f"👤 *От:* {user_name} (ID: {telegram_id})\n"
+                    f"🕒 *Время:* {ticket.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                    f"💬 *Сообщение:*\n{issue_text}",
+                    parse_mode="Markdown",
                     reply_markup=get_ticket_keyboard(ticket_number)
+                )
+                
+                # Отправляем звуковое уведомление
+                await bot.send_voice(
+                    admin_id,
+                    voice="https://raw.githubusercontent.com/SeaVPN/notification-sounds/main/new_ticket.ogg",
+                    caption="🔊 Новый тикет от пользователя"
                 )
             except Exception as e:
                 logger.error(f"Ошибка отправки уведомления админу {admin_id}: {e}")
@@ -491,28 +500,46 @@ async def process_reply(message: Message, state: FSMContext):
                     recipient_id = ticket_owner.telegram_id
                     sender_name = "Поддержка"
                     
+                    # Отправляем уведомление пользователю с более заметным форматированием
                     await bot.send_message(
                         recipient_id,
-                        f"📢 **Новый ответ на ваш тикет #{ticket_number}**\n\n"
-                        f"От: {sender_name}\n"
-                        f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                        f"Сообщение:\n{reply_text}",
+                        f"🔔 *НОВЫЙ ОТВЕТ НА ВАШ ТИКЕТ #{ticket_number}*\n\n"
+                        f"📝 *От:* {sender_name}\n"
+                        f"🕒 *Время:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                        f"💬 *Сообщение:*\n{reply_text}",
+                        parse_mode="Markdown",
                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text="👁 Просмотреть тикет", callback_data=f"view_ticket:{ticket_number}")]
                         ])
+                    )
+                    
+                    # Отправляем звуковое уведомление
+                    await bot.send_voice(
+                        recipient_id,
+                        voice="https://raw.githubusercontent.com/SeaVPN/notification-sounds/main/notification.ogg",
+                        caption="🔊 Новое сообщение в тикете"
                     )
             else:
                 # Если ответил пользователь, отправляем уведомление всем админам
                 for admin_id in ADMIN_IDS:
                     sender_name = user.full_name
                     
+                    # Отправляем уведомление администратору с более заметным форматированием
                     await bot.send_message(
                         admin_id,
-                        f"📢 **Новый ответ на тикет #{ticket_number}**\n\n"
-                        f"От: {sender_name} (ID: {telegram_id})\n"
-                        f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                        f"Сообщение:\n{reply_text}",
+                        f"🔔 *НОВЫЙ ОТВЕТ НА ТИКЕТ #{ticket_number}*\n\n"
+                        f"👤 *От:* {sender_name} (ID: {telegram_id})\n"
+                        f"🕒 *Время:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                        f"💬 *Сообщение:*\n{reply_text}",
+                        parse_mode="Markdown",
                         reply_markup=get_ticket_keyboard(ticket_number)
+                    )
+                    
+                    # Отправляем звуковое уведомление
+                    await bot.send_voice(
+                        admin_id,
+                        voice="https://raw.githubusercontent.com/SeaVPN/notification-sounds/main/admin_notification.ogg",
+                        caption="🔊 Новый ответ от пользователя"
                     )
         except Exception as e:
             logger.error(f"Ошибка отправки уведомления: {e}")
@@ -568,10 +595,19 @@ async def close_ticket_callback(callback: CallbackQuery):
         try:
             ticket_owner = db.query(User).filter(User.id == ticket.user_id).first()
             if ticket_owner:
+                # Отправляем уведомление о закрытии тикета с более заметным форматированием
                 await bot.send_message(
                     ticket_owner.telegram_id,
-                    f"🔴 Ваш тикет #{ticket_number} был закрыт.\n\n"
-                    f"Если у вас возникнут новые вопросы, создайте новый тикет."
+                    f"🔴 *ВАШ ТИКЕТ #{ticket_number} БЫЛ ЗАКРЫТ*\n\n"
+                    f"Если у вас возникнут новые вопросы, создайте новый тикет.",
+                    parse_mode="Markdown"
+                )
+                
+                # Отправляем звуковое уведомление
+                await bot.send_voice(
+                    ticket_owner.telegram_id,
+                    voice="https://raw.githubusercontent.com/SeaVPN/notification-sounds/main/ticket_closed.ogg",
+                    caption="🔊 Тикет был закрыт"
                 )
         except Exception as e:
             logger.error(f"Ошибка отправки уведомления пользователю: {e}")

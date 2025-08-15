@@ -309,6 +309,51 @@ def get_user_referrals(user_id):
     finally:
         db.close()
 
+@app.route('/api/user/<int:user_id>/tickets')
+@login_required
+def get_user_tickets(user_id):
+    """API для получения тикетов пользователя"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'Пользователь не найден'})
+        
+        # Получаем все тикеты пользователя
+        tickets = db.query(Ticket).filter(Ticket.user_id == user_id).order_by(
+            Ticket.status,  # Сначала открытые (open < closed)
+            Ticket.updated_at.desc()  # Затем по времени обновления (новые вверху)
+        ).all()
+        
+        # Преобразуем в список словарей
+        tickets_data = []
+        for ticket in tickets:
+            # Получаем количество сообщений
+            messages_count = db.query(TicketMessage).filter(TicketMessage.ticket_id == ticket.id).count()
+            
+            tickets_data.append({
+                'id': ticket.id,
+                'ticket_number': ticket.ticket_number,
+                'status': ticket.status,
+                'subject': ticket.subject,
+                'created_at': ticket.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'closed_at': ticket.closed_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.closed_at else None,
+                'messages_count': messages_count
+            })
+        
+        return jsonify({
+            'success': True, 
+            'user': {
+                'id': user.id,
+                'telegram_id': user.telegram_id,
+                'full_name': user.full_name
+            },
+            'tickets': tickets_data
+        })
+    finally:
+        db.close()
+
 @app.route('/api/subscription/<int:subscription_id>/delete', methods=['POST'])
 @login_required
 def delete_subscription(subscription_id):
