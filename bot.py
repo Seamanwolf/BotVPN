@@ -660,7 +660,7 @@ async def main_menu_handler(message: Message):
         )
 
 # Обработчик выбора тарифа
-@dp.message(F.text.contains("месяц") | F.text.contains("Купить тест"))
+@dp.message(F.text.in_(["1 месяц - 149₽", "3 месяца - 399₽", "Купить тест (1 день)"]))
 async def tariff_handler(message: Message):
     user = await get_user(message.from_user.id)
     
@@ -895,6 +895,7 @@ async def sync_handler(message: Message):
 # Обработчик обмена монет на подписку
 @dp.message(F.text.in_(["🪙 Купить 1 месяц за 150 монет", "🪙 Купить 3 месяца за 450 монет"]))
 async def exchange_bonus_handler(message: Message):
+    print(f"DEBUG: Запущен обработчик обмена монет на подписку с текстом: {message.text}")
     user = await get_user(message.from_user.id)
     
     if not user:
@@ -902,15 +903,19 @@ async def exchange_bonus_handler(message: Message):
         return
     
     # Определяем тариф и стоимость
+    print(f"DEBUG: Определяем тариф для текста: '{message.text}'")
     if message.text == "🪙 Купить 1 месяц за 150 монет":
         required_coins = BONUS_TO_SUBSCRIPTION
         months = 1
         tariff_name = "1 месяц (за бонусы)"
+        print(f"DEBUG: Выбран тариф: 1 месяц за {required_coins} монет")
     elif message.text == "🪙 Купить 3 месяца за 450 монет":
         required_coins = BONUS_TO_SUBSCRIPTION * 3
         months = 3
         tariff_name = "3 месяца (за бонусы)"
+        print(f"DEBUG: Выбран тариф: 3 месяца за {required_coins} монет")
     else:
+        print(f"DEBUG: Неизвестный тариф: '{message.text}'")
         await message.answer("Неизвестный тариф", reply_markup=get_main_menu_keyboard())
         return
     
