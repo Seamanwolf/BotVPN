@@ -498,6 +498,79 @@ def add_coins(user_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/api/user/<int:user_id>/add_subscription', methods=['POST'])
+@login_required
+def add_user_subscription(user_id):
+    """API для добавления подписки пользователю"""
+    try:
+        # Получаем данные из запроса
+        plan = request.json.get('plan')
+        plan_name = request.json.get('plan_name')
+        days = request.json.get('days', 30)
+        create_in_xui = request.json.get('create_in_xui', True)
+        
+        if not all([plan, plan_name, days]):
+            return jsonify({'success': False, 'error': 'Не все поля заполнены'})
+        
+        db = SessionLocal()
+        try:
+            # Проверяем существование пользователя
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            # Определяем следующий номер подписки
+            existing_subscriptions = db.query(Subscription).filter(
+                Subscription.user_id == user.id
+            ).all()
+            next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
+            
+            # Создаем пользователя в 3xUI, если требуется
+            xui_result = None
+            if create_in_xui:
+                try:
+                    # Используем email пользователя или создаем временный
+                    user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
+                    
+                    # Создаем пользователя в 3xUI
+                    xui_client = XUIClient()
+                    xui_result = asyncio.run(xui_client.create_user(
+                        user_email, 
+                        days, 
+                        f"{user.full_name or 'User'} (ADMIN)", 
+                        str(user.telegram_id), 
+                        next_subscription_number
+                    ))
+                    
+                    if not xui_result:
+                        return jsonify({'success': False, 'error': 'Ошибка создания пользователя в 3xUI'})
+                except Exception as e:
+                    return jsonify({'success': False, 'error': f'Ошибка при работе с 3xUI: {str(e)}'})
+            
+            # Создаем подписку в БД
+            expires_at = datetime.utcnow() + timedelta(days=days)
+            subscription = Subscription(
+                user_id=user.id,
+                plan=plan,
+                plan_name=plan_name,
+                status="active",
+                subscription_number=next_subscription_number,
+                expires_at=expires_at
+            )
+            db.add(subscription)
+            db.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Подписка успешно добавлена пользователю {user.full_name or user.telegram_id}',
+                'subscription_id': subscription.id,
+                'expires_at': expires_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 
 
 @app.route('/api/subscription/create', methods=['POST'])

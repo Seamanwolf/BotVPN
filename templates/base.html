@@ -100,6 +100,58 @@
             border-color: #8b2d5a;
             color: #ffffff;
         }
+        
+        /* Исправление цветов шрифтов в темной теме */
+        [data-theme="dark"] .form-control {
+            background-color: #2d3748;
+            border-color: #4a5568;
+            color: #ffffff;
+        }
+        
+        [data-theme="dark"] .form-select {
+            background-color: #2d3748;
+            border-color: #4a5568;
+            color: #ffffff;
+        }
+        
+        [data-theme="dark"] .table {
+            color: #e2e8f0;
+        }
+        
+        [data-theme="dark"] .modal-content {
+            background-color: #1f2937;
+            color: #f9fafb;
+        }
+        
+        [data-theme="dark"] .modal-header,
+        [data-theme="dark"] .modal-footer {
+            border-color: #374151;
+        }
+        
+        [data-theme="dark"] .close {
+            color: #f9fafb;
+        }
+        
+        [data-theme="dark"] input::placeholder {
+            color: #9ca3af;
+        }
+        
+        [data-theme="dark"] .form-label {
+            color: #e2e8f0;
+        }
+        
+        [data-theme="dark"] .badge.bg-secondary {
+            background-color: #4b5563 !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-light {
+            background-color: #4b5563 !important;
+            color: #f9fafb !important;
+        }
+        
+        [data-theme="dark"] .badge.text-dark {
+            color: #f9fafb !important;
+        }
 
         [data-theme="dark"] .badge {
             color: #ffffff;
@@ -528,7 +580,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
     <!-- Контейнер для уведомлений -->
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1500;" id="toastContainer">
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1500;" id="toastContainer">
         <!-- Здесь будут появляться уведомления -->
     </div>
     

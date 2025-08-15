@@ -175,6 +175,55 @@
     </div>
 </div>
 
+<!-- Модальное окно добавления подписки -->
+<div class="modal fade" id="addSubscriptionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавление подписки</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSubscriptionForm">
+                    <input type="hidden" id="subscriptionUserId" value="">
+                    
+                    <div class="mb-3">
+                        <label for="subscriptionPlan" class="form-label">Тариф</label>
+                        <select class="form-select" id="subscriptionPlan" required>
+                            <option value="test">Тестовый (1 день)</option>
+                            <option value="1m" selected>1 месяц</option>
+                            <option value="3m">3 месяца</option>
+                            <option value="bonus">Бонусный</option>
+                            <option value="custom">Произвольный</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subscriptionPlanName" class="form-label">Название тарифа</label>
+                        <input type="text" class="form-control" id="subscriptionPlanName" value="1 месяц" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subscriptionDays" class="form-label">Количество дней</label>
+                        <input type="number" class="form-control" id="subscriptionDays" value="30" min="1" required>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="createInXUI" checked>
+                        <label class="form-check-label" for="createInXUI">
+                            Создать пользователя в 3xUI
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirmAddSubscriptionBtn" onclick="addSubscription()">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentUserId = null;
 let currentUserCoins = 0;
@@ -219,6 +268,11 @@ function viewUserDetails(userId) {
                             <p><strong>Количество рефералов:</strong> <span class="badge bg-info">${user.referrals_count || 0} приглашенных</span></p>
                             <p><strong>Первая покупка:</strong> ${user.has_made_first_purchase ? 'Да' : 'Нет'}</p>
                             <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+                            <div class="mt-3">
+                                <button class="btn btn-primary" onclick="showAddSubscriptionModal(${user.id})">
+                                    <i class="fas fa-plus-circle"></i> Добавить подписку
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -452,6 +506,77 @@ function refreshUsers() {
     location.reload();
 }
 
+function showAddSubscriptionModal(userId) {
+    // Скрываем модальное окно деталей пользователя
+    const userDetailsModal = bootstrap.Modal.getInstance(document.getElementById('userDetailsModal'));
+    if (userDetailsModal) {
+        userDetailsModal.hide();
+    }
+    
+    // Устанавливаем ID пользователя в скрытое поле
+    document.getElementById('subscriptionUserId').value = userId;
+    
+    // Устанавливаем значения по умолчанию для формы
+    document.getElementById('subscriptionPlan').value = '1m';
+    document.getElementById('subscriptionPlanName').value = '1 месяц';
+    document.getElementById('subscriptionDays').value = '30';
+    document.getElementById('createInXUI').checked = true;
+    
+    // Показываем модальное окно добавления подписки
+    const addSubscriptionModal = new bootstrap.Modal(document.getElementById('addSubscriptionModal'));
+    addSubscriptionModal.show();
+}
+
+function addSubscription() {
+    const userId = document.getElementById('subscriptionUserId').value;
+    const plan = document.getElementById('subscriptionPlan').value;
+    const planName = document.getElementById('subscriptionPlanName').value;
+    const days = parseInt(document.getElementById('subscriptionDays').value);
+    const createInXUI = document.getElementById('createInXUI').checked;
+    
+    if (!userId || !plan || !planName || !days || days <= 0) {
+        showToast('Пожалуйста, заполните все поля корректно', 'error');
+        return;
+    }
+    
+    // Отправляем запрос на создание подписки
+    fetch(`/api/user/${userId}/add_subscription`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            plan: plan,
+            plan_name: planName,
+            days: days,
+            create_in_xui: createInXUI
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addSubscriptionModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            showSuccess(`Подписка успешно добавлена`);
+            
+            // Обновляем таблицу пользователей
+            setTimeout(() => {
+                refreshUsers();
+            }, 1000);
+        } else {
+            showError(`Ошибка: ${data.error || 'Неизвестная ошибка'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Произошла ошибка при добавлении подписки');
+    });
+}
+
 function showAddCoinsForm(userId, currentCoins) {
     document.getElementById('addCoinsForm').style.display = 'block';
     document.getElementById('currentCoinsBalance').textContent = currentCoins;
@@ -545,5 +670,43 @@ function applyFilters() {
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('statusFilter').addEventListener('change', applyFilters);
 document.getElementById('subscriptionFilter').addEventListener('change', applyFilters);
+
+// Обработчик изменения выбранного тарифа
+document.addEventListener('DOMContentLoaded', function() {
+    const planSelect = document.getElementById('subscriptionPlan');
+    if (planSelect) {
+        planSelect.addEventListener('change', function() {
+            const plan = this.value;
+            let planName = '';
+            let days = 30;
+            
+            switch(plan) {
+                case 'test':
+                    planName = 'Тестовый (1 день)';
+                    days = 1;
+                    break;
+                case '1m':
+                    planName = '1 месяц';
+                    days = 30;
+                    break;
+                case '3m':
+                    planName = '3 месяца';
+                    days = 90;
+                    break;
+                case 'bonus':
+                    planName = 'Бонусный';
+                    days = 30;
+                    break;
+                case 'custom':
+                    planName = 'Произвольный';
+                    days = 30;
+                    break;
+            }
+            
+            document.getElementById('subscriptionPlanName').value = planName;
+            document.getElementById('subscriptionDays').value = days;
+        });
+    }
+});
 </script>
 {% endblock %}
