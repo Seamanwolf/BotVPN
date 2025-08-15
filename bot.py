@@ -404,7 +404,7 @@ async def email_handler(message: Message, state: FSMContext):
         )
 
 # Обработчик главного меню
-@dp.message(F.text.in_(["👤 Профиль", "🔑 Мои ключи", "💳 Купить ключ", "🎁 Реферальная система", "❓ Помощь", "⚙️ Админ-панель"]))
+@dp.message(F.text.in_(["👤 Профиль", "🔑 Мои ключи", "💳 Купить ключ", "🎁 Реферальная система", "❓ Помощь", "⚙️ Админ-панель", "📋 Получить ссылку для копирования"]))
 async def main_menu_handler(message: Message):
     user = await get_user(message.from_user.id)
     
@@ -540,8 +540,7 @@ async def main_menu_handler(message: Message):
             
             referral_text = f"🎁 <b>Реферальная система</b>\n\n"
             referral_text += f"Ваш реферальный код: <code>{user.referral_code}</code>\n"
-            referral_text += f"Ваша реферальная ссылка:\n<code>https://t.me/{bot_username}?start={user.referral_code}</code>\n\n"
-            referral_text += f"📋 <a href='https://t.me/{bot_username}?start={user.referral_code}'>Нажмите здесь, чтобы скопировать ссылку</a>\n\n"
+            referral_text += f"Ваша реферальная ссылка (выделите и скопируйте):\n<code>https://t.me/{bot_username}?start={user.referral_code}</code>\n\n"
             referral_text += f"Приглашено пользователей: {referrals_count}\n"
             referral_text += f"Бонусных монет: {user.bonus_coins} 🪙\n\n"
             referral_text += f"💰 За каждого приглашенного пользователя вы получаете {REFERRAL_BONUS} монет\n"
@@ -563,6 +562,7 @@ async def main_menu_handler(message: Message):
             else:
                 referral_text += f"📈 До обмена на подписку: {BONUS_TO_SUBSCRIPTION - user.bonus_coins} монет"
             
+            keyboard_buttons.append([KeyboardButton(text="📋 Получить ссылку для копирования")])
             keyboard_buttons.append([KeyboardButton(text="Назад")])
             
             keyboard = ReplyKeyboardMarkup(
@@ -577,6 +577,22 @@ async def main_menu_handler(message: Message):
             )
         finally:
             db.close()
+    
+    elif message.text == "📋 Получить ссылку для копирования":
+        # Получаем username бота
+        bot_info = await bot.get_me()
+        bot_username = bot_info.username
+        
+        # Отправляем только ссылку в отдельном сообщении для удобного копирования
+        referral_link = f"https://t.me/{bot_username}?start={user.referral_code}"
+        
+        await message.answer(
+            referral_link
+        )
+        
+        await message.answer(
+            "✅ Скопируйте ссылку выше и отправьте друзьям.\nКогда они перейдут по ссылке и совершат первую покупку, вы получите бонусные монеты!"
+        )
     
     elif message.text == "⚙️ Админ-панель":
         # Проверяем, является ли пользователь администратором
