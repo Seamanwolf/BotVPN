@@ -1,0 +1,16 @@
+[Unit]
+Description=SeaVPN Support Telegram Bot
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/support_bot
+ExecStart=/usr/bin/python3 /root/support_bot/bot.py
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+Environment="SUPPORT_BOT_TOKEN=8261852911:AAHFkocNITb8VDYZnjyQ_Wcy7A25oLANwtY"
+
+[Install]
+WantedBy=multi-user.target
