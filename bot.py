@@ -551,10 +551,10 @@ async def main_menu_handler(message: Message):
             keyboard_buttons = []
             
             if user.bonus_coins >= BONUS_TO_SUBSCRIPTION * 3:
-                keyboard_buttons.append([KeyboardButton(text="💳 Купить 3 месяца за 450 монет")])
-                keyboard_buttons.append([KeyboardButton(text="💳 Купить 1 месяц за 150 монет")])
+                keyboard_buttons.append([KeyboardButton(text="🪙 Купить 3 месяца за 450 монет")])
+                keyboard_buttons.append([KeyboardButton(text="🪙 Купить 1 месяц за 150 монет")])
             elif user.bonus_coins >= BONUS_TO_SUBSCRIPTION:
-                keyboard_buttons.append([KeyboardButton(text="💳 Купить 1 месяц за 150 монет")])
+                keyboard_buttons.append([KeyboardButton(text="🪙 Купить 1 месяц за 150 монет")])
             else:
                 referral_text += f"📈 До обмена на подписку: {BONUS_TO_SUBSCRIPTION - user.bonus_coins} монет"
             
@@ -893,7 +893,7 @@ async def sync_handler(message: Message):
         )
 
 # Обработчик обмена монет на подписку
-@dp.message(F.text.in_(["💳 Купить 1 месяц за 150 монет", "💳 Купить 3 месяца за 450 монет"]))
+@dp.message(F.text.in_(["🪙 Купить 1 месяц за 150 монет", "🪙 Купить 3 месяца за 450 монет"]))
 async def exchange_bonus_handler(message: Message):
     user = await get_user(message.from_user.id)
     
@@ -902,11 +902,11 @@ async def exchange_bonus_handler(message: Message):
         return
     
     # Определяем тариф и стоимость
-    if message.text == "💳 Купить 1 месяц за 150 монет":
+    if message.text == "🪙 Купить 1 месяц за 150 монет":
         required_coins = BONUS_TO_SUBSCRIPTION
         months = 1
         tariff_name = "1 месяц (за бонусы)"
-    elif message.text == "💳 Купить 3 месяца за 450 монет":
+    elif message.text == "🪙 Купить 3 месяца за 450 монет":
         required_coins = BONUS_TO_SUBSCRIPTION * 3
         months = 3
         tariff_name = "3 месяца (за бонусы)"
