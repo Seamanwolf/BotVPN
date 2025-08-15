@@ -4,33 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SeaVPN Админ-панель{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Современная цветовая схема */
+            --primary-color: #3a86ff;
+            --primary-hover: #2563eb;
+            --secondary-color: #8338ec;
+            --accent-color: #ff006e;
+            --success-color: #10b981;
+            --warning-color: #fbbf24;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            
+            /* Светлая тема */
             --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --text-primary: #212529;
-            --text-secondary: #6c757d;
-            --border-color: #dee2e6;
-            --sidebar-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --sidebar-hover: rgba(255,255,255,0.1);
-            --sidebar-active: rgba(255,255,255,0.2);
+            --bg-secondary: #f9fafb;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --border-color: #e5e7eb;
+            --sidebar-bg: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            --sidebar-hover: rgba(255,255,255,0.15);
+            --sidebar-active: rgba(255,255,255,0.25);
             --card-bg: #ffffff;
-            --stat-card-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --stat-card-bg: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            --btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --modal-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --text-primary: #ffffff;
-            --text-secondary: #b0b0b0;
-            --border-color: #404040;
-            --sidebar-bg: linear-gradient(135deg, #2d2d2d 0%, #404040 100%);
+            /* Темная тема */
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+            --sidebar-bg: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%);
             --sidebar-hover: rgba(255,255,255,0.1);
             --sidebar-active: rgba(255,255,255,0.2);
-            --card-bg: #2d2d2d;
-            --stat-card-bg: linear-gradient(135deg, #404040 0%, #2d2d2d 100%);
+            --card-bg: #1f2937;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+            --stat-card-bg: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%);
+            --btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --modal-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
         }
 
         /* Дополнительные стили для темной темы */
@@ -99,88 +120,282 @@
             background-color: var(--bg-primary);
             color: var(--text-primary);
             transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
         }
 
+        /* Основные стили */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+        }
+
+        /* Боковая панель */
         .sidebar {
             min-height: 100vh;
             background: var(--sidebar-bg);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
         }
 
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            margin: 0.25rem 0;
+            color: rgba(255, 255, 255, 0.85);
+            padding: 0.85rem 1.25rem;
+            border-radius: 0.75rem;
+            margin: 0.35rem 0.75rem;
             transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
         }
 
         .sidebar .nav-link:hover {
             color: white;
             background: var(--sidebar-hover);
+            transform: translateX(5px);
         }
 
         .sidebar .nav-link.active {
             background: var(--sidebar-active);
             color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
+        /* Основной контент */
         .main-content {
             background-color: var(--bg-secondary);
+            min-height: 100vh;
+            padding-top: 1.5rem;
+            padding-bottom: 2rem;
         }
 
+        /* Карточки */
         .card {
             background-color: var(--card-bg);
             border: none;
             border-radius: 1rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            box-shadow: var(--card-shadow);
             transition: all 0.3s ease;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
         }
 
         .stat-card {
             background: var(--stat-card-bg);
             color: white;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
         }
 
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(to right bottom, rgba(255, 255, 255, 0.1), transparent);
+            z-index: -1;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 3rem;
+            opacity: 0.2;
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* Таблицы */
         .table {
             color: var(--text-primary);
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .table thead th {
+            background-color: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            padding: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .table-striped > tbody > tr:nth-of-type(odd) > td {
             background-color: var(--bg-secondary);
         }
 
+        .table tbody tr:hover td {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        [data-theme="dark"] .table tbody tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Формы */
         .form-control, .form-select {
             background-color: var(--card-bg);
             border-color: var(--border-color);
             color: var(--text-primary);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
         }
 
         .form-control:focus, .form-select:focus {
             background-color: var(--card-bg);
-            border-color: #667eea;
+            border-color: var(--primary-color);
             color: var(--text-primary);
+            box-shadow: 0 0 0 0.25rem rgba(58, 134, 255, 0.25);
         }
 
+        /* Кнопки */
+        .btn {
+            border-radius: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: var(--btn-shadow);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Модальные окна */
         .modal-content {
             background-color: var(--card-bg);
             border-color: var(--border-color);
+            border-radius: 1rem;
+            box-shadow: var(--modal-shadow);
+            overflow: hidden;
         }
 
         .modal-header {
             border-bottom-color: var(--border-color);
+            padding: 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
         }
 
         .modal-footer {
             border-top-color: var(--border-color);
+            padding: 1.5rem;
         }
 
+        /* Бейджи */
+        .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            border-radius: 0.375rem;
+        }
+
+        .badge.bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+
+        .badge.bg-success {
+            background-color: var(--success-color) !important;
+        }
+
+        .badge.bg-warning {
+            background-color: var(--warning-color) !important;
+            color: #000;
+        }
+
+        .badge.bg-danger {
+            background-color: var(--danger-color) !important;
+        }
+
+        .badge.bg-info {
+            background-color: var(--info-color) !important;
+        }
+
+        /* Кнопка переключения темы */
         .theme-toggle {
             position: fixed;
-            top: 80px;
+            top: 20px;
             right: 20px;
             z-index: 1000;
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            border: none;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -189,15 +404,58 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: var(--card-shadow);
         }
 
         .theme-toggle:hover {
-            transform: scale(1.1);
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .theme-toggle i {
             color: var(--text-primary);
+            font-size: 1.25rem;
+        }
+
+        /* Уведомления */
+        .toast {
+            background-color: var(--card-bg);
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .toast-header {
+            background-color: transparent;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .toast-body {
+            color: var(--text-primary);
+        }
+
+        /* Пагинация */
+        .pagination .page-link {
+            color: var(--primary-color);
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
         }
     </style>
 </head>
@@ -266,8 +524,13 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Контейнер для уведомлений -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1500;" id="toastContainer">
+        <!-- Здесь будут появляться уведомления -->
+    </div>
     
     <script>
         // Функция переключения темы
@@ -280,10 +543,12 @@
                 body.removeAttribute('data-theme');
                 themeIcon.className = 'fas fa-moon';
                 localStorage.setItem('theme', 'light');
+                showToast('Светлая тема активирована', 'success');
             } else {
                 body.setAttribute('data-theme', 'dark');
                 themeIcon.className = 'fas fa-sun';
                 localStorage.setItem('theme', 'dark');
+                showToast('Темная тема активирована', 'success');
             }
         }
         
@@ -299,6 +564,108 @@
                 themeIcon.className = 'fas fa-moon';
             }
         });
+        
+        /**
+         * Показывает красивое уведомление
+         * @param {string} message - Текст сообщения
+         * @param {string} type - Тип уведомления: success, error, warning, info
+         * @param {number} duration - Длительность показа в миллисекундах (по умолчанию 3000)
+         */
+        function showToast(message, type = 'info', duration = 3000) {
+            // Определяем иконку и цвет в зависимости от типа
+            let icon, bgColor;
+            
+            switch (type) {
+                case 'success':
+                    icon = 'fa-check-circle';
+                    bgColor = 'bg-success';
+                    break;
+                case 'error':
+                    icon = 'fa-exclamation-circle';
+                    bgColor = 'bg-danger';
+                    break;
+                case 'warning':
+                    icon = 'fa-exclamation-triangle';
+                    bgColor = 'bg-warning';
+                    break;
+                case 'info':
+                default:
+                    icon = 'fa-info-circle';
+                    bgColor = 'bg-info';
+                    break;
+            }
+            
+            // Генерируем уникальный ID для уведомления
+            const toastId = 'toast-' + Date.now();
+            
+            // Создаем HTML для уведомления
+            const toastHtml = `
+                <div id="${toastId}" class="toast fade-in" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header ${bgColor} text-white">
+                        <i class="fas ${icon} me-2"></i>
+                        <strong class="me-auto">${type === 'error' ? 'Ошибка' : type === 'success' ? 'Успех' : type === 'warning' ? 'Предупреждение' : 'Информация'}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            // Добавляем уведомление в контейнер
+            document.getElementById('toastContainer').insertAdjacentHTML('beforeend', toastHtml);
+            
+            // Инициализируем Toast
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: duration
+            });
+            
+            // Показываем уведомление
+            toast.show();
+            
+            // Удаляем элемент после скрытия
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                toastElement.remove();
+            });
+        }
+        
+        /**
+         * Заменяет стандартные alert на красивые уведомления
+         */
+        window.originalAlert = window.alert;
+        window.alert = function(message) {
+            showToast(message, 'info');
+        };
+        
+        /**
+         * Показывает уведомление об ошибке
+         */
+        function showError(message) {
+            showToast(message, 'error');
+        }
+        
+        /**
+         * Показывает уведомление об успешном действии
+         */
+        function showSuccess(message) {
+            showToast(message, 'success');
+        }
+        
+        /**
+         * Показывает предупреждение
+         */
+        function showWarning(message) {
+            showToast(message, 'warning');
+        }
+        
+        /**
+         * Показывает информационное сообщение
+         */
+        function showInfo(message) {
+            showToast(message, 'info');
+        }
     </script>
     
     {% block scripts %}{% endblock %}
