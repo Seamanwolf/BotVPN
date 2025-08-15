@@ -127,3 +127,32 @@ def check_email_exists(email: str) -> bool:
         return user is not None
     finally:
         db.close()
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_number = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="open")  # open, closed
+    subject = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    closed_at = Column(DateTime, nullable=True)
+    
+    # Отношения
+    user = relationship("User", backref="tickets")
+    messages = relationship("TicketMessage", backref="ticket", cascade="all, delete-orphan")
+
+class TicketMessage(Base):
+    __tablename__ = "ticket_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # NULL для системных сообщений
+    sender_type = Column(String, default="user")  # user, admin, system
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Отношения
+    sender = relationship("User", backref="sent_messages")
