@@ -560,8 +560,20 @@ def add_coins(user_id):
         try:
             user = db.query(User).filter(User.id == user_id).first()
             if user:
+                # Начисляем монеты
                 user.bonus_coins += coins
                 db.commit()
+                
+                # Отправляем уведомление пользователю
+                try:
+                    from notifications import NotificationManager
+                    import asyncio
+                    
+                    notification_manager = NotificationManager()
+                    asyncio.run(notification_manager.notify_coins_added(user, coins))
+                except Exception as e:
+                    print(f"Ошибка при отправке уведомления о начислении монет: {e}")
+                
                 return jsonify({
                     'success': True, 
                     'message': f'Пользователю {user.full_name or user.telegram_id} начислено {coins} монет',

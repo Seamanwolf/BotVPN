@@ -116,6 +116,44 @@ class NotificationManager:
         except Exception as e:
             print(f"Ошибка при отправке уведомления о реферальном бонусе: {e}")
     
+    async def notify_coins_added(self, user, coins_amount: int):
+        """Уведомление пользователя о начислении бонусных монет"""
+        try:
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            
+            message = f"🎁 **Вам начислены бонусные монеты!**\n\n"
+            message += f"💰 **Количество:** {coins_amount} 🪙\n"
+            message += f"💼 **Текущий баланс:** {user.bonus_coins} 🪙\n\n"
+            message += f"💎 Вы можете использовать монеты для покупки подписки:\n"
+            message += f"• 150 монет = 1 месяц подписки\n"
+            message += f"• 450 монет = 3 месяца подписки\n\n"
+            message += f"⏰ **Время начисления:** {datetime.utcnow().strftime('%d.%m.%Y %H:%M')}"
+            
+            # Создаем клавиатуру с кнопками для покупки подписки
+            keyboard_buttons = []
+            
+            # Кнопки для бонусных монет (если у пользователя достаточно монет)
+            if user.bonus_coins >= 150:
+                bonus_row = []
+                if user.bonus_coins >= 150:
+                    bonus_row.append(InlineKeyboardButton(text="🪙 Купить 1 месяц за 150 монет", callback_data="buy_bonus_1m"))
+                if user.bonus_coins >= 450:
+                    bonus_row.append(InlineKeyboardButton(text="🪙 Купить 3 месяца за 450 монет", callback_data="buy_bonus_3m"))
+                if bonus_row:
+                    keyboard_buttons.append(bonus_row)
+            
+            keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+            
+            await self.bot.send_message(
+                chat_id=user.telegram_id,
+                text=message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            
+        except Exception as e:
+            print(f"Ошибка при отправке уведомления о начислении монет: {e}")
+    
     async def notify_admin_new_purchase(self, user, subscription, payment_amount: int):
         """Уведомление администраторов о новой покупке"""
         try:

@@ -538,14 +538,19 @@ async def main_menu_handler(message: Message):
             bot_info = await bot.get_me()
             bot_username = bot_info.username
             
-            referral_text = f"🎁 Реферальная система\n\n"
-            referral_text += f"Ваш реферальный код: `{user.referral_code}`\n"
-            referral_text += f"Ваша реферальная ссылка:\n`https://t.me/{bot_username}?start={user.referral_code}`\n\n"
+            referral_text = f"🎁 <b>Реферальная система</b>\n\n"
+            referral_text += f"Ваш реферальный код: <code>{user.referral_code}</code>\n"
+            referral_text += f"Ваша реферальная ссылка:\n<code>https://t.me/{bot_username}?start={user.referral_code}</code>\n\n"
+            referral_text += f"📋 <a href='https://t.me/{bot_username}?start={user.referral_code}'>Нажмите здесь, чтобы скопировать ссылку</a>\n\n"
             referral_text += f"Приглашено пользователей: {referrals_count}\n"
             referral_text += f"Бонусных монет: {user.bonus_coins} 🪙\n\n"
             referral_text += f"💰 За каждого приглашенного пользователя вы получаете {REFERRAL_BONUS} монет\n"
             referral_text += f"💎 {BONUS_TO_SUBSCRIPTION} монет = 1 месяц подписки\n"
             referral_text += f"💎 {BONUS_TO_SUBSCRIPTION * 3} монет = 3 месяца подписки\n\n"
+            referral_text += f"📱 <b>Как это работает:</b>\n"
+            referral_text += f"1. Отправьте реферальную ссылку друзьям\n"
+            referral_text += f"2. Когда ваш друг перейдет по ссылке и совершит первую покупку, вам начислится {REFERRAL_BONUS} монет\n"
+            referral_text += f"3. Накопите монеты и обменяйте их на бесплатную подписку\n\n"
             
             # Формируем кнопки в зависимости от количества бонусов
             keyboard_buttons = []
@@ -567,7 +572,7 @@ async def main_menu_handler(message: Message):
             
             await message.answer(
                 referral_text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=keyboard
             )
         finally:
