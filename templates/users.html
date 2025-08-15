@@ -177,6 +177,7 @@
 
 <script>
 let currentUserId = null;
+let currentUserCoins = 0;
 
 function viewUserDetails(userId) {
     fetch(`/api/user/${userId}`)
@@ -184,6 +185,8 @@ function viewUserDetails(userId) {
         .then(data => {
             if (data.success) {
                 const user = data.user;
+                currentUserId = user.id;
+                currentUserCoins = user.bonus_coins;
                 const content = `
                     <div class="row">
                         <div class="col-md-6">
@@ -196,7 +199,21 @@ function viewUserDetails(userId) {
                         </div>
                         <div class="col-md-6">
                             <h6>Статистика</h6>
-                            <p><strong>Бонусные монеты:</strong> ${user.bonus_coins} 🪙</p>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-2"><strong>Бонусные монеты:</strong></div>
+                                <div class="me-2"><span class="badge bg-warning" id="userCoinsDisplay">${user.bonus_coins} 🪙</span></div>
+                                <button class="btn btn-sm btn-outline-success ms-2" onclick="showAddCoinsForm(${user.id}, ${user.bonus_coins})">
+                                    <i class="fas fa-plus"></i> Начислить
+                                </button>
+                            </div>
+                            <div id="addCoinsForm" style="display: none;" class="mb-3 p-2 border rounded">
+                                <div class="mb-2"><strong>Начисление монет</strong></div>
+                                <div class="input-group mb-2">
+                                    <input type="number" class="form-control" id="coinsAmount" placeholder="Количество монет" min="1">
+                                    <button class="btn btn-success" onclick="addCoinsToUser()">Начислить</button>
+                                </div>
+                                <small class="text-muted">Текущий баланс: <span id="currentCoinsBalance">0</span> 🪙</small>
+                            </div>
                             <p><strong>Реферальный код:</strong> <code>${user.referral_code}</code></p>
                             <p><strong>Приглашен от:</strong> ${user.referred_by || 'Нет'}</p>
                             <p><strong>Количество рефералов:</strong> <span class="badge bg-info">${user.referrals_count || 0} приглашенных</span></p>
@@ -433,6 +450,56 @@ function viewUserReferrals(userId) {
 
 function refreshUsers() {
     location.reload();
+}
+
+function showAddCoinsForm(userId, currentCoins) {
+    document.getElementById('addCoinsForm').style.display = 'block';
+    document.getElementById('currentCoinsBalance').textContent = currentCoins;
+    currentUserId = userId;
+    currentUserCoins = currentCoins;
+}
+
+function addCoinsToUser() {
+    const coinsAmount = parseInt(document.getElementById('coinsAmount').value);
+    
+    if (!coinsAmount || coinsAmount <= 0) {
+        alert('Пожалуйста, введите положительное количество монет');
+        return;
+    }
+    
+    fetch(`/api/user/${currentUserId}/add_coins`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ coins: coinsAmount })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Обновляем отображение монет
+            document.getElementById('userCoinsDisplay').textContent = `${data.new_balance} 🪙`;
+            document.getElementById('currentCoinsBalance').textContent = data.new_balance;
+            
+            // Скрываем форму
+            document.getElementById('addCoinsForm').style.display = 'none';
+            
+            // Сбрасываем поле ввода
+            document.getElementById('coinsAmount').value = '';
+            
+            // Обновляем текущее значение монет
+            currentUserCoins = data.new_balance;
+            
+            // Показываем сообщение об успехе
+            alert(data.message);
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Произошла ошибка при начислении монет');
+    });
 }
 
 function applyFilters() {

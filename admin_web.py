@@ -471,6 +471,33 @@ def pause_subscription(subscription_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/api/user/<int:user_id>/add_coins', methods=['POST'])
+@login_required
+def add_coins(user_id):
+    """API для начисления бонусных монет пользователю"""
+    try:
+        coins = request.json.get('coins', 0)
+        if coins <= 0:
+            return jsonify({'success': False, 'message': 'Количество монет должно быть больше 0'})
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                user.bonus_coins += coins
+                db.commit()
+                return jsonify({
+                    'success': True, 
+                    'message': f'Пользователю {user.full_name or user.telegram_id} начислено {coins} монет',
+                    'new_balance': user.bonus_coins
+                })
+            else:
+                return jsonify({'success': False, 'message': 'Пользователь не найден'})
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 
 
 @app.route('/api/subscription/create', methods=['POST'])
