@@ -552,6 +552,12 @@
                                 Администраторы
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'tickets' %}active{% endif %}" href="{{ url_for('tickets') }}">
+                                <i class="fas fa-ticket-alt me-2"></i>
+                                Тикеты
+                            </a>
+                        </li>
                     </ul>
                     
                     <hr class="text-white-50">
