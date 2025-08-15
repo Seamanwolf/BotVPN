@@ -28,6 +28,13 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <select class="form-select" id="typeFilter">
+                        <option value="">Все типы</option>
+                        <option value="support">Тикеты поддержки</option>
+                        <option value="suggestion">Предложения</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <button class="btn btn-outline-secondary" onclick="applyFilters()">
                         <i class="fas fa-filter"></i> Применить
                     </button>
@@ -55,7 +62,7 @@
                     </thead>
                     <tbody>
                         {% for ticket in tickets %}
-                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}">
+                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}">
                             <td>{{ ticket.ticket_number }}</td>
                             <td>
                                 {% if ticket.user %}
@@ -64,7 +71,12 @@
                                 Неизвестный пользователь
                                 {% endif %}
                             </td>
-                            <td>{{ ticket.subject }}</td>
+                            <td>
+                                {% if ticket.ticket_type == 'suggestion' %}
+                                <span class="badge bg-info me-1">Предложение</span>
+                                {% endif %}
+                                {{ ticket.subject }}
+                            </td>
                             <td>
                                 {% if ticket.status == 'open' %}
                                 <span class="badge bg-success">Открыт</span>
@@ -373,6 +385,7 @@ function refreshTickets() {
 function applyFilters() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
     
     const rows = document.querySelectorAll('#ticketsTable tbody tr');
     
@@ -380,6 +393,7 @@ function applyFilters() {
         const subject = row.cells[2].textContent.toLowerCase();
         const userName = row.cells[1].textContent.toLowerCase();
         const status = row.querySelector('td:nth-child(4) .badge').textContent.toLowerCase();
+        const ticketType = row.getAttribute('data-ticket-type') || 'support'; // По умолчанию считаем тикетом поддержки
         
         let show = true;
         
@@ -390,6 +404,11 @@ function applyFilters() {
         
         // Фильтр статуса
         if (statusFilter && statusFilter !== status.toLowerCase()) {
+            show = false;
+        }
+        
+        // Фильтр типа тикета
+        if (typeFilter && typeFilter !== ticketType) {
             show = false;
         }
         
@@ -406,6 +425,7 @@ function viewUserDetails(userId) {
 // Применяем фильтры при вводе
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('typeFilter').addEventListener('change', applyFilters);
 
 // Стили для сообщений
 document.head.insertAdjacentHTML('beforeend', `

@@ -71,6 +71,7 @@ dp = Dispatcher(storage=storage)
 class SupportStates(StatesGroup):
     waiting_for_issue = State()
     waiting_for_reply = State()
+    waiting_for_suggestion = State()
 
 # Функция для генерации номера тикета
 def generate_ticket_number():
@@ -91,7 +92,8 @@ def generate_ticket_number():
 def get_main_keyboard(is_admin=False):
     """Главное меню"""
     keyboard = [
-        [KeyboardButton(text="📝 Создать тикет"), KeyboardButton(text="🔍 Мои тикеты")]
+        [KeyboardButton(text="📝 Создать тикет"), KeyboardButton(text="🔍 Мои тикеты")],
+        [KeyboardButton(text="💡 Предложения")]
     ]
     
     if is_admin:
@@ -166,12 +168,41 @@ async def create_ticket_handler(message: Message, state: FSMContext):
     )
     await state.set_state(SupportStates.waiting_for_issue)
 
+@dp.message(F.text == "💡 Предложения")
+async def suggestion_handler(message: Message, state: FSMContext):
+    """Обработчик создания предложения по улучшению"""
+    await message.answer(
+        "💡 Поделитесь вашими идеями и предложениями по улучшению нашего сервиса.\n"
+        "Мы ценим ваше мнение и стремимся сделать наш VPN еще лучше!"
+    )
+    # Сохраняем тип тикета как "suggestion"
+    await state.update_data(ticket_type="suggestion")
+    await state.set_state(SupportStates.waiting_for_suggestion)
+
 @dp.message(SupportStates.waiting_for_issue)
 async def process_issue(message: Message, state: FSMContext):
     """Обработка описания проблемы"""
     telegram_id = message.from_user.id
     user_name = message.from_user.full_name
     issue_text = message.text
+    
+    # Создаем тикет типа "support"
+    await create_ticket(message, "support", issue_text)
+
+@dp.message(SupportStates.waiting_for_suggestion)
+async def process_suggestion(message: Message, state: FSMContext):
+    """Обработка предложения по улучшению"""
+    telegram_id = message.from_user.id
+    user_name = message.from_user.full_name
+    suggestion_text = message.text
+    
+    # Создаем тикет типа "suggestion"
+    await create_ticket(message, "suggestion", suggestion_text)
+
+async def create_ticket(message: Message, ticket_type: str, text: str):
+    """Общая функция для создания тикета"""
+    telegram_id = message.from_user.id
+    user_name = message.from_user.full_name
     
     db = SessionLocal()
     try:
@@ -198,12 +229,17 @@ async def process_issue(message: Message, state: FSMContext):
         # Генерируем номер тикета
         ticket_number = generate_ticket_number()
         
+        # Формируем тему тикета
+        subject_prefix = "[Предложение] " if ticket_type == "suggestion" else ""
+        subject = subject_prefix + (text[:50] + "..." if len(text) > 50 else text)
+        
         # Создаем новый тикет
         ticket = Ticket(
             ticket_number=ticket_number,
             user_id=user.id,
             status="open",
-            subject=issue_text[:50] + "..." if len(issue_text) > 50 else issue_text
+            ticket_type=ticket_type,
+            subject=subject
         )
         db.add(ticket)
         db.commit()
@@ -214,29 +250,38 @@ async def process_issue(message: Message, state: FSMContext):
             ticket_id=ticket.id,
             sender_id=user.id,
             sender_type="user",
-            message=issue_text
+            message=text
         )
         db.add(ticket_message)
         db.commit()
         
-        # Отправляем подтверждение пользователю
-        await message.answer(
-            f"✅ Ваш тикет #{ticket_number} успешно создан!\n\n"
-            f"Мы рассмотрим вашу проблему в ближайшее время и ответим вам.\n"
-            f"Вы можете проверить статус вашего тикета в разделе 'Мои тикеты'.",
-            reply_markup=get_main_keyboard(is_admin=is_admin(telegram_id))
-        )
+        # Отправляем подтверждение пользователю в зависимости от типа тикета
+        if ticket_type == "suggestion":
+            await message.answer(
+                f"✅ Ваше предложение (тикет #{ticket_number}) успешно отправлено!\n\n"
+                f"Благодарим за ваш вклад в улучшение нашего сервиса.\n"
+                f"Мы обязательно рассмотрим вашу идею и свяжемся с вами при необходимости.",
+                reply_markup=get_main_keyboard(is_admin=is_admin(telegram_id))
+            )
+        else:
+            await message.answer(
+                f"✅ Ваш тикет #{ticket_number} успешно создан!\n\n"
+                f"Мы рассмотрим вашу проблему в ближайшее время и ответим вам.\n"
+                f"Вы можете проверить статус вашего тикета в разделе 'Мои тикеты'.",
+                reply_markup=get_main_keyboard(is_admin=is_admin(telegram_id))
+            )
         
         # Отправляем уведомление администраторам
         for admin_id in ADMIN_IDS:
             try:
                 # Отправляем уведомление о новом тикете с более заметным форматированием
+                notification_prefix = "🆕 *НОВОЕ ПРЕДЛОЖЕНИЕ" if ticket_type == "suggestion" else "🆕 *НОВЫЙ ТИКЕТ"
                 await bot.send_message(
                     admin_id,
-                    f"🆕 *НОВЫЙ ТИКЕТ #{ticket_number}*\n\n"
+                    f"{notification_prefix} #{ticket_number}*\n\n"
                     f"👤 *От:* {user_name} (ID: {telegram_id})\n"
                     f"🕒 *Время:* {ticket.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                    f"💬 *Сообщение:*\n{issue_text}",
+                    f"💬 *Сообщение:*\n{text}",
                     parse_mode="Markdown",
                     reply_markup=get_ticket_keyboard(ticket_number)
                 )
