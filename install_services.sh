@@ -26,3 +26,5 @@ sudo systemctl status seavpn-webhook.service
 sudo systemctl status seavpn-admin.service
 
 echo "Установка завершена!"
+
+

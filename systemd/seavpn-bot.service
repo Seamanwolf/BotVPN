@@ -16,3 +16,5 @@ SyslogIdentifier=seavpn-bot
 
 [Install]
 WantedBy=multi-user.target
+
+

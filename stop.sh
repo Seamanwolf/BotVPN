@@ -5,3 +5,5 @@ docker-compose down
 
 echo "Статус контейнеров:"
 docker-compose ps
+
+

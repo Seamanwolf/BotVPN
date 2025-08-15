@@ -8,3 +8,5 @@ docker-compose ps
 
 echo "Просмотр логов (нажмите Ctrl+C для выхода):"
 docker-compose logs -f
+
+

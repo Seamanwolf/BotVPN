@@ -23,3 +23,5 @@ ENV PYTHONUNBUFFERED=1
 
 # Запуск бота и webhook сервера
 CMD ["sh", "-c", "python bot.py & python webhook_handler.py"]
+
+

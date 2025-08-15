@@ -16,3 +16,5 @@ SyslogIdentifier=seavpn-admin
 
 [Install]
 WantedBy=multi-user.target
+
+
