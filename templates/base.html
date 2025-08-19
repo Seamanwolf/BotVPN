@@ -1242,12 +1242,15 @@
                                         <div>
                                             <strong>Тикет #${ticket.ticket_number}</strong><br>
                                             <small class="text-muted">От: ${ticket.user_name}</small><br>
-                                            <small class="text-muted">Тема: ${ticket.subject}</small>
+                                            <small class="text-muted">Тема: ${ticket.subject}</small><br>
+                                            <small class="text-muted">Последнее сообщение: ${ticket.last_message_preview}</small>
                                         </div>
                                         <div class="text-end">
                                             <span class="badge bg-danger rounded-pill">${ticket.new_messages_count} новых</span>
                                             <br>
-                                            <a href="/tickets" class="btn btn-primary btn-sm mt-2">Перейти к тикету</a>
+                                            <button class="btn btn-primary btn-sm mt-2" onclick="viewTicketFromNotification(${ticket.ticket_id})">
+                                                Перейти к тикету
+                                            </button>
                                         </div>
                                     </div>
                                 `;
@@ -1265,6 +1268,15 @@
                     console.error('Ошибка:', error);
                     showToast('Произошла ошибка при загрузке новых сообщений', 'error');
                 });
+        }
+        
+        // Функция для перехода к тикету из уведомления
+        function viewTicketFromNotification(ticketId) {
+            // Закрываем модальное окно уведомлений
+            bootstrap.Modal.getInstance(document.getElementById('newMessagesModal')).hide();
+            
+            // Открываем тикет
+            viewTicketDetails(ticketId);
         }
         
         // Функция для обновления счетчика новых сообщений в кнопке
@@ -1297,16 +1309,20 @@
         
         // Звуковые элементы
         const sounds = {
-            ticket: new Audio('/static/sounds/ticket.mp3'),
-            user: new Audio('/static/sounds/user.mp3'),
-            subscription: new Audio('/static/sounds/subscription.mp3'),
-            message: new Audio('/static/sounds/message.mp3')
+            ticket: new Audio('/static/sounds/ticket.wav'),
+            user: new Audio('/static/sounds/user.wav'),
+            subscription: new Audio('/static/sounds/subscription.wav'),
+            message: new Audio('/static/sounds/message.wav')
         };
         
         // Инициализация WebSocket
         function initWebSocket() {
             try {
-                websocket = new WebSocket('ws://localhost:8765');
+                // Используем текущий хост для WebSocket
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.hostname;
+                const port = '8765';
+                websocket = new WebSocket(`${protocol}//${host}:${port}`);
                 
                 websocket.onopen = function(event) {
                     console.log('WebSocket соединение установлено');

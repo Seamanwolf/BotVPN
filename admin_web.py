@@ -1579,12 +1579,16 @@ def get_new_messages_count():
                         TicketMessage.id > (read_record.last_read_message_id if read_record else 0)
                     ).count()
                     
+                    # Создаем превью сообщения
+                    message_preview = last_message.message[:100] + '...' if len(last_message.message) > 100 else last_message.message
+                    
                     tickets_with_new_messages.append({
                         'ticket_id': ticket.id,
                         'ticket_number': ticket.ticket_number,
                         'subject': ticket.subject,
                         'user_name': ticket.user.full_name if ticket.user else 'Неизвестный',
                         'new_messages_count': new_messages_count,
+                        'last_message_preview': message_preview,
                         'last_message_time': last_message.created_at.isoformat()
                     })
             

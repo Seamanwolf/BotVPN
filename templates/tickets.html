@@ -340,13 +340,26 @@ function viewTicketDetails(ticketId) {
                             'document': 'Документ'
                         };
                         
-                        attachmentHtml = `
-                            <div class="message-attachment">
-                                <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
-                                    ${attachmentIcons[msg.attachment_type]} ${attachmentNames[msg.attachment_type]}
-                                </a>
-                            </div>
-                        `;
+                        if (msg.attachment_type === 'photo') {
+                            attachmentHtml = `
+                                <div class="message-attachment">
+                                    <img src="${msg.attachment_url}" alt="Фото" class="attachment-image" style="max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 10px;">
+                                    <div class="mt-2">
+                                        <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
+                                            ${attachmentIcons[msg.attachment_type]} Открыть оригинал
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            attachmentHtml = `
+                                <div class="message-attachment">
+                                    <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
+                                        ${attachmentIcons[msg.attachment_type]} ${attachmentNames[msg.attachment_type]}
+                                    </a>
+                                </div>
+                            `;
+                        }
                     }
                     
                     content += `
