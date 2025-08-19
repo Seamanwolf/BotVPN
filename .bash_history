@@ -1,56 +1,3 @@
-python3 bot.py
-pkill -9 -f python
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 5 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 2 && python3 admin_web.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 2 && python3 admin_web.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 admin_web.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 migrate_admins.py
-pip3 install flask==3.0.0 flask-login==0.6.3 werkzeug==3.0.1
-sleep 3 && curl -I http://localhost:8080
-ps aux | grep admin_web
-python3 cleanup_subscriptions.py
-python3 migrate_plan_name.py
-python3 cleanup_subscriptions.py
-python3 check_xui.py
-python3 check_subscriptions.py
-ps aux | grep admin_web
-curl -s http://localhost:8080/login | head -20
-pkill -f admin_web.py
-sleep 3 && curl -I http://localhost:8080
-python3 check_admin.py
-python3 test_web.py
-ps aux | grep admin_web
-pkill -f admin_web.py
-sleep 3 && python3 test_web.py
-python3 test_auth.py
-python3 final_test.py
-lsof -ti:8080 | xargs kill -9
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 python3 admin_web.py &
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
@@ -1998,3 +1945,56 @@ git commit -m "Исправлена ошибка 502: удалена дубли�
 git push origin master
 . "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 python3 -c "from database import SessionLocal, AdminViewedUsers; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_viewed_users (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), user_id INTEGER REFERENCES users(id), viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_viewed_users создана')"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 -c "from database import SessionLocal, AdminViewedUsers; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_viewed_users (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), user_id INTEGER REFERENCES users(id), viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_viewed_users создана')"
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Реализована система отслеживания новых пользователей: постоянная подсветка, исчезновение после просмотра, корректный подсчет в уведомлениях"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Добавлена функция списания монет: API для удаления монет, кнопка списания, форма ввода, валидация баланса"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/users.html
+git commit -m "Улучшен интерфейс управления монетами: компактные кнопки +/-, уменьшена высота элементов форм"
+git push origin master
+git status
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Реализовано управление подписками: замена 'Добавить подписку' на 'Продлить подписку', модальное окно с кнопками +/- для изменения дней"
+git push origin master
+journalctl -u seavpn-admin.service -n 20 --no-pager
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+git add admin_web.py
+git commit -m "Исправлена ошибка 502: удалена дублирующаяся функция extend_subscription"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/users.html
+git commit -m "Улучшен интерфейс управления подписками: правильное затемнение модального окна, поля ввода вместо кнопок +/-"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/users.html
+git commit -m "Перемещена кнопка 'Продлить подписку' под телефон, исправлено затемнение модального окна"
+git push origin master
+git add .
+git commit -m "Исправления UI: перемещение кнопки подписки и затемнение модальных окон"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлен белый отступ сверху на всех страницах - уменьшены отступы mb-4 на mb-3"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлен белый отступ: кнопки переключения темы перемещены из фиксированной позиции в основной контент"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлено расположение иконок уведомлений: вертикально рядом с кнопкой темы, добавлена детальная информация о новых тикетах и сообщениях"
+git push origin master
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
