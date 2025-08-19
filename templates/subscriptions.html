@@ -407,35 +407,58 @@ document.head.insertAdjacentHTML('beforeend', `
     <style>
         /* Улучшенные стили для фильтров */
         .filter-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e40af;
             color: white;
         }
         
         .filter-card .card-body {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border-radius: 1rem;
+            border-radius: 0.75rem;
+        }
+        
+        .search-input, .form-select {
+            height: 38px;
+            font-size: 0.8rem;
         }
         
         .search-input:focus {
-            border-color: #3a86ff;
-            box-shadow: 0 0 0 0.2rem rgba(58, 134, 255, 0.25);
+            border-color: #1e40af;
+            box-shadow: 0 0 0 0.2rem rgba(30, 64, 175, 0.25);
         }
         
         .filter-btn {
-            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            background: #1e40af;
             border: none;
             transition: all 0.3s ease;
+            height: 38px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
         }
         
         .filter-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-outline-secondary {
+            height: 38px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-color: white;
+            color: white;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: white;
+            color: #1e40af;
+            border-color: white;
         }
         
         /* Улучшенные стили для таблицы подписок */
         .subscriptions-table-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: #0f766e;
         }
         
         .subscriptions-table-card .card-body {
@@ -444,12 +467,12 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .subscriptions-table {
-            border-radius: 1rem;
+            border-radius: 0.75rem;
             overflow: hidden;
         }
         
         .subscriptions-table thead th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e40af;
             color: white;
             border: none;
             font-weight: 600;
@@ -463,14 +486,14 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .subscriptions-table tbody tr:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            transform: scale(1.01);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background: rgba(30, 64, 175, 0.1);
+            color: var(--text-primary);
+            transform: scale(1.005);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .subscriptions-table tbody tr:hover .badge {
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: var(--primary-color) !important;
             color: white !important;
         }
         
@@ -482,27 +505,27 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .badge.bg-warning {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+            background: #f59e0b !important;
             color: white !important;
         }
         
         .badge.bg-info {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+            background: #0284c7 !important;
             color: white !important;
         }
         
         .badge.bg-primary {
-            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%) !important;
+            background: #1e40af !important;
             color: white !important;
         }
         
         .badge.bg-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            background: #059669 !important;
             color: white !important;
         }
         
         .badge.bg-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            background: #dc2626 !important;
             color: white !important;
         }
         
@@ -519,12 +542,12 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #059669;
             border: none;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            background: #1e40af;
             border: none;
         }
         
@@ -534,8 +557,48 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Темная тема */
+        [data-theme="dark"] .subscriptions-table-card .card-body {
+            background: rgba(30, 41, 59, 0.95);
+        }
+        
+        [data-theme="dark"] .subscriptions-table {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .subscriptions-table tbody tr {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .subscriptions-table tbody tr:hover {
+            background: rgba(30, 64, 175, 0.2);
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .subscriptions-table tbody td {
+            border-color: #334155;
+        }
+        
+        [data-theme="dark"] .modal-content {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .modal-header {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-bottom-color: #334155;
+        }
+        
+        [data-theme="dark"] .modal-footer {
+            background-color: #0f172a;
+            border-top-color: #334155;
         }
     </style>
 `);
