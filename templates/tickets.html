@@ -30,11 +30,11 @@
                         <span class="input-group-text bg-success text-white">
                             <i class="fas fa-toggle-on"></i>
                         </span>
-                        <select class="form-select" id="statusFilter">
-                            <option value="">Все статусы</option>
-                            <option value="open">Открытые</option>
-                            <option value="closed">Закрытые</option>
-                        </select>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="open">Открытые</option>
+                        <option value="closed">Закрытые</option>
+                    </select>
                     </div>
                 </div>
                 <div class="col-md-2">
@@ -42,11 +42,11 @@
                         <span class="input-group-text bg-info text-white">
                             <i class="fas fa-tag"></i>
                         </span>
-                        <select class="form-select" id="typeFilter">
-                            <option value="">Все типы</option>
-                            <option value="support">Тикеты поддержки</option>
-                            <option value="suggestion">Предложения</option>
-                        </select>
+                    <select class="form-select" id="typeFilter">
+                        <option value="">Все типы</option>
+                        <option value="support">Тикеты поддержки</option>
+                        <option value="suggestion">Предложения</option>
+                    </select>
                     </div>
                 </div>
                 <div class="col-md-2">
@@ -82,7 +82,10 @@
                     </thead>
                     <tbody>
                         {% for ticket in tickets %}
-                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}">
+                        {% set is_new = (ticket.created_at > (now - timedelta(days=1))) %}
+                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}" 
+                            class="{% if is_new %}new-item{% endif %}" 
+                            data-created="{{ ticket.created_at.isoformat() }}">
                             <td>{{ ticket.ticket_number }}</td>
                             <td>
                                 {% if ticket.user %}
@@ -300,7 +303,7 @@ function viewTicketDetails(ticketId) {
                                             </small>
                                         </div>
                                     </div>
-                                </div>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -354,9 +357,9 @@ function viewTicketDetails(ticketId) {
                             <div class="message-content">
                                 <div class="message-header">
                                     ${senderName} • ${new Date(msg.created_at).toLocaleString()}
-                                </div>
+                            </div>
                                 <div class="message-body">
-                                    ${msg.message}
+                                ${msg.message}
                                     ${attachmentHtml}
                                 </div>
                             </div>
@@ -387,6 +390,12 @@ function viewTicketDetails(ticketId) {
             
             // Отмечаем тикет как прочитанный
             markTicketAsRead(ticketId);
+            
+            // Убираем подсветку с просмотренного тикета
+            const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+            if (ticketRow) {
+                ticketRow.classList.remove('new-item');
+            }
             } else {
                 showError('Ошибка при загрузке данных тикета');
             }
@@ -632,7 +641,7 @@ function showUserDetailsModal(userId, userName, telegramId) {
         .catch(error => {
             console.error('Error:', error);
             showToast('Произошла ошибка при загрузке данных пользователя', 'error');
-        });
+    });
 }
 
 // Функция для просмотра деталей пользователя
@@ -1153,6 +1162,30 @@ document.head.insertAdjacentHTML('beforeend', `
         
         [data-theme="dark"] .message-attachment {
             background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Подсветка новых записей */
+        .new-item {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%) !important;
+            border-left: 4px solid #22c55e !important;
+            animation: newItemPulse 2s ease-in-out infinite;
+        }
+        
+        .new-item:hover {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
+        }
+        
+        @keyframes newItemPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        [data-theme="dark"] .new-item {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
+        }
+        
+        [data-theme="dark"] .new-item:hover {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.15) 100%) !important;
         }
     </style>
 `);

@@ -196,7 +196,7 @@ def tickets():
                 TicketMessage.ticket_id == ticket.id
             ).order_by(TicketMessage.created_at).all()
         
-        return render_template('tickets.html', tickets=tickets_query)
+        return render_template('tickets.html', tickets=tickets_query, now=datetime.utcnow())
     finally:
         db.close()
 
@@ -887,6 +887,9 @@ def get_ticket_details(ticket_id):
                     'sender_name': sender_name,
                     'sender_type': msg.sender_type,
                     'message': msg.message,
+                    'attachment_type': msg.attachment_type,
+                    'attachment_file_id': msg.attachment_file_id,
+                    'attachment_url': msg.attachment_url,
                     'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
                 })
             
@@ -1202,7 +1205,8 @@ def get_notifications_count():
                 'success': True,
                 'tickets': new_tickets,
                 'users': new_users,
-                'subscriptions': new_subscriptions
+                'subscriptions': new_subscriptions,
+                'yesterday': yesterday.isoformat()
             })
         finally:
             db.close()
