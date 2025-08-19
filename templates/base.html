@@ -619,6 +619,12 @@
             top: 210px !important;
             left: auto !important;
         }
+        
+        #settingsToggle {
+            right: 10px !important;
+            top: 260px !important;
+            left: auto !important;
+        }
 
         /* Уведомления */
         .toast {
@@ -851,6 +857,11 @@
                     <span class="notifications-count" id="subscriptionsCount">0</span>
                 </div>
                 
+                <!-- Кнопка настроек уведомлений -->
+                <div class="notifications-toggle" onclick="showNotificationSettings()" title="Настройки уведомлений" id="settingsToggle">
+                    <i class="fas fa-cog"></i>
+                </div>
+                
                 <div class="pb-2 mb-3">
                     {% block content %}{% endblock %}
                 </div>
@@ -941,6 +952,97 @@
         </div>
     </div>
     
+    <!-- Модальное окно настроек уведомлений -->
+    <div class="modal fade" id="notificationSettingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Настройки уведомлений</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="notificationSettingsForm">
+                        <div class="mb-3">
+                            <h6>Общие настройки</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notificationsEnabled" checked>
+                                <label class="form-check-label" for="notificationsEnabled">
+                                    Включить уведомления
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="soundsEnabled" checked>
+                                <label class="form-check-label" for="soundsEnabled">
+                                    Включить звуки
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Типы уведомлений</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="newTicketNotifications" checked>
+                                <label class="form-check-label" for="newTicketNotifications">
+                                    Новые тикеты
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="newUserNotifications" checked>
+                                <label class="form-check-label" for="newUserNotifications">
+                                    Новые пользователи
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="newSubscriptionNotifications" checked>
+                                <label class="form-check-label" for="newSubscriptionNotifications">
+                                    Новые подписки
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="newMessageNotifications" checked>
+                                <label class="form-check-label" for="newMessageNotifications">
+                                    Новые сообщения
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Звуки уведомлений</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ticketSoundEnabled" checked>
+                                <label class="form-check-label" for="ticketSoundEnabled">
+                                    Звук для новых тикетов
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="userSoundEnabled" checked>
+                                <label class="form-check-label" for="userSoundEnabled">
+                                    Звук для новых пользователей
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="subscriptionSoundEnabled" checked>
+                                <label class="form-check-label" for="subscriptionSoundEnabled">
+                                    Звук для новых подписок
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="messageSoundEnabled" checked>
+                                <label class="form-check-label" for="messageSoundEnabled">
+                                    Звук для новых сообщений
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNotificationSettings()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Функция переключения темы
         function toggleTheme() {
@@ -972,6 +1074,12 @@
             } else {
                 themeIcon.className = 'fas fa-moon';
             }
+            
+            // Загружаем настройки уведомлений
+            loadNotificationSettings();
+            
+            // Инициализируем WebSocket
+            initWebSocket();
         });
         
         /**
@@ -1172,6 +1280,106 @@
             }
         }
         
+        // Глобальные переменные для WebSocket и настроек
+        let websocket = null;
+        let notificationSettings = {
+            notificationsEnabled: true,
+            soundsEnabled: true,
+            newTicketNotifications: true,
+            newUserNotifications: true,
+            newSubscriptionNotifications: true,
+            newMessageNotifications: true,
+            ticketSoundEnabled: true,
+            userSoundEnabled: true,
+            subscriptionSoundEnabled: true,
+            messageSoundEnabled: true
+        };
+        
+        // Звуковые элементы
+        const sounds = {
+            ticket: new Audio('/static/sounds/ticket.mp3'),
+            user: new Audio('/static/sounds/user.mp3'),
+            subscription: new Audio('/static/sounds/subscription.mp3'),
+            message: new Audio('/static/sounds/message.mp3')
+        };
+        
+        // Инициализация WebSocket
+        function initWebSocket() {
+            try {
+                websocket = new WebSocket('ws://localhost:8765');
+                
+                websocket.onopen = function(event) {
+                    console.log('WebSocket соединение установлено');
+                };
+                
+                websocket.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                };
+                
+                websocket.onclose = function(event) {
+                    console.log('WebSocket соединение закрыто');
+                    // Переподключение через 5 секунд
+                    setTimeout(initWebSocket, 5000);
+                };
+                
+                websocket.onerror = function(error) {
+                    console.error('WebSocket ошибка:', error);
+                };
+            } catch (error) {
+                console.error('Ошибка при инициализации WebSocket:', error);
+            }
+        }
+        
+        // Обработка сообщений от WebSocket
+        function handleWebSocketMessage(data) {
+            if (data.type === 'initial_counts') {
+                // Обновляем счетчики при подключении
+                updateNotificationsToggle('tickets', data.counts.tickets);
+                updateNotificationsToggle('users', data.counts.users);
+                updateNotificationsToggle('subscriptions', data.counts.subscriptions);
+                updateMessagesToggle(data.counts.messages);
+            } else if (data.type === 'new_ticket' && notificationSettings.newTicketNotifications) {
+                updateNotificationsToggle('tickets', data.count);
+                showToast(data.message, 'info');
+                if (notificationSettings.soundsEnabled && notificationSettings.ticketSoundEnabled) {
+                    playSound('ticket');
+                }
+            } else if (data.type === 'new_user' && notificationSettings.newUserNotifications) {
+                updateNotificationsToggle('users', data.count);
+                showToast(data.message, 'info');
+                if (notificationSettings.soundsEnabled && notificationSettings.userSoundEnabled) {
+                    playSound('user');
+                }
+            } else if (data.type === 'new_subscription' && notificationSettings.newSubscriptionNotifications) {
+                updateNotificationsToggle('subscriptions', data.count);
+                showToast(data.message, 'info');
+                if (notificationSettings.soundsEnabled && notificationSettings.subscriptionSoundEnabled) {
+                    playSound('subscription');
+                }
+            } else if (data.type === 'new_message' && notificationSettings.newMessageNotifications) {
+                updateMessagesToggle(data.count);
+                showToast(data.message, 'info');
+                if (notificationSettings.soundsEnabled && notificationSettings.messageSoundEnabled) {
+                    playSound('message');
+                }
+            }
+        }
+        
+        // Воспроизведение звука
+        function playSound(soundType) {
+            try {
+                if (sounds[soundType]) {
+                    sounds[soundType].currentTime = 0;
+                    sounds[soundType].play().catch(error => {
+                        console.error('Ошибка воспроизведения звука:', error);
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка при воспроизведении звука:', error);
+            }
+        }
+        
         // Функция для обновления счетчиков уведомлений
         function updateNotificationsToggle(type, count) {
             const toggle = document.getElementById(type + 'Toggle');
@@ -1291,6 +1499,68 @@
                         }
                     }
                 });
+        }
+        
+        // Функции для работы с настройками уведомлений
+        function showNotificationSettings() {
+            new bootstrap.Modal(document.getElementById('notificationSettingsModal')).show();
+        }
+        
+        function loadNotificationSettings() {
+            // Загружаем настройки из localStorage
+            const saved = localStorage.getItem('notificationSettings');
+            if (saved) {
+                notificationSettings = JSON.parse(saved);
+            }
+            
+            // Применяем настройки к чекбоксам
+            document.getElementById('notificationsEnabled').checked = notificationSettings.notificationsEnabled;
+            document.getElementById('soundsEnabled').checked = notificationSettings.soundsEnabled;
+            document.getElementById('newTicketNotifications').checked = notificationSettings.newTicketNotifications;
+            document.getElementById('newUserNotifications').checked = notificationSettings.newUserNotifications;
+            document.getElementById('newSubscriptionNotifications').checked = notificationSettings.newSubscriptionNotifications;
+            document.getElementById('newMessageNotifications').checked = notificationSettings.newMessageNotifications;
+            document.getElementById('ticketSoundEnabled').checked = notificationSettings.ticketSoundEnabled;
+            document.getElementById('userSoundEnabled').checked = notificationSettings.userSoundEnabled;
+            document.getElementById('subscriptionSoundEnabled').checked = notificationSettings.subscriptionSoundEnabled;
+            document.getElementById('messageSoundEnabled').checked = notificationSettings.messageSoundEnabled;
+        }
+        
+        function saveNotificationSettings() {
+            // Собираем настройки из чекбоксов
+            notificationSettings.notificationsEnabled = document.getElementById('notificationsEnabled').checked;
+            notificationSettings.soundsEnabled = document.getElementById('soundsEnabled').checked;
+            notificationSettings.newTicketNotifications = document.getElementById('newTicketNotifications').checked;
+            notificationSettings.newUserNotifications = document.getElementById('newUserNotifications').checked;
+            notificationSettings.newSubscriptionNotifications = document.getElementById('newSubscriptionNotifications').checked;
+            notificationSettings.newMessageNotifications = document.getElementById('newMessageNotifications').checked;
+            notificationSettings.ticketSoundEnabled = document.getElementById('ticketSoundEnabled').checked;
+            notificationSettings.userSoundEnabled = document.getElementById('userSoundEnabled').checked;
+            notificationSettings.subscriptionSoundEnabled = document.getElementById('subscriptionSoundEnabled').checked;
+            notificationSettings.messageSoundEnabled = document.getElementById('messageSoundEnabled').checked;
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings));
+            
+            // Сохраняем на сервере
+            fetch('/api/notifications/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(notificationSettings)
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Настройки сохранены', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('notificationSettingsModal')).hide();
+                } else {
+                    showToast('Ошибка при сохранении настроек', 'error');
+                }
+            }).catch(error => {
+                console.error('Ошибка:', error);
+                showToast('Ошибка при сохранении настроек', 'error');
+            });
         }
         
         /**

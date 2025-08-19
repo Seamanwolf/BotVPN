@@ -81,9 +81,19 @@ class AdminSettings(Base):
     __tablename__ = "admin_settings"
     
     id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("admins.id"), nullable=False)
     notifications_enabled = Column(Boolean, default=True)
+    sounds_enabled = Column(Boolean, default=True)
+    new_ticket_notifications = Column(Boolean, default=True)
     new_user_notifications = Column(Boolean, default=True)
-    subscription_notifications = Column(Boolean, default=True)
+    new_subscription_notifications = Column(Boolean, default=True)
+    new_message_notifications = Column(Boolean, default=True)
+    ticket_sound_enabled = Column(Boolean, default=True)
+    user_sound_enabled = Column(Boolean, default=True)
+    subscription_sound_enabled = Column(Boolean, default=True)
+    message_sound_enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)

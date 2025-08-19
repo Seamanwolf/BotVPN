@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings
 from config import ADMIN_IDS
 from xui_client import XUIClient
 
@@ -1328,6 +1328,90 @@ def get_new_tickets():
                 'success': True,
                 'tickets': tickets_data
             })
+        finally:
+            db.close()
+    except Exception as e:
+                    return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/notifications/settings', methods=['GET', 'POST'])
+@login_required
+def notification_settings():
+    """API для работы с настройками уведомлений"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем ID администратора из текущего пользователя
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                # Для суперадмина получаем его реальный ID из базы
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
+            
+            if request.method == 'GET':
+                # Получаем настройки
+                settings = db.query(AdminSettings).filter(AdminSettings.admin_id == admin_id).first()
+                if not settings:
+                    # Создаем настройки по умолчанию
+                    settings = AdminSettings(
+                        admin_id=admin_id,
+                        notifications_enabled=True,
+                        sounds_enabled=True,
+                        new_ticket_notifications=True,
+                        new_user_notifications=True,
+                        new_subscription_notifications=True,
+                        new_message_notifications=True,
+                        ticket_sound_enabled=True,
+                        user_sound_enabled=True,
+                        subscription_sound_enabled=True,
+                        message_sound_enabled=True
+                    )
+                    db.add(settings)
+                    db.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'settings': {
+                        'notificationsEnabled': settings.notifications_enabled,
+                        'soundsEnabled': settings.sounds_enabled,
+                        'newTicketNotifications': settings.new_ticket_notifications,
+                        'newUserNotifications': settings.new_user_notifications,
+                        'newSubscriptionNotifications': settings.new_subscription_notifications,
+                        'newMessageNotifications': settings.new_message_notifications,
+                        'ticketSoundEnabled': settings.ticket_sound_enabled,
+                        'userSoundEnabled': settings.user_sound_enabled,
+                        'subscriptionSoundEnabled': settings.subscription_sound_enabled,
+                        'messageSoundEnabled': settings.message_sound_enabled
+                    }
+                })
+            
+            elif request.method == 'POST':
+                # Сохраняем настройки
+                data = request.json
+                settings = db.query(AdminSettings).filter(AdminSettings.admin_id == admin_id).first()
+                
+                if not settings:
+                    settings = AdminSettings(admin_id=admin_id)
+                    db.add(settings)
+                
+                settings.notifications_enabled = data.get('notificationsEnabled', True)
+                settings.sounds_enabled = data.get('soundsEnabled', True)
+                settings.new_ticket_notifications = data.get('newTicketNotifications', True)
+                settings.new_user_notifications = data.get('newUserNotifications', True)
+                settings.new_subscription_notifications = data.get('newSubscriptionNotifications', True)
+                settings.new_message_notifications = data.get('newMessageNotifications', True)
+                settings.ticket_sound_enabled = data.get('ticketSoundEnabled', True)
+                settings.user_sound_enabled = data.get('userSoundEnabled', True)
+                settings.subscription_sound_enabled = data.get('subscriptionSoundEnabled', True)
+                settings.message_sound_enabled = data.get('messageSoundEnabled', True)
+                
+                db.commit()
+                
+                return jsonify({'success': True})
+                
         finally:
             db.close()
     except Exception as e:
