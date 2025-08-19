@@ -449,16 +449,53 @@ document.head.insertAdjacentHTML('beforeend', `
         
         /* Темная тема */
         [data-theme="dark"] .card {
-            background-color: #1f2937;
-            color: #f9fafb;
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .card-header {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-bottom-color: #334155;
         }
         
         [data-theme="dark"] .table {
-            color: #e2e8f0;
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .table thead th {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-bottom-color: #334155;
+        }
+        
+        [data-theme="dark"] .table tbody tr {
+            background-color: #1e293b;
+            color: #f8fafc;
         }
         
         [data-theme="dark"] .table tbody tr:hover {
-            background: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%);
+            background: rgba(30, 64, 175, 0.2);
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .table tbody td {
+            border-color: #334155;
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .stat-card {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .h2 {
+            background: #3b82f6;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
     </style>
 `);
