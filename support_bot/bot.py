@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import os
 import json
 import sys
+from aiogram.fsm.context import FSMContext
 
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -188,6 +189,8 @@ async def process_issue(message: Message, state: FSMContext):
     
     # Создаем тикет типа "support"
     await create_ticket(message, "support", issue_text)
+    # После создания тикета сбрасываем состояние
+    await state.clear()
 
 @dp.message(SupportStates.waiting_for_suggestion)
 async def process_suggestion(message: Message, state: FSMContext):
@@ -198,6 +201,8 @@ async def process_suggestion(message: Message, state: FSMContext):
     
     # Создаем тикет типа "suggestion"
     await create_ticket(message, "suggestion", suggestion_text)
+    # После создания тикета сбрасываем состояние
+    await state.clear()
 
 async def create_ticket(message: Message, ticket_type: str, text: str):
     """Общая функция для создания тикета"""
@@ -206,55 +211,87 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
     
     db = SessionLocal()
     try:
+        # Валидация типа тикета
+        if ticket_type not in ["support", "suggestion"]:
+            logger.error(f"Неверный тип тикета: {ticket_type}")
+            await message.answer(
+                "❌ Произошла ошибка при создании тикета: неверный тип тикета.",
+                reply_markup=get_main_keyboard(is_admin=is_admin(telegram_id))
+            )
+            # Не пытаемся сбросить состояние, так как оно передается отдельно
+            return
+        
         # Получаем пользователя из базы данных или создаем нового
         user = db.query(User).filter(User.telegram_id == telegram_id).first()
         if not user:
-            # Если пользователь не найден, создаем нового
-            from string import ascii_uppercase, digits
-            import secrets
+            try:
+                # Если пользователь не найден, создаем нового
+                from string import ascii_uppercase, digits
+                import secrets
+                
+                # Генерируем уникальный реферальный код
+                alphabet = ascii_uppercase + digits
+                referral_code = ''.join(secrets.choice(alphabet) for _ in range(6))
+                
+                user = User(
+                    telegram_id=telegram_id,
+                    full_name=user_name,
+                    referral_code=referral_code
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+            except Exception as e:
+                logger.error(f"Ошибка при создании пользователя: {e}")
+                await message.answer(
+                    "❌ Произошла ошибка при регистрации пользователя. Пожалуйста, попробуйте позже.",
+                    reply_markup=get_main_keyboard(is_admin=is_admin(telegram_id))
+                )
+                # Не пытаемся сбросить состояние
+                return
+        
+        try:
+            # Генерируем номер тикета
+            ticket_number = generate_ticket_number()
             
-            # Генерируем уникальный реферальный код
-            alphabet = ascii_uppercase + digits
-            referral_code = ''.join(secrets.choice(alphabet) for _ in range(6))
+            # Формируем тему тикета
+            subject_prefix = "[Предложение] " if ticket_type == "suggestion" else ""
+            subject = subject_prefix + (text[:50] + "..." if len(text) > 50 else text)
             
-            user = User(
-                telegram_id=telegram_id,
-                full_name=user_name,
-                referral_code=referral_code
+            # Создаем новый тикет
+            ticket = Ticket(
+                ticket_number=ticket_number,
+                user_id=user.id,
+                status="open",
+                ticket_type=ticket_type,
+                subject=subject
             )
-            db.add(user)
+            db.add(ticket)
             db.commit()
-            db.refresh(user)
+            db.refresh(ticket)
+        except Exception as e:
+            logger.error(f"Ошибка при создании тикета в БД: {e}")
+            await message.answer(
+                "❌ Произошла ошибка при создании тикета. Пожалуйста, попробуйте позже.",
+                reply_markup=get_main_keyboard(is_admin=is_admin(telegram_id))
+            )
+            # Не пытаемся сбросить состояние
+            return
         
-        # Генерируем номер тикета
-        ticket_number = generate_ticket_number()
-        
-        # Формируем тему тикета
-        subject_prefix = "[Предложение] " if ticket_type == "suggestion" else ""
-        subject = subject_prefix + (text[:50] + "..." if len(text) > 50 else text)
-        
-        # Создаем новый тикет
-        ticket = Ticket(
-            ticket_number=ticket_number,
-            user_id=user.id,
-            status="open",
-            ticket_type=ticket_type,
-            subject=subject
-        )
-        db.add(ticket)
-        db.commit()
-        db.refresh(ticket)
-        
-        # Добавляем первое сообщение
-        ticket_message = TicketMessage(
-            ticket_id=ticket.id,
-            sender_id=user.id,
-            sender_type="user",
-            message=text
-        )
-        db.add(ticket_message)
-        db.commit()
-        
+        try:
+            # Добавляем первое сообщение
+            ticket_message = TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=user.id,
+                sender_type="user",
+                message=text
+            )
+            db.add(ticket_message)
+            db.commit()
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении сообщения тикета: {e}")
+            # Тикет уже создан, так что продолжаем
+            
         # Отправляем подтверждение пользователю в зависимости от типа тикета
         if ticket_type == "suggestion":
             await message.answer(
@@ -272,6 +309,7 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
             )
         
         # Отправляем уведомление администраторам
+        admin_notification_sent = False
         for admin_id in ADMIN_IDS:
             try:
                 # Отправляем уведомление о новом тикете с более заметным форматированием
@@ -292,8 +330,13 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
                     voice="https://raw.githubusercontent.com/SeaVPN/notification-sounds/main/new_ticket.ogg",
                     caption="🔊 Новый тикет от пользователя"
                 )
+                admin_notification_sent = True
             except Exception as e:
                 logger.error(f"Ошибка отправки уведомления админу {admin_id}: {e}")
+                # Продолжаем с другими админами
+        
+        if not admin_notification_sent:
+            logger.warning("Не удалось отправить уведомление ни одному из администраторов")
     
     except Exception as e:
         logger.error(f"Ошибка при создании тикета: {e}")
@@ -304,7 +347,7 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
     finally:
         db.close()
     
-    await state.clear()
+    # Мы убрали вызов state.clear(), так как состояние управляется вызывающим кодом
 
 @dp.message(F.text == "🔍 Мои тикеты")
 async def my_tickets_handler(message: Message):

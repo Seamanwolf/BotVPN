@@ -16,7 +16,7 @@ from database import SessionLocal, Ticket
 
 def run_migration():
     """Добавляет поле ticket_type в таблицу tickets"""
-    engine = create_engine(os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost/seavpn"))
+    engine = create_engine(os.getenv("DATABASE_URL", "postgresql://vpn_user:vpn_password@localhost/vpn_bot"))
     connection = engine.connect()
     
     try:

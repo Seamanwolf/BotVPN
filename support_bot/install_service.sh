@@ -14,3 +14,4 @@ systemctl enable seavpn-support-bot
 systemctl start seavpn-support-bot
 
 echo "Сервис установлен и запущен. Проверить статус: systemctl status seavpn-support-bot"
+

@@ -14,3 +14,4 @@ Environment="SUPPORT_BOT_TOKEN=8261852911:AAHFkocNITb8VDYZnjyQ_Wcy7A25oLANwtY"
 
 [Install]
 WantedBy=multi-user.target
+

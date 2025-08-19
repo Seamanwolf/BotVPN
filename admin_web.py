@@ -9,6 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import json
 from datetime import datetime, timedelta
 import os
+import sys
 import asyncio
 from dotenv import load_dotenv
 
@@ -928,41 +929,135 @@ def reply_to_ticket(ticket_id):
             if ticket.status != 'open':
                 return jsonify({'success': False, 'error': 'Тикет закрыт и не может быть обновлен'})
             
-            # Создаем сообщение от администратора
-            ticket_message = TicketMessage(
-                ticket_id=ticket.id,
-                sender_id=None,  # Администратор (через веб-панель)
-                sender_type="admin",
-                message=message
-            )
-            db.add(ticket_message)
-            
-            # Обновляем время последнего обновления тикета
-            ticket.updated_at = datetime.utcnow()
-            db.commit()
+            try:
+                # Создаем сообщение от администратора
+                ticket_message = TicketMessage(
+                    ticket_id=ticket.id,
+                    sender_id=None,  # Администратор (через веб-панель)
+                    sender_type="admin",
+                    message=message
+                )
+                db.add(ticket_message)
+                
+                # Обновляем время последнего обновления тикета
+                ticket.updated_at = datetime.utcnow()
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                print(f"Ошибка при добавлении сообщения в базу данных: {e}")
+                return jsonify({'success': False, 'error': 'Ошибка при сохранении сообщения в базе данных'})
             
             # Отправляем уведомление пользователю через бота
+            notification_sent = False
             try:
                 # Получаем пользователя
                 user = db.query(User).filter(User.id == ticket.user_id).first()
                 if user:
                     # Импортируем бота поддержки
                     sys.path.append(os.path.join(os.path.dirname(__file__), 'support_bot'))
-                    from support_bot.bot import bot as support_bot
-                    
-                    # Отправляем сообщение
-                    asyncio.run(support_bot.send_message(
-                        user.telegram_id,
-                        f"📢 **Новый ответ на ваш тикет #{ticket.ticket_number}**\n\n"
-                        f"От: Поддержка\n"
-                        f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                        f"Сообщение:\n{message}",
-                        reply_markup=None
-                    ))
+                    try:
+                        from support_bot.bot import bot as support_bot
+                        
+                        # Отправляем сообщение
+                        asyncio.run(support_bot.send_message(
+                            user.telegram_id,
+                            f"📢 **Новый ответ на ваш тикет #{ticket.ticket_number}**\n\n"
+                            f"От: Поддержка\n"
+                            f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                            f"Сообщение:\n{message}",
+                            reply_markup=None
+                        ))
+                        notification_sent = True
+                    except ImportError as e:
+                        print(f"Ошибка импорта бота поддержки: {e}")
+                    except Exception as e:
+                        print(f"Ошибка отправки сообщения через бота: {e}")
             except Exception as e:
                 print(f"Ошибка отправки уведомления пользователю: {e}")
             
-            return jsonify({'success': True, 'message': 'Ответ успешно отправлен'})
+            if notification_sent:
+                return jsonify({'success': True, 'message': 'Ответ успешно отправлен и уведомление отправлено пользователю'})
+            else:
+                return jsonify({'success': True, 'message': 'Ответ сохранен, но уведомление пользователю не отправлено'})
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Неожиданная ошибка при обработке ответа на тикет: {e}")
+        return jsonify({'success': False, 'error': f'Произошла ошибка при обработке запроса: {str(e)}'})
+
+@app.route('/api/ticket/create', methods=['POST'])
+@login_required
+def create_ticket():
+    """API для создания тикета из админ-панели"""
+    try:
+        user_id = request.json.get('user_id')
+        subject = request.json.get('subject')
+        message = request.json.get('message')
+        ticket_type = request.json.get('ticket_type', 'support')
+        
+        if not user_id or not subject or not message:
+            return jsonify({'success': False, 'error': 'Необходимые поля не заполнены'})
+        
+        db = SessionLocal()
+        try:
+            # Проверяем существование пользователя
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            # Генерируем номер тикета
+            # Получаем количество тикетов + 1
+            count = db.query(Ticket).count() + 1
+            ticket_number = f"{count:04d}"
+            
+            # Создаем тикет
+            ticket = Ticket(
+                ticket_number=ticket_number,
+                user_id=user_id,
+                status="open",
+                ticket_type=ticket_type,
+                subject=subject
+            )
+            db.add(ticket)
+            db.flush()  # Получаем ID тикета
+            
+            # Добавляем первое сообщение
+            ticket_message = TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=None,  # От имени администрации
+                sender_type="admin",
+                message=message
+            )
+            db.add(ticket_message)
+            db.commit()
+            
+            # Отправляем уведомление пользователю через бота
+            try:
+                # Импортируем бота поддержки
+                sys.path.append(os.path.join(os.path.dirname(__file__), 'support_bot'))
+                from support_bot.bot import bot as support_bot
+                
+                # Формируем сообщение
+                notification = f"📢 **Новый тикет #{ticket_number}**\n\n"
+                notification += f"Тема: {subject}\n\n"
+                notification += f"Сообщение от поддержки:\n{message}\n\n"
+                notification += "Вы можете ответить на это сообщение через бота поддержки."
+                
+                # Отправляем сообщение
+                asyncio.run(support_bot.send_message(
+                    user.telegram_id,
+                    notification,
+                    reply_markup=None
+                ))
+            except Exception as e:
+                print(f"Ошибка отправки уведомления пользователю: {e}")
+            
+            return jsonify({
+                'success': True, 
+                'ticket_id': ticket.id,
+                'ticket_number': ticket_number,
+                'message': 'Тикет успешно создан'
+            })
         finally:
             db.close()
     except Exception as e:
