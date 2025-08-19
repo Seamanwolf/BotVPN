@@ -474,15 +474,15 @@
 
         /* Кнопка переключения темы */
         .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
             z-index: 1000;
             background: var(--card-bg);
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -503,15 +503,15 @@
         
         /* Кнопка новых сообщений */
         .messages-toggle {
-            position: fixed;
-            top: 20px;
-            right: 80px;
+            position: absolute;
+            top: 10px;
+            right: 60px;
             z-index: 1000;
             background: var(--card-bg);
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -549,14 +549,14 @@
         
         /* Кнопки уведомлений */
         .notifications-toggle {
-            position: fixed;
-            top: 20px;
+            position: absolute;
+            top: 10px;
             z-index: 1000;
             background: var(--card-bg);
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -594,15 +594,15 @@
         
         /* Позиционирование кнопок */
         #ticketsToggle {
-            right: 140px;
+            right: 60px;
         }
         
         #usersToggle {
-            right: 200px;
+            right: 110px;
         }
         
         #subscriptionsToggle {
-            right: 260px;
+            right: 160px;
         }
 
         /* Уведомления */
@@ -745,35 +745,6 @@
     </style>
 </head>
 <body>
-    <!-- Кнопка переключения темы -->
-    <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
-        <i class="fas fa-moon" id="theme-icon"></i>
-    </div>
-    
-    <!-- Кнопка новых сообщений -->
-    <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" style="display: none;">
-        <i class="fas fa-comments"></i>
-        <span class="messages-count" id="messagesCount">0</span>
-    </div>
-    
-    <!-- Кнопка новых тикетов -->
-    <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" style="display: none;">
-        <i class="fas fa-ticket-alt"></i>
-        <span class="notifications-count" id="ticketsCount">0</span>
-    </div>
-    
-    <!-- Кнопка новых пользователей -->
-    <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" style="display: none;">
-        <i class="fas fa-users"></i>
-        <span class="notifications-count" id="usersCount">0</span>
-    </div>
-    
-    <!-- Кнопка новых подписок -->
-    <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" style="display: none;">
-        <i class="fas fa-key"></i>
-        <span class="notifications-count" id="subscriptionsCount">0</span>
-    </div>
-
     <div class="container-fluid">
         <div class="row">
             <!-- Боковая панель -->
@@ -835,7 +806,36 @@
             </nav>
 
             <!-- Основной контент -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content" style="position: relative;">
+                <!-- Кнопка переключения темы -->
+                <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </div>
+                
+                <!-- Кнопка новых сообщений -->
+                <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" style="display: none;">
+                    <i class="fas fa-comments"></i>
+                    <span class="messages-count" id="messagesCount">0</span>
+                </div>
+                
+                <!-- Кнопка новых тикетов -->
+                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" style="display: none;">
+                    <i class="fas fa-ticket-alt"></i>
+                    <span class="notifications-count" id="ticketsCount">0</span>
+                </div>
+                
+                <!-- Кнопка новых пользователей -->
+                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" style="display: none;">
+                    <i class="fas fa-users"></i>
+                    <span class="notifications-count" id="usersCount">0</span>
+                </div>
+                
+                <!-- Кнопка новых подписок -->
+                <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" style="display: none;">
+                    <i class="fas fa-key"></i>
+                    <span class="notifications-count" id="subscriptionsCount">0</span>
+                </div>
+                
                 <div class="pb-2 mb-3">
                     {% block content %}{% endblock %}
                 </div>
