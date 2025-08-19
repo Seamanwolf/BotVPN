@@ -185,3 +185,15 @@ class AdminNotificationsViewed(Base):
     
     # Отношения
     admin = relationship("Admin", backref="notifications_viewed")
+
+class AdminViewedUsers(Base):
+    __tablename__ = "admin_viewed_users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("admins.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    viewed_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Отношения
+    admin = relationship("Admin", backref="viewed_users")
+    user = relationship("User", backref="viewed_by_admins")

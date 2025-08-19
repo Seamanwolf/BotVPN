@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers
 from config import ADMIN_IDS
 from xui_client import XUIClient
 
@@ -143,7 +143,36 @@ def users():
         
         from datetime import timedelta
         now = datetime.utcnow()
-        return render_template('users.html', users=users, subscriptions=subscriptions, now=now, timedelta=timedelta)
+        
+        # Получаем ID администратора из текущего пользователя
+        current_user_id = current_user.id
+        if current_user_id == 'admin':
+            # Для суперадмина получаем его реальный ID из базы
+            admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+            if not admin:
+                admin_id = None
+            else:
+                admin_id = admin.id
+        else:
+            admin_id = int(current_user_id)
+        
+        # Получаем просмотренных пользователей для текущего админа
+        viewed_users = set()
+        if admin_id:
+            viewed_records = db.query(AdminViewedUsers).filter(AdminViewedUsers.admin_id == admin_id).all()
+            viewed_users = {record.user_id for record in viewed_records}
+        
+        # Определяем новых пользователей (за последние 2 часа и не просмотренных)
+        two_hours_ago = now - timedelta(hours=2)
+        new_users_count = 0
+        
+        for user in users:
+            is_new = (user.created_at > two_hours_ago and user.id not in viewed_users)
+            user.is_new = is_new
+            if is_new:
+                new_users_count += 1
+        
+        return render_template('users.html', users=users, subscriptions=subscriptions, now=now, timedelta=timedelta, new_users_count=new_users_count)
     finally:
         db.close()
 
@@ -1221,9 +1250,20 @@ def get_notifications_count():
             tickets_since = tickets_viewed.last_viewed if tickets_viewed else datetime.utcnow() - timedelta(days=30)
             new_tickets = db.query(Ticket).filter(Ticket.created_at >= tickets_since).count()
             
-            # Получаем количество новых пользователей с момента последнего просмотра
-            users_since = users_viewed.last_viewed if users_viewed else datetime.utcnow() - timedelta(days=30)
-            new_users = db.query(User).filter(User.created_at >= users_since).count()
+            # Получаем количество новых пользователей (за последние 2 часа и не просмотренных)
+            two_hours_ago = datetime.utcnow() - timedelta(hours=2)
+            
+            # Получаем просмотренных пользователей для текущего админа
+            viewed_users = set()
+            if admin_id:
+                viewed_records = db.query(AdminViewedUsers).filter(AdminViewedUsers.admin_id == admin_id).all()
+                viewed_users = {record.user_id for record in viewed_records}
+            
+            # Подсчитываем новых пользователей
+            new_users = db.query(User).filter(
+                User.created_at >= two_hours_ago,
+                ~User.id.in_(viewed_users) if viewed_users else True
+            ).count()
             
             # Получаем количество новых подписок с момента последнего просмотра
             subscriptions_since = subscriptions_viewed.last_viewed if subscriptions_viewed else datetime.utcnow() - timedelta(days=30)
@@ -1285,6 +1325,50 @@ def mark_notifications_viewed():
             
             db.commit()
             return jsonify({'success': True, 'message': 'Уведомления отмечены как просмотренные'})
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/user/<int:user_id>/mark-viewed', methods=['POST'])
+@login_required
+def mark_user_viewed(user_id):
+    """API для отметки пользователя как просмотренного"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем ID администратора из текущего пользователя
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                # Для суперадмина получаем его реальный ID из базы
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
+            
+            # Проверяем, что пользователь существует
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            # Проверяем, не отмечен ли уже пользователь как просмотренный
+            existing_record = db.query(AdminViewedUsers).filter(
+                AdminViewedUsers.admin_id == admin_id,
+                AdminViewedUsers.user_id == user_id
+            ).first()
+            
+            if not existing_record:
+                # Создаем запись о просмотре
+                viewed_record = AdminViewedUsers(
+                    admin_id=admin_id,
+                    user_id=user_id
+                )
+                db.add(viewed_record)
+                db.commit()
+            
+            return jsonify({'success': True, 'message': 'Пользователь отмечен как просмотренный'})
         finally:
             db.close()
     except Exception as e:

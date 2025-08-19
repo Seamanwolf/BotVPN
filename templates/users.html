@@ -83,12 +83,11 @@
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        {% set is_new_user = (user.created_at > (now - timedelta(hours=24))) %}
-                        <tr data-user-id="{{ user.id }}" {% if is_new_user %}class="new-user-row"{% endif %}>
+                        <tr data-user-id="{{ user.id }}" {% if user.is_new %}class="new-user-row"{% endif %}>
                             <td>{{ user.id }}</td>
                             <td>
                                 {{ user.full_name or 'Не указано' }}
-                                {% if is_new_user %}
+                                {% if user.is_new %}
                                     <span class="new-user-badge">Новый</span>
                                 {% endif %}
                             </td>
@@ -273,6 +272,27 @@ let currentUserId = null;
 let currentUserCoins = 0;
 
 function viewUserDetails(userId) {
+    // Отмечаем пользователя как просмотренного
+    fetch(`/api/user/${userId}/mark-viewed`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).then(() => {
+        // Убираем подсветку с строки пользователя
+        const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+        if (userRow) {
+            userRow.classList.remove('new-user-row');
+            const badge = userRow.querySelector('.new-user-badge');
+            if (badge) {
+                badge.remove();
+            }
+        }
+        
+        // Обновляем счетчик новых пользователей
+        updateNewUsersCount();
+    });
+    
     fetch(`/api/user/${userId}`)
         .then(response => response.json())
         .then(data => {
@@ -1104,6 +1124,18 @@ document.head.insertAdjacentHTML('beforeend', `
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        // Функция для обновления счетчика новых пользователей
+        function updateNewUsersCount() {
+            fetch('/api/notifications/count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateNotification('users', data.users || 0);
+                        updateNotificationsToggle('users', data.users || 0);
+                    }
+                });
         }
     </style>
 `);
