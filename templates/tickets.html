@@ -327,6 +327,28 @@ function viewTicketDetails(ticketId) {
                         senderName = 'Система';
                     }
                     
+                    let attachmentHtml = '';
+                    if (msg.attachment_type) {
+                        const attachmentIcons = {
+                            'photo': '📷',
+                            'video': '🎥',
+                            'document': '📄'
+                        };
+                        const attachmentNames = {
+                            'photo': 'Фото',
+                            'video': 'Видео',
+                            'document': 'Документ'
+                        };
+                        
+                        attachmentHtml = `
+                            <div class="message-attachment">
+                                <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
+                                    ${attachmentIcons[msg.attachment_type]} ${attachmentNames[msg.attachment_type]}
+                                </a>
+                            </div>
+                        `;
+                    }
+                    
                     content += `
                         <div class="message ${messageClass}">
                             <div class="message-content">
@@ -335,6 +357,7 @@ function viewTicketDetails(ticketId) {
                                 </div>
                                 <div class="message-body">
                                     ${msg.message}
+                                    ${attachmentHtml}
                                 </div>
                             </div>
                         </div>
@@ -644,8 +667,10 @@ function updateNewMessagesCount() {
                     }
                 });
                 
-                // Обновляем счетчик в навигации
-                updateNotification('messagesNotification', data.total_new_messages);
+                // Обновляем счетчик в кнопке новых сообщений
+                if (typeof updateMessagesToggle === 'function') {
+                    updateMessagesToggle(data.total_new_messages);
+                }
             }
         })
         .catch(error => {
@@ -1102,6 +1127,32 @@ document.head.insertAdjacentHTML('beforeend', `
         
         .messages-count {
             font-weight: 500;
+        }
+        
+        /* Стили для вложений */
+        .message-attachment {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 0.5rem;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .attachment-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .attachment-link:hover {
+            text-decoration: underline;
+        }
+        
+        [data-theme="dark"] .message-attachment {
+            background: rgba(255, 255, 255, 0.1);
         }
     </style>
 `);

@@ -916,8 +916,12 @@ def reply_to_ticket(ticket_id):
     """API для ответа на тикет"""
     try:
         message = request.json.get('message', '')
-        if not message:
-            return jsonify({'success': False, 'error': 'Сообщение не может быть пустым'})
+        attachment_type = request.json.get('attachment_type')
+        attachment_file_id = request.json.get('attachment_file_id')
+        attachment_url = request.json.get('attachment_url')
+        
+        if not message and not attachment_type:
+            return jsonify({'success': False, 'error': 'Сообщение или вложение обязательно'})
         
         db = SessionLocal()
         try:
@@ -935,7 +939,10 @@ def reply_to_ticket(ticket_id):
                     ticket_id=ticket.id,
                     sender_id=None,  # Администратор (через веб-панель)
                     sender_type="admin",
-                    message=message
+                    message=message,
+                    attachment_type=attachment_type,
+                    attachment_file_id=attachment_file_id,
+                    attachment_url=attachment_url
                 )
                 db.add(ticket_message)
                 
@@ -958,13 +965,25 @@ def reply_to_ticket(ticket_id):
                     try:
                         from support_bot.bot import bot as support_bot
                         
+                        # Формируем сообщение
+                        notification = f"📢 **Новый ответ на ваш тикет #{ticket.ticket_number}**\n\n"
+                        notification += f"От: Поддержка\n"
+                        notification += f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                        if message:
+                            notification += f"Сообщение:\n{message}\n\n"
+                        if attachment_type:
+                            attachment_names = {
+                                'photo': '📷 Фото',
+                                'video': '🎥 Видео',
+                                'document': '📄 Документ'
+                            }
+                            notification += f"{attachment_names.get(attachment_type, '📎 Вложение')} прикреплено\n\n"
+                        notification += "Ответьте на это сообщение, чтобы продолжить диалог."
+                        
                         # Отправляем сообщение
                         asyncio.run(support_bot.send_message(
                             user.telegram_id,
-                            f"📢 **Новый ответ на ваш тикет #{ticket.ticket_number}**\n\n"
-                            f"От: Поддержка\n"
-                            f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                            f"Сообщение:\n{message}",
+                            notification,
                             reply_markup=None
                         ))
                         notification_sent = True

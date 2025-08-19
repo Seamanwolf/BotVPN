@@ -502,6 +502,52 @@
             color: var(--text-primary);
             font-size: 1.25rem;
         }
+        
+        /* Кнопка новых сообщений */
+        .messages-toggle {
+            position: fixed;
+            top: 20px;
+            right: 80px;
+            z-index: 1000;
+            background: var(--card-bg);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        
+        .messages-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .messages-toggle i {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+        }
+        
+        .messages-toggle .messages-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
         /* Уведомления */
         .toast {
@@ -627,6 +673,12 @@
     <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
         <i class="fas fa-moon" id="theme-icon"></i>
     </div>
+    
+    <!-- Кнопка новых сообщений -->
+    <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" style="display: none;">
+        <i class="fas fa-comments"></i>
+        <span class="messages-count" id="messagesCount">0</span>
+    </div>
 
     <div class="container-fluid">
         <div class="row">
@@ -672,13 +724,7 @@
                                 <span class="nav-notification" id="ticketsNotification" style="display: none;">0</span>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('tickets') }}" onclick="showNewMessagesModal()">
-                                <i class="fas fa-comments me-2"></i>
-                                Новые сообщения
-                                <span class="nav-notification" id="messagesNotification" style="display: none;">0</span>
-                            </a>
-                        </li>
+
                     </ul>
                     
                     <hr class="text-white-50">
@@ -879,6 +925,18 @@
                 .catch(error => {
                     console.error('Ошибка при проверке уведомлений:', error);
                 });
+            
+            // Проверяем новые сообщения
+            fetch('/api/notifications/new-messages')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateMessagesToggle(data.total_new_messages);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при проверке новых сообщений:', error);
+                });
         }
         
         // Проверяем уведомления при загрузке страницы
@@ -929,6 +987,19 @@
                     console.error('Ошибка:', error);
                     showToast('Произошла ошибка при загрузке новых сообщений', 'error');
                 });
+        }
+        
+        // Функция для обновления счетчика новых сообщений в кнопке
+        function updateMessagesToggle(count) {
+            const toggle = document.getElementById('messagesToggle');
+            const countElement = document.getElementById('messagesCount');
+            
+            if (count > 0) {
+                toggle.style.display = 'flex';
+                countElement.textContent = count;
+            } else {
+                toggle.style.display = 'none';
+            }
         }
         
         /**

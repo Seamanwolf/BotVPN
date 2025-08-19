@@ -153,6 +153,9 @@ class TicketMessage(Base):
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # NULL для системных сообщений
     sender_type = Column(String, default="user")  # user, admin, system
     message = Column(Text, nullable=False)
+    attachment_type = Column(String, nullable=True)  # photo, video, document
+    attachment_file_id = Column(String, nullable=True)  # Telegram file_id
+    attachment_url = Column(String, nullable=True)  # URL для скачивания
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Отношения
