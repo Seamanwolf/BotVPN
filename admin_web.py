@@ -1229,6 +1229,8 @@ def get_notifications_count():
             
 
             
+
+            
             return jsonify({
                 'success': True,
                 'tickets': new_tickets,

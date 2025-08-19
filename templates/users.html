@@ -83,9 +83,15 @@
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        <tr data-user-id="{{ user.id }}">
+                        {% set is_new_user = (user.created_at > (now - timedelta(hours=24))) %}
+                        <tr data-user-id="{{ user.id }}" {% if is_new_user %}class="new-user-row"{% endif %}>
                             <td>{{ user.id }}</td>
-                            <td>{{ user.full_name or 'Не указано' }}</td>
+                            <td>
+                                {{ user.full_name or 'Не указано' }}
+                                {% if is_new_user %}
+                                    <span class="new-user-badge">Новый</span>
+                                {% endif %}
+                            </td>
                             <td>{{ user.telegram_id }}</td>
                             <td>{{ user.email or 'Не указан' }}</td>
                             <td>
@@ -936,6 +942,34 @@ document.head.insertAdjacentHTML('beforeend', `
         .users-table tbody tr:hover .badge {
             background-color: var(--primary-color) !important;
             color: white !important;
+        }
+        
+        /* Подсветка новых пользователей */
+        .new-user-row {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%) !important;
+            animation: newUserPulse 2s infinite;
+            border-left: 4px solid #48bb78 !important;
+        }
+        
+        [data-theme="dark"] .new-user-row {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%) !important;
+            border-left: 4px solid #48bb78;
+        }
+        
+        @keyframes newUserPulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        
+        .new-user-badge {
+            background: #48bb78;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 8px;
         }
         
         /* Улучшенные бейджи */
