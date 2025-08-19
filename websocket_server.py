@@ -153,8 +153,8 @@ async def main():
     asyncio.create_task(check_notifications())
     
     # Запускаем WebSocket сервер
-    server = await websockets.serve(websocket_handler, "localhost", 8765)
-    logger.info("WebSocket сервер запущен на ws://localhost:8765")
+    server = await websockets.serve(websocket_handler, "0.0.0.0", 8765)
+    logger.info("WebSocket сервер запущен на ws://0.0.0.0:8765")
     
     await server.wait_closed()
 

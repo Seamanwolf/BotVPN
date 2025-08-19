@@ -78,9 +78,22 @@ class SupportStates(StatesGroup):
 def generate_ticket_number():
     db = SessionLocal()
     try:
-        # Получаем количество тикетов + 1
-        count = db.query(Ticket).count() + 1
-        return f"{count:04d}"
+        # Получаем максимальный номер тикета
+        max_ticket = db.query(Ticket).order_by(Ticket.ticket_number.desc()).first()
+        
+        if max_ticket:
+            # Парсим номер и увеличиваем на 1
+            try:
+                current_number = int(max_ticket.ticket_number)
+                next_number = current_number + 1
+            except ValueError:
+                # Если номер не является числом, начинаем с 1
+                next_number = 1
+        else:
+            # Если тикетов нет, начинаем с 1
+            next_number = 1
+        
+        return f"{next_number:04d}"
     except Exception as e:
         logger.error(f"Ошибка при генерации номера тикета: {e}")
         # В случае ошибки генерируем случайный номер
