@@ -141,7 +141,7 @@ def users():
         for user in users:
             user.referrals_count = db.query(User).filter(User.referred_by == user.id).count()
         
-        return render_template('users.html', users=users, subscriptions=subscriptions, now=datetime.utcnow(), timedelta=timedelta)
+        return render_template('users.html', users=users, subscriptions=subscriptions)
     finally:
         db.close()
 
@@ -196,7 +196,7 @@ def tickets():
                 TicketMessage.ticket_id == ticket.id
             ).order_by(TicketMessage.created_at).all()
         
-        return render_template('tickets.html', tickets=tickets_query, now=datetime.utcnow(), timedelta=timedelta)
+        return render_template('tickets.html', tickets=tickets_query)
     finally:
         db.close()
 

@@ -83,10 +83,7 @@
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        {% set is_new = (user.created_at > (now - timedelta(days=1))) %}
-                        <tr data-user-id="{{ user.id }}" 
-                            class="{% if is_new %}new-item{% endif %}" 
-                            data-created="{{ user.created_at.isoformat() }}">
+                        <tr data-user-id="{{ user.id }}">
                             <td>{{ user.id }}</td>
                             <td>{{ user.full_name or 'Не указано' }}</td>
                             <td>{{ user.telegram_id }}</td>

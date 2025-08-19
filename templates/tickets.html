@@ -82,10 +82,7 @@
                     </thead>
                     <tbody>
                         {% for ticket in tickets %}
-                        {% set is_new = (ticket.created_at > (now - timedelta(days=1))) %}
-                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}" 
-                            class="{% if is_new %}new-item{% endif %}" 
-                            data-created="{{ ticket.created_at.isoformat() }}">
+                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}">
                             <td>{{ ticket.ticket_number }}</td>
                             <td>
                                 {% if ticket.user %}
