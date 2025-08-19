@@ -191,7 +191,6 @@
             background: var(--sidebar-bg);
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
-            padding-top: 0.75rem;
             padding-bottom: 0.75rem;
         }
 
@@ -759,7 +758,7 @@
         <div class="row">
             <!-- Боковая панель -->
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="position-sticky pt-3">
+                <div class="position-sticky">
                     <div class="text-center mb-4">
                         <h4 class="text-white">🌊 SeaVPN</h4>
                         <p class="text-white-50">Админ-панель</p>
@@ -1177,6 +1176,7 @@
                                 body: JSON.stringify({ type: 'tickets' })
                             }).then(() => {
                                 updateNotificationsToggle('tickets', 0);
+                                updateNotification('tickets', 0);
                             });
                         }
                     }
@@ -1207,6 +1207,7 @@
                                 body: JSON.stringify({ type: 'users' })
                             }).then(() => {
                                 updateNotificationsToggle('users', 0);
+                                updateNotification('users', 0);
                             });
                         }
                     }
@@ -1237,6 +1238,7 @@
                                 body: JSON.stringify({ type: 'subscriptions' })
                             }).then(() => {
                                 updateNotificationsToggle('subscriptions', 0);
+                                updateNotification('subscriptions', 0);
                             });
                         }
                     }

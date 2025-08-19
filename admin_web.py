@@ -1227,6 +1227,8 @@ def get_notifications_count():
             subscriptions_since = subscriptions_viewed.last_viewed if subscriptions_viewed else datetime.utcnow() - timedelta(days=30)
             new_subscriptions = db.query(Subscription).filter(Subscription.created_at >= subscriptions_since).count()
             
+
+            
             return jsonify({
                 'success': True,
                 'tickets': new_tickets,
