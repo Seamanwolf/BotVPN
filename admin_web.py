@@ -1374,6 +1374,82 @@ def mark_user_viewed(user_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/user/<int:user_id>/remove_coins', methods=['POST'])
+@login_required
+def remove_coins_from_user(user_id):
+    """API для списания монет у пользователя"""
+    try:
+        data = request.json
+        coins_to_remove = data.get('coins', 0)
+        
+        if coins_to_remove <= 0:
+            return jsonify({'success': False, 'error': 'Количество монет должно быть положительным'})
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            if user.bonus_coins < coins_to_remove:
+                return jsonify({'success': False, 'error': 'Недостаточно монет для списания'})
+            
+            user.bonus_coins -= coins_to_remove
+            db.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Списано {coins_to_remove} монет',
+                'new_balance': user.bonus_coins
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/subscription/<int:subscription_id>/extend', methods=['POST'])
+@login_required
+def extend_subscription(subscription_id):
+    """API для продления подписки"""
+    try:
+        data = request.json
+        days_to_extend = data.get('days', 0)
+        
+        if days_to_extend <= 0:
+            return jsonify({'success': False, 'error': 'Количество дней должно быть положительным'})
+        
+        db = SessionLocal()
+        try:
+            subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+            if not subscription:
+                return jsonify({'success': False, 'error': 'Подписка не найдена'})
+            
+            # Если у подписки нет даты окончания, устанавливаем её на текущую дату + дни
+            if not subscription.expires_at:
+                subscription.expires_at = datetime.utcnow() + timedelta(days=days_to_extend)
+            else:
+                # Если дата окончания уже прошла, устанавливаем на текущую дату + дни
+                if subscription.expires_at < datetime.utcnow():
+                    subscription.expires_at = datetime.utcnow() + timedelta(days=days_to_extend)
+                else:
+                    # Иначе добавляем дни к существующей дате
+                    subscription.expires_at += timedelta(days=days_to_extend)
+            
+            # Активируем подписку если она была неактивна
+            subscription.status = 'active'
+            
+            db.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Подписка продлена на {days_to_extend} дней',
+                'new_expires_at': subscription.expires_at.strftime('%d.%m.%Y %H:%M')
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/notifications/new-messages')
 @login_required
 def get_new_messages_count():
