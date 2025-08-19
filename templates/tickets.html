@@ -312,36 +312,27 @@ function viewTicketDetails(ticketId) {
                 messages.forEach(msg => {
                     let messageClass = '';
                     let senderName = '';
-                    let senderIcon = '';
                     
                     if (msg.sender_type === 'user') {
                         messageClass = 'user-message';
                         senderName = 'Пользователь';
-                        senderIcon = '<i class="fas fa-user-circle text-primary"></i>';
                     } else if (msg.sender_type === 'admin') {
                         messageClass = 'admin-message';
                         senderName = 'Администратор';
-                        senderIcon = '<i class="fas fa-user-shield text-success"></i>';
                     } else {
                         messageClass = 'system-message';
                         senderName = 'Система';
-                        senderIcon = '<i class="fas fa-cog text-warning"></i>';
                     }
                     
                     content += `
                         <div class="message ${messageClass}">
-                            <div class="message-header d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    ${senderIcon}
-                                    <span class="sender ms-2">${senderName}</span>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    ${senderName} • ${new Date(msg.created_at).toLocaleString()}
                                 </div>
-                                <span class="time">
-                                    <i class="fas fa-clock me-1"></i>
-                                    ${new Date(msg.created_at).toLocaleString()}
-                                </span>
-                            </div>
-                            <div class="message-body">
-                                ${msg.message}
+                                <div class="message-body">
+                                    ${msg.message}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -641,7 +632,7 @@ document.head.insertAdjacentHTML('beforeend', `
             border-radius: 0.75rem;
         }
         
-        .search-input {
+        .search-input, .form-select {
             height: 38px;
             font-size: 0.875rem;
         }
@@ -721,63 +712,86 @@ document.head.insertAdjacentHTML('beforeend', `
             color: white !important;
         }
         
-        /* Улучшенные стили для сообщений */
-        .message {
-            margin-bottom: 1.5rem;
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .user-message {
-            border-left: 4px solid #3a86ff;
-        }
-        
-        .user-message .message-body {
-            background: #e3f2fd;
-            border: none;
-            border-radius: 0 1rem 1rem 0;
-        }
-        
-        .admin-message {
-            border-left: 4px solid #10b981;
-        }
-        
-        .admin-message .message-body {
-            background: #e8f5e8;
-            border: none;
-            border-radius: 0 1rem 1rem 0;
-        }
-        
-        .system-message {
-            border-left: 4px solid #f59e0b;
-        }
-        
-        .system-message .message-body {
-            background: #fff3e0;
-            border: none;
-            border-radius: 0 1rem 1rem 0;
-            font-style: italic;
-        }
-        
-        .message-header {
-            background: rgba(0, 0, 0, 0.05);
-            padding: 0.75rem 1rem;
-            font-weight: 600;
-            color: #374151;
-        }
-        
-        .message-body {
-            padding: 1rem;
-            line-height: 1.6;
-        }
-        
+        /* Стили сообщений в стиле Telegram */
         .messages-container {
             max-height: 500px;
             overflow-y: auto;
             padding: 1rem;
             background: rgba(255, 255, 255, 0.5);
             border-radius: 1rem;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .message.user-message {
+            justify-content: flex-end;
+        }
+        
+        .message.admin-message {
+            justify-content: flex-start;
+        }
+        
+        .message.system-message {
+            justify-content: center;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            position: relative;
+            word-wrap: break-word;
+        }
+        
+        .user-message .message-content {
+            background: #1e40af;
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+        }
+        
+        .admin-message .message-content {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-bottom-left-radius: 0.25rem;
+        }
+        
+        .system-message .message-content {
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 1rem;
+            font-style: italic;
+            font-size: 0.875rem;
+            text-align: center;
+            max-width: 50%;
+        }
+        
+        .message-header {
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            opacity: 0.8;
+        }
+        
+        .user-message .message-header {
+            text-align: right;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .admin-message .message-header {
+            text-align: left;
+            color: #64748b;
+        }
+        
+        .system-message .message-header {
+            text-align: center;
+            color: #92400e;
+        }
+        
+        .message-body {
+            line-height: 1.5;
         }
         
         /* Темная тема */
@@ -904,6 +918,29 @@ document.head.insertAdjacentHTML('beforeend', `
         [data-theme="dark"] .modal-footer {
             background-color: #0f172a;
             border-top-color: #334155;
+        }
+        
+        /* Темная тема для сообщений */
+        [data-theme="dark"] .messages-container {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        [data-theme="dark"] .admin-message .message-content {
+            background: #374151;
+            color: #f9fafb;
+        }
+        
+        [data-theme="dark"] .admin-message .message-header {
+            color: #9ca3af;
+        }
+        
+        [data-theme="dark"] .system-message .message-content {
+            background: #92400e;
+            color: #fef3c7;
+        }
+        
+        [data-theme="dark"] .system-message .message-header {
+            color: #fef3c7;
         }
         
         /* Дополнительные градиенты */
