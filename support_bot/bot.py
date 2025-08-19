@@ -530,7 +530,32 @@ async def process_reply(message: Message, state: FSMContext):
         return
     
     telegram_id = message.from_user.id
-    reply_text = message.text
+    reply_text = message.text or ""
+    
+    # Обработка вложений
+    attachment_type = None
+    attachment_file_id = None
+    attachment_url = None
+    
+    if message.photo:
+        attachment_type = "photo"
+        attachment_file_id = message.photo[-1].file_id
+        # Получаем URL файла
+        file_info = await bot.get_file(attachment_file_id)
+        attachment_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
+        reply_text = message.caption or reply_text
+    elif message.video:
+        attachment_type = "video"
+        attachment_file_id = message.video.file_id
+        file_info = await bot.get_file(attachment_file_id)
+        attachment_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
+        reply_text = message.caption or reply_text
+    elif message.document:
+        attachment_type = "document"
+        attachment_file_id = message.document.file_id
+        file_info = await bot.get_file(attachment_file_id)
+        attachment_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
+        reply_text = message.caption or reply_text
     
     db = SessionLocal()
     try:
@@ -564,7 +589,10 @@ async def process_reply(message: Message, state: FSMContext):
             ticket_id=ticket.id,
             sender_id=user.id,
             sender_type=sender_type,
-            message=reply_text
+            message=reply_text,
+            attachment_type=attachment_type,
+            attachment_file_id=attachment_file_id,
+            attachment_url=attachment_url
         )
         db.add(ticket_message)
         

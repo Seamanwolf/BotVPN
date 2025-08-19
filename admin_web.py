@@ -1181,6 +1181,34 @@ def delete_ticket(ticket_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/notifications/count')
+@login_required
+def get_notifications_count():
+    """API для получения количества новых уведомлений"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем количество новых тикетов (за последние 24 часа)
+            yesterday = datetime.utcnow() - timedelta(days=1)
+            new_tickets = db.query(Ticket).filter(Ticket.created_at >= yesterday).count()
+            
+            # Получаем количество новых пользователей (за последние 24 часа)
+            new_users = db.query(User).filter(User.created_at >= yesterday).count()
+            
+            # Получаем количество новых подписок (за последние 24 часа)
+            new_subscriptions = db.query(Subscription).filter(Subscription.created_at >= yesterday).count()
+            
+            return jsonify({
+                'success': True,
+                'tickets': new_tickets,
+                'users': new_users,
+                'subscriptions': new_subscriptions
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/notifications/new-messages')
 @login_required
 def get_new_messages_count():

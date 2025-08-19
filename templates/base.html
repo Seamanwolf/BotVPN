@@ -548,6 +548,64 @@
             align-items: center;
             justify-content: center;
         }
+        
+        /* Кнопки уведомлений */
+        .notifications-toggle {
+            position: fixed;
+            top: 20px;
+            z-index: 1000;
+            background: var(--card-bg);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        
+        .notifications-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .notifications-toggle i {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+        }
+        
+        .notifications-toggle .notifications-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Позиционирование кнопок */
+        #ticketsToggle {
+            right: 140px;
+        }
+        
+        #usersToggle {
+            right: 200px;
+        }
+        
+        #subscriptionsToggle {
+            right: 260px;
+        }
 
         /* Уведомления */
         .toast {
@@ -679,6 +737,24 @@
         <i class="fas fa-comments"></i>
         <span class="messages-count" id="messagesCount">0</span>
     </div>
+    
+    <!-- Кнопка новых тикетов -->
+    <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" style="display: none;">
+        <i class="fas fa-ticket-alt"></i>
+        <span class="notifications-count" id="ticketsCount">0</span>
+    </div>
+    
+    <!-- Кнопка новых пользователей -->
+    <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" style="display: none;">
+        <i class="fas fa-users"></i>
+        <span class="notifications-count" id="usersCount">0</span>
+    </div>
+    
+    <!-- Кнопка новых подписок -->
+    <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" style="display: none;">
+        <i class="fas fa-key"></i>
+        <span class="notifications-count" id="subscriptionsCount">0</span>
+    </div>
 
     <div class="container-fluid">
         <div class="row">
@@ -770,6 +846,63 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно новых тикетов -->
+    <div class="modal fade" id="newTicketsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новые тикеты</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="newTicketsContent">
+                    <!-- Контент будет загружен динамически -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <a href="/tickets" class="btn btn-primary">Перейти к тикетам</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно новых пользователей -->
+    <div class="modal fade" id="newUsersModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новые пользователи</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="newUsersContent">
+                    <!-- Контент будет загружен динамически -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <a href="/users" class="btn btn-primary">Перейти к пользователям</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно новых подписок -->
+    <div class="modal fade" id="newSubscriptionsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новые подписки</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="newSubscriptionsContent">
+                    <!-- Контент будет загружен динамически -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <a href="/subscriptions" class="btn btn-primary">Перейти к подпискам</a>
                 </div>
             </div>
         </div>
@@ -920,6 +1053,11 @@
                         updateNotification('tickets', data.tickets || 0);
                         updateNotification('users', data.users || 0);
                         updateNotification('subscriptions', data.subscriptions || 0);
+                        
+                        // Обновляем кнопки уведомлений
+                        updateNotificationsToggle('tickets', data.tickets || 0);
+                        updateNotificationsToggle('users', data.users || 0);
+                        updateNotificationsToggle('subscriptions', data.subscriptions || 0);
                     }
                 })
                 .catch(error => {
@@ -1000,6 +1138,71 @@
             } else {
                 toggle.style.display = 'none';
             }
+        }
+        
+        // Функция для обновления счетчиков уведомлений
+        function updateNotificationsToggle(type, count) {
+            const toggle = document.getElementById(type + 'Toggle');
+            const countElement = document.getElementById(type + 'Count');
+            
+            if (count > 0) {
+                toggle.style.display = 'flex';
+                countElement.textContent = count;
+            } else {
+                toggle.style.display = 'none';
+            }
+        }
+        
+        // Функции для показа модальных окон уведомлений
+        function showNewTicketsModal() {
+            fetch('/api/notifications/count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let content = '';
+                        if (data.tickets > 0) {
+                            content = `<p>У вас ${data.tickets} новых тикетов за последние 24 часа.</p>`;
+                        } else {
+                            content = '<p class="text-muted">Новых тикетов нет</p>';
+                        }
+                        document.getElementById('newTicketsContent').innerHTML = content;
+                        new bootstrap.Modal(document.getElementById('newTicketsModal')).show();
+                    }
+                });
+        }
+        
+        function showNewUsersModal() {
+            fetch('/api/notifications/count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let content = '';
+                        if (data.users > 0) {
+                            content = `<p>Зарегистрировано ${data.users} новых пользователей за последние 24 часа.</p>`;
+                        } else {
+                            content = '<p class="text-muted">Новых пользователей нет</p>';
+                        }
+                        document.getElementById('newUsersContent').innerHTML = content;
+                        new bootstrap.Modal(document.getElementById('newUsersModal')).show();
+                    }
+                });
+        }
+        
+        function showNewSubscriptionsModal() {
+            fetch('/api/notifications/count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let content = '';
+                        if (data.subscriptions > 0) {
+                            content = `<p>Активировано ${data.subscriptions} новых подписок за последние 24 часа.</p>`;
+                        } else {
+                            content = '<p class="text-muted">Новых подписок нет</p>';
+                        }
+                        document.getElementById('newSubscriptionsContent').innerHTML = content;
+                        new bootstrap.Modal(document.getElementById('newSubscriptionsModal')).show();
+                    }
+                });
         }
         
         /**
