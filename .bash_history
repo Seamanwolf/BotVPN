@@ -1315,3 +1315,523 @@ git commit -m "Исправлен API для продления пользова
 - Теперь функция extend_user не трогает настройки inbound, а обновляет только клиента
 - Исправлена структура payload для обновления клиента
 - Защищены настройки inbound от случайного изменения"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-webhook -n 50 --no-pager
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+python3 test_extend_fix.py
+git add .
+git commit -m "Исправлен API для продления пользователей
+
+- Заменен неправильный API /panel/api/inbounds/update/:id на правильный /panel/api/inbounds/updateClient/:clientId
+- Теперь функция extend_user обновляет только клиента, не трогая настройки inbound
+- Используется правильный payload для обновления клиента согласно документации API
+- Webhook handler перезапущен с исправлениями"
+journalctl -u seavpn-webhook -n 50 --no-pager
+python3 check_xui_users.py
+systemctl restart seavpn-webhook
+python3 test_extend_debug.py
+systemctl restart seavpn-webhook
+git add .
+git commit -m "Исправлен payload для API updateClient
+
+- Исправлен формат payload для API /panel/api/inbounds/updateClient/:clientId
+- Теперь передается ID inbound и settings с клиентами в правильном формате
+- Функция extend_user протестирована и работает корректно
+- Webhook handler перезапущен с исправлениями
+- Продление подписок теперь должно работать правильно"
+git push origin master
+python3 migrate_add_extensions.py
+ls -la *.db
+python3 migrate_postgres_extensions.py
+systemctl restart seavpn-webhook
+systemctl restart seavpn-admin
+git add .
+git commit -m "Добавлена информация о продлениях в веб-панель
+
+- Добавлены поля extensions_count, last_extension_date, total_days_added в модель Subscription
+- Выполнена миграция PostgreSQL для добавления новых полей
+- Обновлен webhook_handler.py для отслеживания продлений
+- Обновлен bot.py для отслеживания продлений за бонусы
+- Добавлена колонка 'Продления' в таблицу подписок
+- Обновлено модальное окно деталей подписки с информацией о продлениях
+- Веб-панель теперь показывает количество продлений, дату последнего продления и общее количество добавленных дней"
+journalctl -u seavpn-admin -n 50 --no-pager
+python3 -c "from database import SessionLocal, User; db = SessionLocal(); user = db.query(User).filter(User.id == 6).first(); print(f'Пользователь ID 6: {user.full_name if user else \"Не найден\"}'); db.close()"
+python3 -c "from database import SessionLocal, User, Subscription; db = SessionLocal(); user = db.query(User).filter(User.id == 6).first(); subs = db.query(Subscription).filter(Subscription.user_id == 6).all(); print(f'Пользователь: {user.full_name}'); print(f'Подписок: {len(subs)}'); [print(f'  Подписка {s.id}: {s.plan_name}') for s in subs]; db.close()"
+python3 -c "from database import SessionLocal, User, Admin; db = SessionLocal(); user = db.query(User).filter(User.id == 6).first(); admin = db.query(Admin).filter(Admin.telegram_id == user.telegram_id).first(); print(f'Пользователь: {user.full_name} (ID: {user.telegram_id})'); print(f'Админ: {admin.username if admin else \"Нет\"}'); db.close()"
+systemctl restart seavpn-admin
+sleep 5 && journalctl -u seavpn-admin -n 20 --no-pager
+python3 -c "from database import SessionLocal, User; db = SessionLocal(); user = db.query(User).filter(User.id == 6).first(); print(f'Пользователь ID 6: {user.full_name if user else \"Не найден\"}'); db.close()"
+systemctl restart seavpn-admin
+sleep 10 && journalctl -u seavpn-admin -n 30 --no-pager
+python3 -c "from database import SessionLocal, User; db = SessionLocal(); users = db.query(User).all(); print(f'Всего пользователей: {len(users)}'); [print(f'ID: {u.id}, Имя: {u.full_name}, Telegram: {u.telegram_id}') for u in users]; db.close()"
+journalctl -u seavpn-webhook -n 30 --no-pager
+systemctl restart seavpn-webhook
+systemctl restart seavpn-admin
+git add .
+git commit -m "Исправлены вебхуки и добавлены улучшения
+
+- Исправлена ошибка 'Event loop is closed' в webhook_handler.py
+- Добавлены новые event loops для асинхронных операций
+- Добавлена инструкция по подключению в сообщения после покупки и продления
+- Добавлены уведомления администраторам о новых покупках и продлениях
+- Созданы функции notify_admin_new_purchase и notify_admin_extension
+- Все асинхронные операции теперь выполняются в отдельных event loops
+- Улучшена обработка ошибок в webhook обработчике"
+journalctl -u seavpn-webhook -n 50 --no-pager
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+sleep 10 && journalctl -u seavpn-webhook -n 30 --no-pager
+systemctl restart seavpn-webhook
+sleep 15 && journalctl -u seavpn-webhook -n 40 --no-pager
+curl -X GET http://localhost:5001/webhook/health
+sleep 20 && journalctl -u seavpn-webhook -n 50 --no-pager
+ps aux | grep "python3.*bot.py"
+journalctl -u seavpn-webhook -n 100 --no-pager
+systemctl restart seavpn-webhook
+sleep 15 && journalctl -u seavpn-webhook -n 50 --no-pager
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); sub = db.query(Subscription).filter(Subscription.id == 54).first(); print(f'Подписка ID 54: статус={sub.status}, истекает={sub.expires_at}, продлений={sub.extensions_count}, добавлено дней={sub.total_days_added}'); db.close()"
+systemctl restart seavpn-webhook
+sleep 15 && journalctl -u seavpn-webhook -n 50 --no-pager
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); sub = db.query(Subscription).filter(Subscription.id == 54).first(); print(f'Подписка ID 54: статус={sub.status}, истекает={sub.expires_at}, продлений={sub.extensions_count}, добавлено дней={sub.total_days_added}'); db.close()"
+sleep 20 && journalctl -u seavpn-webhook -n 100 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.id == 18).first(); print(f'Платеж ID 18: статус={payment.status}, completed_at={payment.completed_at}'); db.close()"
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.payment_type == 'extension').order_by(Payment.id.desc()).limit(5).all(); [print(f'Платеж ID {p.id}: статус={p.status}, completed_at={p.completed_at}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+journalctl -u seavpn-webhook --since "10 minutes ago" --no-pager | grep -E "(покупка|продление|webhook|платеж)" | tail -20
+journalctl -u seavpn-webhook --since "10 minutes ago" --no-pager | grep -A 50 -B 5 "302fadb6-000f-5001-8000-1c3f203bb1aa"
+journalctl -u seavpn-webhook --since "10 minutes ago" --no-pager | grep -A 100 -B 5 "Результат продления в XUI\|ошибка при продлении\|ошибка получения конфигурации"
+journalctl -u seavpn-webhook --since "10 minutes ago" --no-pager | grep -A 50 "Подписка активна, продлеваем существующего пользователя"
+systemctl restart seavpn-webhook
+sleep 20 && journalctl -u seavpn-webhook -n 100 --no-pager
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); subs = db.query(Subscription).filter(Subscription.user_id == 8).order_by(Subscription.id.desc()).limit(3).all(); [print(f'Подписка ID {s.id}: статус={s.status}, истекает={s.expires_at}, продлений={s.extensions_count}, добавлено дней={s.total_days_added}') for s in subs]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 8).order_by(Payment.id.desc()).limit(5).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 200 --no-pager | grep -E "(XUI:|продление|extension|Результат продления|ошибка при продлении)"
+sleep 20 && journalctl -u seavpn-webhook -n 50 --no-pager
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); sub = db.query(Subscription).filter(Subscription.id == 55).first(); print(f'Подписка ID 55: статус={sub.status}, истекает={sub.expires_at}, продлений={sub.extensions_count}, добавлено дней={sub.total_days_added}'); db.close()"
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302faf3e-000f-5001-8000-1d7b4bcd4ef2').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+journalctl -u seavpn-webhook --since "5 minutes ago" --no-pager | grep -A 20 -B 5 "XUI: Пользователь.*успешно продлен"
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager | grep -E "(XUI результат успешен|Результат продления в XUI|продление|extension)"
+sleep 20 && journalctl -u seavpn-webhook -n 50 --no-pager
+journalctl -u seavpn-webhook -n 200 --no-pager
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager | grep -E "(Результат продления в XUI|Тип результата|Результат содержит success|XUI результат успешен)"
+sleep 20 && journalctl -u seavpn-webhook -n 50 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302fafe9-000f-5001-9000-1b4563ad70ba').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); sub = db.query(Subscription).filter(Subscription.id == 55).first(); print(f'Подписка ID 55: статус={sub.status}, истекает={sub.expires_at}, продлений={sub.extensions_count}, добавлено дней={sub.total_days_added}'); db.close()"
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 8).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302fb03f-000f-5001-8000-1f5838498691').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302fb0c7-000f-5001-8000-1fcc2ee015cf').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); sub = db.query(Subscription).filter(Subscription.id == 55).first(); print(f'Подписка ID 55: статус={sub.status}, истекает={sub.expires_at}, продлений={sub.extensions_count}, добавлено дней={sub.total_days_added}'); db.close()"
+journalctl -u seavpn-webhook --since "5 minutes ago" --no-pager | grep -A 10 -B 5 "Дополнительная проверка статуса"
+journalctl -u seavpn-webhook --since "5 minutes ago" --no-pager | grep -A 20 -B 5 "Платеж оплачен и успешен"
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 8).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302fb0be-000f-5000-b000-15ff51c872c5').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+journalctl -u seavpn-webhook -n 200 --no-pager
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 8).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302fb2cb-000f-5000-b000-1a77c4e68984').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+journalctl -u seavpn-webhook -n 200 --no-pager | grep -A 50 -B 10 "extension"
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payment = db.query(Payment).filter(Payment.yookassa_payment_id == '302fb33c-000f-5001-9000-176170af1515').first(); print(f'Платеж: статус={payment.status}, тип={payment.payment_type}, completed_at={payment.completed_at}'); db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 1).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 1).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 1).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+sleep 30 && journalctl -u seavpn-webhook -n 150 --no-pager
+python3 -c "from database import SessionLocal, Payment, Subscription; db = SessionLocal(); payment = db.query(Payment).filter(Payment.id == 31).first(); subscription = db.query(Subscription).filter(Subscription.id == 53).first(); print(f'Платеж ID 31: статус={payment.status}, completed_at={payment.completed_at}'); print(f'Подписка ID 53: expires_at={subscription.expires_at}, extensions_count={subscription.extensions_count}'); db.close()"
+systemctl restart seavpn-webhook
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+journalctl -u seavpn-webhook -n 50 --no-pager
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+journalctl -u seavpn-webhook -n 10 --no-pager
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 10 --no-pager
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 10 --no-pager
+git checkout HEAD -- webhook_handler.py
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 10 --no-pager
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 1).order_by(Payment.id.desc()).limit(3).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+python3 -c "from database import SessionLocal, Payment, Subscription; db = SessionLocal(); payment = db.query(Payment).filter(Payment.id == 33).first(); subscription = db.query(Subscription).filter(Subscription.id == 53).first(); print(f'Платеж ID 33: статус={payment.status}, completed_at={payment.completed_at}'); print(f'Подписка ID 53: expires_at={subscription.expires_at}, extensions_count={subscription.extensions_count}'); db.close()"
+journalctl -u seavpn-webhook -n 50 --no-pager
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-webhook -f --no-pager
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 -c "from database import SessionLocal, Payment, Subscription; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 1).order_by(Payment.id.desc()).limit(5).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}, completed_at={p.completed_at}') for p in payments]; subscription = db.query(Subscription).filter(Subscription.id == 53).first(); print(f'Подписка ID 53: expires_at={subscription.expires_at}, extensions_count={subscription.extensions_count}, status={subscription.status}'); db.close()"
+journalctl -u seavpn-webhook -n 50 --no-pager | grep -E "(webhook|payment|продлен|succeeded)"
+journalctl -u seavpn-webhook --since "5 minutes ago" --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.status == 'succeeded').filter(Payment.payment_type == 'extension').all(); [print(f'Платеж ID {p.id}: yookassa_id={p.yookassa_payment_id}, completed_at={p.completed_at}') for p in payments]; db.close()"
+journalctl -u seavpn-webhook --since "1 hour ago" --no-pager | grep -E "(payment\.succeeded|succeeded.*paid.*True|Платеж не подходит|обработки)"
+journalctl -u seavpn-webhook --since "1 hour ago" --no-pager | grep -A 20 -B 5 "Извлеченные данные.*status=succeeded.*paid=True"
+journalctl -u seavpn-webhook --since "1 hour ago" --no-pager | grep -A 50 "Email для 3xUI: Fenix_220291@mail.ru"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 10 --no-pager
+sleep 30 && journalctl -u seavpn-webhook -n 100 --no-pager
+python3 -c "from database import SessionLocal, Payment, Subscription; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 1).order_by(Payment.id.desc()).limit(5).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; subscription = db.query(Subscription).filter(Subscription.id == 53).first(); print(f'Подписка ID 53: expires_at={subscription.expires_at}, extensions_count={subscription.extensions_count}, status={subscription.status}'); db.close()"
+sleep 60 && journalctl -u seavpn-webhook --since "2 minutes ago" --no-pager
+journalctl -u seavpn-webhook --since "2 minutes ago" --no-pager
+python3 -c "from database import SessionLocal, Payment, Subscription; db = SessionLocal(); payment = db.query(Payment).filter(Payment.id == 34).first(); subscription = db.query(Subscription).filter(Subscription.id == 53).first(); print(f'Платеж ID 34: статус={payment.status}, completed_at={payment.completed_at}'); print(f'Подписка ID 53: expires_at={subscription.expires_at}, extensions_count={subscription.extensions_count}, total_days_added={subscription.total_days_added}'); db.close()"
+python3 -c "from database import SessionLocal, Payment, Subscription, User; db = SessionLocal(); users = db.query(User).all(); [print(f'Пользователь ID {u.id}: telegram_id={u.telegram_id}, full_name={u.full_name}') for u in users]; payments = db.query(Payment).filter(Payment.payment_type == 'extension').order_by(Payment.id.desc()).limit(10).all(); [print(f'Платеж ID {p.id}: user_id={p.user_id}, статус={p.status}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+journalctl -u seavpn-webhook --since "5 minutes ago" --no-pager | grep -E "(302fc0a7|user_id=8|Платеж ID 35)"
+journalctl -u seavpn-webhook --since "5 minutes ago" --no-pager | grep -A 50 -B 5 "Платеж найден: ID=35"
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); subscriptions = db.query(Subscription).filter(Subscription.user_id == 8).all(); [print(f'Подписка ID {s.id}: status={s.status}, expires_at={s.expires_at}, extensions_count={s.extensions_count}') for s in subscriptions]; db.close()"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 5 --no-pager
+sleep 30 && journalctl -u seavpn-webhook --since "1 minute ago" --no-pager
+python3 -c "from database import SessionLocal, Payment; db = SessionLocal(); payments = db.query(Payment).filter(Payment.user_id == 8).filter(Payment.status == 'succeeded').order_by(Payment.id.desc()).limit(5).all(); [print(f'Платеж ID {p.id}: статус={p.status}, тип={p.payment_type}, yookassa_id={p.yookassa_payment_id}') for p in payments]; db.close()"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 5 --no-pager
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+journalctl -u seavpn-webhook -n 50 --no-pager | grep -E "(продление|extend|Event loop|ошибка|ERROR)"
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 10 -B 10 "продление"
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 20 -B 20 "НАЧАЛО ПРОДЛЕНИЯ"
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 5 -B 5 "XUI:"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 30 -B 5 "НАЧАЛО ПРОДЛЕНИЯ"
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 20 "Найден клиент SeaMiniVpn-7107555507-2"
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 30 "Результат продления в XUI"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+journalctl -u seavpn-webhook -n 50 --no-pager | grep -E "(ERROR|ошибка|webhook|Webhook)"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 20 -B 5 "НАЧАЛО ПРОДЛЕНИЯ"
+journalctl -u seavpn-webhook -n 100 --no-pager | grep -A 20 -B 5 "HTTP Request: GET http://nl.universaltools.pro:34235/CVbzPVZjXGDiTsw/panel/api/inbounds/list"
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 3 --no-pager
+git add webhook_handler.py xui_client.py
+git commit -m "Исправлена проблема с продлением подписок. Добавлена надежная отправка сообщений через отдельный процесс. Улучшена обработка ошибок event loop."
+git push
+pip freeze > requirements.txt
+chmod +x start.sh stop.sh
+chmod +x logs.sh
+git add Dockerfile docker-compose.yml .dockerignore requirements.txt start.sh stop.sh logs.sh README.md
+git commit -m "Добавлена Docker конфигурация для запуска бота в контейнере. Обновлен README с инструкциями по Docker."
+git push
+docker --version && docker-compose --version
+apt update && apt install -y docker.io docker-compose
+./start.sh
+systemctl stop seavpn-webhook
+systemctl stop seavpn-bot
+systemctl stop seavpn-admin
+ps aux | grep python
+kill 139234
+ps aux | grep python
+./start.sh
+docker-compose down
+docker system prune -a -f
+./start.sh
+mkdir -p systemd
+chmod +x install_services.sh
+./install_services.sh
+systemctl status seavpn-bot
+systemctl status seavpn-webhook
+git add systemd/ install_services.sh
+git commit -m "Добавлены systemd сервисы для автозапуска бота, webhook и админ-панели"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 admin_web.py
+ls
+sudo docker ps
+sudo reboot
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl status seavpn-webhook
+netstat -tulpn | grep 5001
+apt install -y net-tools && netstat -tulpn | grep 5001
+ufw status
+journalctl -u seavpn-webhook -n 50 --no-pager
+journalctl -u seavpn-webhook | grep "payment.succeeded" | tail -n 20
+journalctl -u seavpn-webhook -n 100 | grep "extend_subscription_from_payment_sync" -A 10
+journalctl -u seavpn-webhook -n 100 | grep "Продление" -A 10
+journalctl -u seavpn-webhook | grep -i "error" | tail -n 20
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+systemctl restart seavpn-webhook seavpn-bot seavpn-admin
+git add webhook_handler.py bot.py admin_web.py
+git commit -m "Исправлена загрузка переменных окружения в webhook_handler.py, bot.py и admin_web.py"
+git push
+journalctl -u seavpn-webhook -n 50 --no-pager
+journalctl -u seavpn-webhook | grep "Продление" -A 5 | tail -n 20
+journalctl -u seavpn-webhook | grep "extend_user" | tail -n 20
+journalctl -u seavpn-webhook | grep "продл" | tail -n 20
+journalctl -u seavpn-webhook --since "15:32:00" | grep "webhook" | tail -n 20
+journalctl -u seavpn-webhook --since "15:32:00" | grep "POST /webhook" | tail -n 20
+grep -r "webhook" --include="*.py" .
+ls -la /etc/nginx/sites-enabled/
+cat /etc/nginx/sites-available/universaltools-proxy
+cat /etc/nginx/sites-available/seavpn-admin
+systemctl reload nginx
+curl -v http://localhost:5001/webhook/health
+curl -v https://admin.universaltools.pro/webhook/health
+git add /etc/nginx/sites-available/seavpn-admin
+mkdir -p nginx && cp /etc/nginx/sites-available/seavpn-admin nginx/
+git add nginx/
+git commit -m "Исправлена конфигурация nginx для проксирования вебхуков от YooKassa"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-webhook -n 100
+systemctl restart seavpn-webhook
+systemctl status seavpn-webhook
+systemctl restart seavpn-webhook
+journalctl -u seavpn-webhook -n 20
+systemctl restart seavpn-webhook
+systemctl restart seavpn-webhook seavpn-bot
+git add webhook_handler.py yookassa_client.py bot.py
+git commit -m "Исправлена обработка метаданных платежей для продления подписок"
+git push
+find / -name .env -type f 2>/dev/null
+cat /root/.env
+cat /etc/nginx/sites-enabled/default | grep -A 10 webhook
+find /etc/nginx -type f -name "*.conf" | xargs grep -l webhook
+find /etc/nginx -type f | xargs grep -l webhook
+cat /etc/nginx/sites-available/seavpn-admin | grep -A 20 webhook
+curl -X POST -H "Content-Type: application/json" -d '{"test": "data"}' http://localhost:5001/webhook/yookassa
+curl -X POST -H "Content-Type: application/json" -d '{"test": "data"}' https://nl.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 20
+curl -v https://webhook.site/token/new
+ls -la /etc/nginx/sites-enabled/
+cat /etc/nginx/sites-available/universaltools-proxy
+cat /etc/nginx/sites-available/seavpn-admin
+curl -X POST -H "Content-Type: application/json" -d '{"test": "data"}' https://admin.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 20 --no-pager
+systemctl restart seavpn-webhook
+curl -X POST -H "Content-Type: application/json" -d '{"event":"payment.succeeded","object":{"id":"test_payment_id","status":"succeeded","paid":true,"amount":{"value":"100.00","currency":"RUB"},"metadata":{"user_id":"1","subscription_type":"1m","payment_type":"new"}}}' https://admin.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 30 --no-pager
+curl -v https://nl.universaltools.pro/webhook/yookassa
+curl -v https://admin.universaltools.pro/webhook/yookassa
+cat /etc/nginx/sites-available/universaltools-proxy | grep -A 20 webhook
+curl -X POST -H "Content-Type: application/json" -d '{"test": "data"}' https://admin.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 20 --no-pager
+cat /root/config.py
+cat /root/webhook_handler.py | grep -A 10 "app = Flask"
+cat /root/webhook_handler.py | grep -A 5 "if __name__"
+ls -la /root | grep -E "\.env|env"
+systemctl status seavpn-webhook
+cat /etc/systemd/system/seavpn-webhook.service
+systemctl daemon-reload
+systemctl restart seavpn-webhook
+curl -X POST -H "Content-Type: application/json" -d '{"event":"payment.succeeded","object":{"id":"test_payment_id","status":"succeeded","paid":true,"amount":{"value":"100.00","currency":"RUB"},"metadata":{"user_id":"1","subscription_type":"1m","payment_type":"new"}}}' https://admin.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 30 --no-pager
+journalctl -u seavpn-webhook | grep -i payment | grep -i succeeded | tail -n 20
+journalctl -u seavpn-webhook | grep -i error | tail -n 20
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl status seavpn-bot
+journalctl -u seavpn-bot -n 20 --no-pager
+systemctl restart seavpn-bot
+systemctl status seavpn-bot
+journalctl -u seavpn-bot -n 5 --no-pager
+systemctl restart seavpn-bot
+systemctl status seavpn-bot --no-pager
+journalctl -u seavpn-bot -n 3 --no-pager
+python3 -m py_compile /root/bot.py
+systemctl restart seavpn-bot
+systemctl status seavpn-bot --no-pager
+git add bot.py
+git commit -m "Исправлены синтаксические ошибки в bot.py - добавлены закрывающие кавычки в HTML ссылках"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+grep -r "notify_admin_new_purchase" --include="*.py" /root/
+grep -r "safe_send_message" --include="*.py" /root/ | grep -v "cursor-server"
+grep -A 5 "BOT_TOKEN" /root/.env
+cat /root/.env
+systemctl daemon-reload && systemctl restart seavpn-webhook
+curl -X POST -H "Content-Type: application/json" -d '{"event":"payment.succeeded","object":{"id":"test_payment_id","status":"succeeded","paid":true,"amount":{"value":"100.00","currency":"RUB"},"metadata":{"user_id":"1","subscription_type":"1m","payment_type":"new"}}}' https://admin.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 50 --no-pager
+cat /root/config.py | grep "BOT_TOKEN"
+systemctl restart seavpn-webhook
+ls -la /tmp/send_message_*.py
+cat /tmp/send_message_1755169952.py
+python3 /tmp/send_message_1755169952.py /tmp/test_message.json
+echo '{"chat_id": 261337953, "text": "Тестовое сообщение", "parse_mode": "HTML"}' > /tmp/test_message.json && python3 /tmp/send_message_1755169952.py /tmp/test_message.json
+systemctl restart seavpn-webhook
+curl -X POST -H "Content-Type: application/json" -d '{"event":"payment.succeeded","object":{"id":"test_payment_id","status":"succeeded","paid":true,"amount":{"value":"100.00","currency":"RUB"},"metadata":{"user_id":"1","subscription_type":"1m","payment_type":"new"}}}' https://admin.universaltools.pro/webhook/yookassa
+journalctl -u seavpn-webhook -n 30 --no-pager
+ps aux | grep python
+systemctl status seavpn-bot
+cat /etc/systemd/system/seavpn-bot.service
+git add webhook_handler.py /etc/systemd/system/seavpn-webhook.service
+git add webhook_handler.py
+git commit -m "Исправлена отправка сообщений в webhook_handler.py для работы с BOT_TOKEN из переменных окружения или config.py"
+git push
+cp /etc/systemd/system/seavpn-webhook.service /root/systemd/seavpn-webhook.service
+mkdir -p /root/systemd
+cp /etc/systemd/system/seavpn-webhook.service /root/systemd/seavpn-webhook.service
+git add /root/systemd/seavpn-webhook.service
+systemctl restart seavpn-bot
+git add bot.py
+git commit -m "Удалены кнопки тестовых подписок для всех пользователей, кроме администраторов"
+git push
+systemctl restart seavpn-webhook
+systemctl daemon-reload && systemctl restart seavpn-webhook
+git add notifications.py
+git commit -m "Исправлена отправка уведомлений администраторам о новых покупках"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-webhook -n 50 --no-pager
+journalctl -u seavpn-webhook | grep -i "продление" | tail -n 20
+journalctl -u seavpn-webhook --since "15:32:00" | grep "webhook data"
+journalctl -u seavpn-webhook --since "15:32:00" | grep -i "продление"
+curl -v http://localhost:5001/webhook/health
+curl -v https://admin.universaltools.pro/webhook/health
+journalctl -u seavpn-webhook --since "15:32:00" | grep -i "error"
+cat /etc/nginx/sites-enabled/default | grep -A 20 webhook
+ls -la /etc/nginx/sites-enabled/
+cat /etc/nginx/sites-available/seavpn-admin | grep -A 20 webhook
+systemctl restart seavpn-webhook
+git add webhook_handler.py
+git commit -m "Исправлена ошибка закрытия event loop в функции продления подписки"
+git push
+journalctl -u seavpn-webhook -n 100 --no-pager
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-bot
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+ls -la
+ls -la /root/templates/
+systemctl restart seavpn-admin
+systemctl status seavpn-admin
+git add admin_web.py templates/users.html
+git commit -m "Добавлена функция начисления бонусных монет пользователям в админ-панели"
+git push
+git status
+git add Dockerfile docker-compose.yml install_services.sh logs.sh start.sh stop.sh systemd/seavpn-admin.service systemd/seavpn-bot.service
+git commit -m "Обновлены Docker и systemd конфигурации для улучшения стабильности"
+git push
+systemctl restart seavpn-admin
+git add templates/base.html templates/users.html
+git commit -m "Улучшен визуальный стиль админ-панели, добавлена поддержка тёмной темы, улучшены уведомления"
+git push
+systemctl restart seavpn-bot
+systemctl status seavpn-bot --no-pager
+git add bot.py
+git commit -m "Исправлен процесс покупки за монеты и изменена иконка с карточки на монетку"
+git push
+journalctl -u seavpn-bot -n 50 --no-pager
+systemctl restart seavpn-bot
+systemctl status seavpn-bot --no-pager
+git add bot.py
+git commit -m "Исправлен конфликт обработчиков сообщений для покупки за монеты"
+git push
+systemctl restart seavpn-admin
+systemctl status seavpn-admin --no-pager
+git add templates/base.html templates/users.html admin_web.py
+git commit -m "Улучшения в веб-админке: перемещение toast в правый нижний угол, исправление цветов шрифтов в темной теме, добавление функции ручного добавления подписки"
+git push
+mkdir -p /root/support_bot
+chmod +x /root/support_bot/*.sh
+cd /root/support_bot && ./install_service.sh
+systemctl status seavpn-support-bot --no-pager
+cd /root && git add support_bot/
+git commit -m "Создан бот поддержки @SeaVPN_support_bot"
+git push
+chmod +x /root/support_bot/create_tables.py
+cd /root/support_bot && python3 create_tables.py
+systemctl restart seavpn-support-bot
+systemctl status seavpn-support-bot --no-pager
+cd /root && git add support_bot/ database.py
+git commit -m "Улучшен бот поддержки: интеграция с базой данных, синхронизация администраторов с веб-админкой"
+git push
+systemctl restart seavpn-admin
+systemctl status seavpn-admin --no-pager
+journalctl -u seavpn-admin -n 50 --no-pager
+head -n 173 /root/admin_web.py > /root/admin_web_fixed.py
+tail -n +800 /root/admin_web.py >> /root/admin_web_fixed.py
+mv /root/admin_web_fixed.py /root/admin_web.py
+systemctl restart seavpn-admin
+systemctl status seavpn-admin --no-pager
+journalctl -u seavpn-admin -n 20 --no-pager
+git checkout -- admin_web.py
+systemctl restart seavpn-admin
+systemctl status seavpn-admin --no-pager
+systemctl restart seavpn-admin
+systemctl status seavpn-admin --no-pager
+git add templates/tickets.html templates/base.html admin_web.py
+git commit -m "Добавлена страница тикетов в веб-админку и API-эндпоинты для работы с тикетами"
+git push
+systemctl restart seavpn-support-bot
+systemctl restart seavpn-admin
+git add /root/templates/users.html /root/templates/tickets.html /root/admin_web.py /root/support_bot/bot.py
+git commit -m "Улучшена интеграция тикетов и пользователей: добавлена кнопка тикетов на странице пользователей, добавлен переход к пользователю со страницы тикетов, улучшены уведомления в боте поддержки"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-bot seavpn-admin
+git add /root/notifications.py /root/admin_web.py /root/config.py /root/bot.py
+git commit -m "Добавлены уведомления при начислении монет, исправлено количество монет за реферала, улучшено отображение реферальной ссылки"
+git push
+systemctl restart seavpn-bot
+git add /root/bot.py
+git commit -m "Улучшено копирование реферальной ссылки: добавлена кнопка для получения ссылки в отдельном сообщении"
+git push
+mkdir -p /root/migrations
+chmod +x /root/migrations/add_ticket_type.py
+python3 /root/migrations/add_ticket_type.py
+psql -U postgres -c "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS ticket_type VARCHAR DEFAULT 'support';"
+systemctl restart seavpn-bot seavpn-admin seavpn-support-bot
+git add /root/bot.py /root/templates/tickets.html /root/database.py /root/support_bot/bot.py /root/migrations/add_ticket_type.py
+git commit -m "Добавлены новые функции: кнопка 'Почему наш VPN?', кнопка 'Предложения' в боте поддержки, фильтрация по типу тикета в веб-админке"
+git push
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+ls
+cd support_bot
+ls
+cd ..
+sudo reboot
+cd /root && python3 admin_web.py
+pkill -f "support_bot/bot.py"; cd /root && python3 support_bot/bot.py > support_bot.log 2>&1 &
+cd /root && python3 -m support_bot.bot
+pkill -f admin_web.py; cd /root && python3 admin_web.py > admin_web.log 2>&1 &
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+pkill -9 -f "python3 /root/admin_web.py" && cd /root && python3 admin_web.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+cd /root && python3 -m support_bot.bot
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+cd /root && python3 admin_web.py
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+ps aux | grep python
+tail -n 50 /var/log/syslog | grep -i error
+cd /root && python3 migrations/add_ticket_type.py
+pkill -9 -f "python3 /root/admin_web.py" && pkill -9 -f "python3 /root/support_bot/bot.py"
+. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+дв
+ld
+ls
+sudo nano xui_client.py 

@@ -1,20 +1,20 @@
-Server bound to /tmp/cursor-3038d975-2128-4265-a505-4b909b40a775
-Extension host agent listening on /tmp/cursor-3038d975-2128-4265-a505-4b909b40a775
+Server bound to /tmp/cursor-3327e187-b059-4656-b923-3639407bfcf1
+Extension host agent listening on /tmp/cursor-3327e187-b059-4656-b923-3639407bfcf1
 
-[09:29:01] 
-
-
+[11:19:39] 
 
 
-[09:29:01] Extension host agent started.
-[09:29:01] [<unknown>][8053ca7e][ExtensionHostConnection] New connection established.
-[09:29:01] [<unknown>][ddd8510f][ManagementConnection] New connection established.
-[09:29:01] [<unknown>][8053ca7e][ExtensionHostConnection] <133006> Launched Extension Host Process.
-[09:29:01] Getting extensions control
-rejected promise not handled within 1 second: CodeExpectedError: Could not find pty 1 on pty host
-stack trace: CodeExpectedError: Could not find pty 1 on pty host
+
+
+[11:19:40] Extension host agent started.
+[11:19:40] [<unknown>][f3dc50b1][ExtensionHostConnection] New connection established.
+[11:19:40] [<unknown>][e8ce0a58][ManagementConnection] New connection established.
+[11:19:40] [<unknown>][f3dc50b1][ExtensionHostConnection] <1635> Launched Extension Host Process.
+[11:19:40] Getting extensions control
+rejected promise not handled within 1 second: CodeExpectedError: Could not find pty 4 on pty host
+stack trace: CodeExpectedError: Could not find pty 4 on pty host
     at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
+    at M.updateTitle (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:2110)
     at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
     at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
     at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
@@ -26,67 +26,9 @@ stack trace: CodeExpectedError: Could not find pty 1 on pty host
     at process.emit (node:events:518:28)
     at emit (node:internal/child_process:950:14)
     at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
-[09:29:05] Error [CodeExpectedError]: Could not find pty 1 on pty host
+[11:19:47] Error [CodeExpectedError]: Could not find pty 4 on pty host
     at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
-    at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
-    at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
-    at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
-    at uc.onRawMessage (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90882)
-    at fr.value (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90165)
-    at C._deliver (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:2937)
-    at C.fire (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:3257)
-    at process.b (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:24:24731)
-    at process.emit (node:events:518:28)
-    at emit (node:internal/child_process:950:14)
-    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
-rejected promise not handled within 1 second: CodeExpectedError: Could not find pty 2 on pty host
-stack trace: CodeExpectedError: Could not find pty 2 on pty host
-    at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
-    at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
-    at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
-    at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
-    at uc.onRawMessage (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90882)
-    at fr.value (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90165)
-    at C._deliver (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:2937)
-    at C.fire (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:3257)
-    at process.b (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:24:24731)
-    at process.emit (node:events:518:28)
-    at emit (node:internal/child_process:950:14)
-    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
-[09:29:05] Error [CodeExpectedError]: Could not find pty 2 on pty host
-    at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
-    at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
-    at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
-    at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
-    at uc.onRawMessage (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90882)
-    at fr.value (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90165)
-    at C._deliver (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:2937)
-    at C.fire (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:3257)
-    at process.b (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:24:24731)
-    at process.emit (node:events:518:28)
-    at emit (node:internal/child_process:950:14)
-    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
-rejected promise not handled within 1 second: CodeExpectedError: Could not find pty 3 on pty host
-stack trace: CodeExpectedError: Could not find pty 3 on pty host
-    at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
-    at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
-    at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
-    at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
-    at uc.onRawMessage (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90882)
-    at fr.value (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:90165)
-    at C._deliver (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:2937)
-    at C.fire (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:3257)
-    at process.b (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:24:24731)
-    at process.emit (node:events:518:28)
-    at emit (node:internal/child_process:950:14)
-    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
-[09:29:05] Error [CodeExpectedError]: Could not find pty 3 on pty host
-    at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
+    at M.updateTitle (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:2110)
     at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
     at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
     at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
@@ -101,7 +43,7 @@ stack trace: CodeExpectedError: Could not find pty 3 on pty host
 rejected promise not handled within 1 second: CodeExpectedError: Could not find pty 4 on pty host
 stack trace: CodeExpectedError: Could not find pty 4 on pty host
     at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
+    at M.updateIcon (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:2172)
     at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
     at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
     at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
@@ -113,9 +55,9 @@ stack trace: CodeExpectedError: Could not find pty 4 on pty host
     at process.emit (node:events:518:28)
     at emit (node:internal/child_process:950:14)
     at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
-[09:29:05] Error [CodeExpectedError]: Could not find pty 4 on pty host
+[11:19:47] Error [CodeExpectedError]: Could not find pty 4 on pty host
     at M._throwIfNoPty (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:7334)
-    at M.resize (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:3319)
+    at M.updateIcon (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:47:2172)
     at O.r.<computed> (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:46:3386)
     at Object.call (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:28:4951)
     at uc.onPromise (file:///root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/platform/terminal/node/ptyHostMain.js:26:91467)
@@ -128,4 +70,5 @@ stack trace: CodeExpectedError: Could not find pty 4 on pty host
     at emit (node:internal/child_process:950:14)
     at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
 New EH opened, aborting shutdown
-[09:34:01] New EH opened, aborting shutdown
+[11:24:40] New EH opened, aborting shutdown
+[11:41:47] [<unknown>][e8ce0a58][ManagementConnection] The client has disconnected, will wait for reconnection 3h before disposing...

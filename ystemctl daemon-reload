@@ -1,0 +1,19 @@
+[0;1;32m●[0m seavpn-admin.service - SeaVPN Admin Web Panel
+     Loaded: loaded (/etc/systemd/system/seavpn-admin.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Thu 2025-08-14 14:46:15 MSK; 6min ago
+   Main PID: 189640 (python3)
+      Tasks: 1 (limit: 9443)
+     Memory: 43.5M
+        CPU: 721ms
+     CGroup: /system.slice/seavpn-admin.service
+             └─189640 /usr/bin/python3 /root/admin_web.py
+
+Aug 14 14:46:15 5448753-tx35556 systemd[1]: Started SeaVPN Admin Web Panel.
+Aug 14 14:46:15 5448753-tx35556 seavpn-admin[189640]:  * Serving Flask app 'admin_web'
+Aug 14 14:46:15 5448753-tx35556 seavpn-admin[189640]:  * Debug mode: off
+Aug 14 14:46:16 5448753-tx35556 seavpn-admin[189640]: WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+Aug 14 14:46:16 5448753-tx35556 seavpn-admin[189640]:  * Running on all addresses (0.0.0.0)
+Aug 14 14:46:16 5448753-tx35556 seavpn-admin[189640]:  * Running on http://127.0.0.1:8080
+Aug 14 14:46:16 5448753-tx35556 seavpn-admin[189640]:  * Running on http://147.45.214.68:8080
+Aug 14 14:46:16 5448753-tx35556 seavpn-admin[189640]: Press CTRL+C to quit
+Aug 14 14:53:03 5448753-tx35556 seavpn-admin[189640]: 185.169.4.150 - - [14/Aug/2025 14:53:03] "GET / HTTP/1.1" 302 -
