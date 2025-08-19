@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages
 from config import ADMIN_IDS
 from xui_client import XUIClient
 
@@ -1154,27 +1154,110 @@ def delete_ticket(ticket_id):
             db.delete(ticket)
             db.commit()
             
-            # Отправляем уведомление пользователю через бота
-            if user:
-                try:
-                    # Импортируем бота поддержки
-                    sys.path.append(os.path.join(os.path.dirname(__file__), 'support_bot'))
-                    from support_bot.bot import bot as support_bot
-                    
-                    # Формируем сообщение
-                    notification = f"🗑️ Ваш тикет #{ticket.ticket_number} был удален администратором.\n\n"
-                    notification += "Если у вас возникнут новые вопросы, создайте новый тикет."
-                    
-                    # Отправляем сообщение
-                    asyncio.run(support_bot.send_message(
-                        user.telegram_id,
-                        notification,
-                        reply_markup=None
-                    ))
-                except Exception as e:
-                    print(f"Ошибка отправки уведомления пользователю: {e}")
+
             
             return jsonify({'success': True, 'message': 'Тикет успешно удален'})
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/notifications/new-messages')
+@login_required
+def get_new_messages_count():
+    """API для получения количества новых сообщений в тикетах"""
+    try:
+        db = SessionLocal()
+        try:
+            admin_id = session.get('admin_id')
+            if not admin_id:
+                return jsonify({'success': False, 'error': 'Не авторизован'})
+            
+            # Получаем все тикеты с новыми сообщениями
+            tickets_with_new_messages = []
+            
+            # Получаем все тикеты
+            tickets = db.query(Ticket).filter(Ticket.status == 'open').all()
+            
+            for ticket in tickets:
+                # Получаем последнее сообщение в тикете
+                last_message = db.query(TicketMessage).filter(
+                    TicketMessage.ticket_id == ticket.id
+                ).order_by(TicketMessage.id.desc()).first()
+                
+                if not last_message:
+                    continue
+                
+                # Проверяем, читал ли администратор это сообщение
+                read_record = db.query(AdminReadMessages).filter(
+                    AdminReadMessages.admin_id == admin_id,
+                    AdminReadMessages.ticket_id == ticket.id
+                ).first()
+                
+                if not read_record or read_record.last_read_message_id < last_message.id:
+                    # Есть новые сообщения
+                    new_messages_count = db.query(TicketMessage).filter(
+                        TicketMessage.ticket_id == ticket.id,
+                        TicketMessage.id > (read_record.last_read_message_id if read_record else 0)
+                    ).count()
+                    
+                    tickets_with_new_messages.append({
+                        'ticket_id': ticket.id,
+                        'ticket_number': ticket.ticket_number,
+                        'subject': ticket.subject,
+                        'user_name': ticket.user.full_name if ticket.user else 'Неизвестный',
+                        'new_messages_count': new_messages_count,
+                        'last_message_time': last_message.created_at.isoformat()
+                    })
+            
+            return jsonify({
+                'success': True,
+                'tickets_with_new_messages': tickets_with_new_messages,
+                'total_new_messages': sum(t['new_messages_count'] for t in tickets_with_new_messages)
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ticket/<int:ticket_id>/mark-read', methods=['POST'])
+@login_required
+def mark_ticket_as_read(ticket_id):
+    """API для отметки тикета как прочитанного"""
+    try:
+        db = SessionLocal()
+        try:
+            admin_id = session.get('admin_id')
+            if not admin_id:
+                return jsonify({'success': False, 'error': 'Не авторизован'})
+            
+            # Получаем последнее сообщение в тикете
+            last_message = db.query(TicketMessage).filter(
+                TicketMessage.ticket_id == ticket_id
+            ).order_by(TicketMessage.id.desc()).first()
+            
+            if not last_message:
+                return jsonify({'success': False, 'error': 'Тикет не найден'})
+            
+            # Обновляем или создаем запись о прочтении
+            read_record = db.query(AdminReadMessages).filter(
+                AdminReadMessages.admin_id == admin_id,
+                AdminReadMessages.ticket_id == ticket_id
+            ).first()
+            
+            if read_record:
+                read_record.last_read_message_id = last_message.id
+                read_record.read_at = datetime.utcnow()
+            else:
+                read_record = AdminReadMessages(
+                    admin_id=admin_id,
+                    ticket_id=ticket_id,
+                    last_read_message_id=last_message.id
+                )
+                db.add(read_record)
+            
+            db.commit()
+            return jsonify({'success': True, 'message': 'Тикет отмечен как прочитанный'})
         finally:
             db.close()
     except Exception as e:

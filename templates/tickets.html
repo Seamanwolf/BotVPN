@@ -111,7 +111,12 @@
                             </td>
                             <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ ticket.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>{{ ticket.messages|length }}</td>
+                            <td>
+                                <span class="messages-count">{{ ticket.messages|length }}</span>
+                                <span class="new-messages-badge" id="newMessagesBadge_{{ ticket.id }}" style="display: none;">
+                                    <span class="new-count">0</span>
+                                </span>
+                            </td>
                             <td>
                                 <button class="btn btn-sm btn-primary" onclick="viewTicketDetails({{ ticket.id }})" title="Просмотреть">
                                     <i class="fas fa-eye"></i>
@@ -356,6 +361,9 @@ function viewTicketDetails(ticketId) {
                 
                 // Показываем модальное окно
                 new bootstrap.Modal(document.getElementById('ticketDetailsModal')).show();
+            
+            // Отмечаем тикет как прочитанный
+            markTicketAsRead(ticketId);
             } else {
                 showError('Ошибка при загрузке данных тикета');
             }
@@ -614,6 +622,69 @@ function viewUserDetails(userId) {
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('statusFilter').addEventListener('change', applyFilters);
 document.getElementById('typeFilter').addEventListener('change', applyFilters);
+
+// Функция для обновления счетчиков новых сообщений
+function updateNewMessagesCount() {
+    fetch('/api/notifications/new-messages')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Скрываем все бейджи
+                document.querySelectorAll('.new-messages-badge').forEach(badge => {
+                    badge.style.display = 'none';
+                });
+                
+                // Показываем бейджи для тикетов с новыми сообщениями
+                data.tickets_with_new_messages.forEach(ticket => {
+                    const badge = document.getElementById(`newMessagesBadge_${ticket.ticket_id}`);
+                    if (badge) {
+                        const countElement = badge.querySelector('.new-count');
+                        countElement.textContent = ticket.new_messages_count;
+                        badge.style.display = 'inline-block';
+                    }
+                });
+                
+                // Обновляем счетчик в навигации
+                updateNotification('messagesNotification', data.total_new_messages);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при получении новых сообщений:', error);
+        });
+}
+
+// Функция для отметки тикета как прочитанного
+function markTicketAsRead(ticketId) {
+    fetch(`/api/ticket/${ticketId}/mark-read`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Скрываем бейдж для этого тикета
+            const badge = document.getElementById(`newMessagesBadge_${ticketId}`);
+            if (badge) {
+                badge.style.display = 'none';
+            }
+            // Обновляем общий счетчик
+            updateNewMessagesCount();
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка при отметке тикета как прочитанного:', error);
+    });
+}
+
+// Обновляем счетчики каждые 30 секунд
+setInterval(updateNewMessagesCount, 30000);
+
+// Обновляем при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    updateNewMessagesCount();
+});
 
 // Стили для сообщений и улучшенный дизайн
 document.head.insertAdjacentHTML('beforeend', `
@@ -1012,6 +1083,25 @@ document.head.insertAdjacentHTML('beforeend', `
         .user-details-btn {
             padding: 0.2rem 0.4rem;
             font-size: 0.7rem;
+        }
+        
+        /* Стили для новых сообщений */
+        .new-messages-badge {
+            display: inline-block;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+        
+        .messages-count {
+            font-weight: 500;
         }
     </style>
 `);

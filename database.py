@@ -157,3 +157,17 @@ class TicketMessage(Base):
     
     # Отношения
     sender = relationship("User", backref="sent_messages")
+
+class AdminReadMessages(Base):
+    __tablename__ = "admin_read_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("admins.id"), nullable=False)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+    last_read_message_id = Column(Integer, ForeignKey("ticket_messages.id"), nullable=False)
+    read_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Отношения
+    admin = relationship("Admin", backref="read_messages")
+    ticket = relationship("Ticket", backref="admin_reads")
+    last_message = relationship("TicketMessage")
