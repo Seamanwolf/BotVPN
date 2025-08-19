@@ -83,7 +83,10 @@
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        <tr data-user-id="{{ user.id }}">
+                        {% set is_new = (user.created_at > (now - timedelta(days=1))) %}
+                        <tr data-user-id="{{ user.id }}" 
+                            class="{% if is_new %}new-item{% endif %}" 
+                            data-created="{{ user.created_at.isoformat() }}">
                             <td>{{ user.id }}</td>
                             <td>{{ user.full_name or 'Не указано' }}</td>
                             <td>{{ user.telegram_id }}</td>
@@ -290,14 +293,18 @@ function viewUserDetails(userId) {
                                 <div class="me-2"><strong>Бонусные монеты:</strong></div>
                                 <div class="me-2"><span class="badge bg-warning" id="userCoinsDisplay">${user.bonus_coins} 🪙</span></div>
                                 <button class="btn btn-sm btn-outline-success ms-2" onclick="showAddCoinsForm(${user.id}, ${user.bonus_coins})">
-                                    <i class="fas fa-plus"></i> Начислить
+                                    <i class="fas fa-coins"></i> Управление
                                 </button>
                             </div>
                             <div id="addCoinsForm" style="display: none;" class="mb-3 p-2 border rounded">
-                                <div class="mb-2"><strong>Начисление монет</strong></div>
+                                <div class="mb-2"><strong>Управление монетами</strong></div>
                                 <div class="input-group mb-2">
+                                    <select class="form-select" id="coinsAction" style="max-width: 120px;">
+                                        <option value="add">Начислить</option>
+                                        <option value="subtract">Списать</option>
+                                    </select>
                                     <input type="number" class="form-control" id="coinsAmount" placeholder="Количество монет" min="1">
-                                    <button class="btn btn-success" onclick="addCoinsToUser()">Начислить</button>
+                                    <button class="btn btn-success" onclick="addCoinsToUser()">Применить</button>
                                 </div>
                                 <small class="text-muted">Текущий баланс: <span id="currentCoinsBalance">0</span> 🪙</small>
                             </div>
@@ -316,6 +323,12 @@ function viewUserDetails(userId) {
                 `;
                 document.getElementById('userDetailsContent').innerHTML = content;
                 new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+                
+                // Убираем подсветку с просмотренного пользователя
+                const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+                if (userRow) {
+                    userRow.classList.remove('new-item');
+                }
             } else {
                 alert('Ошибка при загрузке данных пользователя');
             }
@@ -624,18 +637,22 @@ function showAddCoinsForm(userId, currentCoins) {
 
 function addCoinsToUser() {
     const coinsAmount = parseInt(document.getElementById('coinsAmount').value);
+    const action = document.getElementById('coinsAction').value;
     
     if (!coinsAmount || coinsAmount <= 0) {
         showError('Пожалуйста, введите положительное количество монет');
         return;
     }
     
-    fetch(`/api/user/${currentUserId}/add_coins`, {
+    fetch(`/api/user/${currentUserId}/coins`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ coins: coinsAmount })
+        body: JSON.stringify({ 
+            action: action,
+            amount: coinsAmount 
+        })
     })
     .then(response => response.json())
     .then(data => {
@@ -656,8 +673,8 @@ function addCoinsToUser() {
             // Показываем сообщение об успехе
             showSuccess(data.message);
             
-            // Обновляем отображение монет в таблице пользователей (если пользователь есть в таблице)
-            const userRow = document.querySelector(`#usersTable tr[data-user-id="${currentUserId}"]`);
+            // Обновляем отображение монет в таблице пользователей
+            const userRow = document.querySelector(`tr[data-user-id="${currentUserId}"]`);
             if (userRow) {
                 const coinsBadge = userRow.querySelector('.coins-badge');
                 if (coinsBadge) {
@@ -665,12 +682,12 @@ function addCoinsToUser() {
                 }
             }
         } else {
-            showError('Ошибка: ' + data.message);
+            showError('Ошибка: ' + data.error);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showError('Произошла ошибка при начислении монет');
+        showError('Произошла ошибка при управлении монетами');
     });
 }
 
@@ -945,6 +962,30 @@ document.head.insertAdjacentHTML('beforeend', `
             font-weight: 600;
             padding: 0.4rem 0.6rem;
             border-radius: 0.5rem;
+        }
+        
+        /* Подсветка новых записей */
+        .new-item {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%) !important;
+            border-left: 4px solid #22c55e !important;
+            animation: newItemPulse 2s ease-in-out infinite;
+        }
+        
+        .new-item:hover {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
+        }
+        
+        @keyframes newItemPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        [data-theme="dark"] .new-item {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
+        }
+        
+        [data-theme="dark"] .new-item:hover {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.15) 100%) !important;
         }
         
         .badge {

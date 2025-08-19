@@ -141,7 +141,7 @@ def users():
         for user in users:
             user.referrals_count = db.query(User).filter(User.referred_by == user.id).count()
         
-        return render_template('users.html', users=users, subscriptions=subscriptions)
+        return render_template('users.html', users=users, subscriptions=subscriptions, now=datetime.utcnow(), timedelta=timedelta)
     finally:
         db.close()
 
@@ -196,7 +196,7 @@ def tickets():
                 TicketMessage.ticket_id == ticket.id
             ).order_by(TicketMessage.created_at).all()
         
-        return render_template('tickets.html', tickets=tickets_query, now=datetime.utcnow())
+        return render_template('tickets.html', tickets=tickets_query, now=datetime.utcnow(), timedelta=timedelta)
     finally:
         db.close()
 
@@ -243,6 +243,45 @@ def get_user_details(user_id):
             return jsonify({'success': False, 'message': 'Пользователь не найден'})
     finally:
         db.close()
+
+@app.route('/api/user/<int:user_id>/coins', methods=['POST'])
+@login_required
+def manage_user_coins(user_id):
+    """API для управления монетами пользователя"""
+    try:
+        data = request.json
+        action = data.get('action')  # 'add' или 'subtract'
+        amount = data.get('amount', 0)
+        
+        if not action or amount <= 0:
+            return jsonify({'success': False, 'error': 'Неверные параметры'})
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            if action == 'add':
+                user.bonus_coins += amount
+            elif action == 'subtract':
+                if user.bonus_coins < amount:
+                    return jsonify({'success': False, 'error': 'Недостаточно монет'})
+                user.bonus_coins -= amount
+            else:
+                return jsonify({'success': False, 'error': 'Неверное действие'})
+            
+            db.commit()
+            
+            return jsonify({
+                'success': True,
+                'new_balance': user.bonus_coins,
+                'message': f'Монеты успешно {"начислены" if action == "add" else "списаны"}'
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/user/<int:user_id>/subscriptions')
 @login_required
@@ -1210,6 +1249,20 @@ def get_notifications_count():
             })
         finally:
             db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/notifications/mark-viewed', methods=['POST'])
+@login_required
+def mark_notifications_viewed():
+    """API для отметки уведомлений как просмотренных"""
+    try:
+        data = request.json
+        notification_type = data.get('type')  # 'tickets', 'users', 'subscriptions'
+        
+        # Здесь можно добавить логику для сохранения времени последнего просмотра
+        # Пока просто возвращаем успех
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 

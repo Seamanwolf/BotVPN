@@ -817,7 +817,7 @@
 
             <!-- Основной контент -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-                <div class="pt-3 pb-2 mb-3">
+                <div class="pb-2 mb-3">
                     {% block content %}{% endblock %}
                 </div>
             </main>
@@ -1165,7 +1165,11 @@
                             content = '<p class="text-muted">Новых тикетов нет</p>';
                         }
                         document.getElementById('newTicketsContent').innerHTML = content;
-                        new bootstrap.Modal(document.getElementById('newTicketsModal')).show();
+                        const modal = new bootstrap.Modal(document.getElementById('newTicketsModal'));
+                        modal.show();
+                        
+                        // Обновляем счетчик после просмотра
+                        updateNotificationsToggle('tickets', 0);
                     }
                 });
         }
@@ -1182,7 +1186,11 @@
                             content = '<p class="text-muted">Новых пользователей нет</p>';
                         }
                         document.getElementById('newUsersContent').innerHTML = content;
-                        new bootstrap.Modal(document.getElementById('newUsersModal')).show();
+                        const modal = new bootstrap.Modal(document.getElementById('newUsersModal'));
+                        modal.show();
+                        
+                        // Обновляем счетчик после просмотра
+                        updateNotificationsToggle('users', 0);
                     }
                 });
         }
