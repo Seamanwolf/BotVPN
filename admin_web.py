@@ -1188,9 +1188,16 @@ def get_notifications_count():
     try:
         db = SessionLocal()
         try:
-            admin_id = session.get('admin_id')
-            if not admin_id:
-                return jsonify({'success': False, 'error': 'Не авторизован'})
+            # Получаем ID администратора из текущего пользователя
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                # Для суперадмина получаем его реальный ID из базы
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
             
             # Получаем время последнего просмотра для каждого типа уведомлений
             tickets_viewed = db.query(AdminNotificationsViewed).filter(
@@ -1244,9 +1251,16 @@ def mark_notifications_viewed():
         
         db = SessionLocal()
         try:
-            admin_id = session.get('admin_id')
-            if not admin_id:
-                return jsonify({'success': False, 'error': 'Не авторизован'})
+            # Получаем ID администратора из текущего пользователя
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                # Для суперадмина получаем его реальный ID из базы
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
             
             # Обновляем или создаем запись о просмотре
             viewed_record = db.query(AdminNotificationsViewed).filter(
