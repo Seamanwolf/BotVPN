@@ -1135,6 +1135,51 @@ def close_ticket(ticket_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/ticket/<int:ticket_id>/delete', methods=['DELETE'])
+@login_required
+def delete_ticket(ticket_id):
+    """API для удаления тикета"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем тикет
+            ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+            if not ticket:
+                return jsonify({'success': False, 'error': 'Тикет не найден'})
+            
+            # Получаем пользователя для уведомления
+            user = db.query(User).filter(User.id == ticket.user_id).first()
+            
+            # Удаляем тикет (каскадное удаление сообщений)
+            db.delete(ticket)
+            db.commit()
+            
+            # Отправляем уведомление пользователю через бота
+            if user:
+                try:
+                    # Импортируем бота поддержки
+                    sys.path.append(os.path.join(os.path.dirname(__file__), 'support_bot'))
+                    from support_bot.bot import bot as support_bot
+                    
+                    # Формируем сообщение
+                    notification = f"🗑️ Ваш тикет #{ticket.ticket_number} был удален администратором.\n\n"
+                    notification += "Если у вас возникнут новые вопросы, создайте новый тикет."
+                    
+                    # Отправляем сообщение
+                    asyncio.run(support_bot.send_message(
+                        user.telegram_id,
+                        notification,
+                        reply_markup=None
+                    ))
+                except Exception as e:
+                    print(f"Ошибка отправки уведомления пользователю: {e}")
+            
+            return jsonify({'success': True, 'message': 'Тикет успешно удален'})
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
     # Создаем папку для шаблонов если её нет
     os.makedirs('templates', exist_ok=True)
