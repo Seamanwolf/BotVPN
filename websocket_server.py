@@ -115,7 +115,7 @@ async def broadcast_notification(notification):
             return_exceptions=True
         )
 
-async def websocket_handler(websocket):
+async def websocket_handler(websocket, path):
     """Обработчик WebSocket соединений"""
     try:
         # Добавляем клиента в список подключенных

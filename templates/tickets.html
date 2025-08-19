@@ -315,6 +315,17 @@ function createTicketRow(ticket) {
     return row;
 }
 
+// Функция для открытия вложений
+function openAttachment(url, type) {
+    if (type === 'photo') {
+        // Открываем фото в новом окне
+        window.open(url, '_blank');
+    } else {
+        // Для других типов файлов просто открываем ссылку
+        window.open(url, '_blank');
+    }
+}
+
 function viewTicketDetails(ticketId) {
     currentTicketId = ticketId;
     
@@ -398,20 +409,29 @@ function viewTicketDetails(ticketId) {
                         if (msg.attachment_type === 'photo') {
                             attachmentHtml = `
                                 <div class="message-attachment">
-                                    <img src="${msg.attachment_url}" alt="Фото" class="attachment-image" style="max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 10px;">
-                                    <div class="mt-2">
-                                        <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
-                                            ${attachmentIcons[msg.attachment_type]} Открыть оригинал
-                                        </a>
+                                    <div class="attachment-preview">
+                                        <img src="${msg.attachment_url}" alt="Фото" class="attachment-image" 
+                                             style="max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 10px; cursor: pointer;"
+                                             onclick="openAttachment('${msg.attachment_url}', 'photo')"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="attachment-fallback" style="display: none; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-top: 10px;">
+                                            <p class="text-muted mb-2">Изображение недоступно для предварительного просмотра</p>
+                                            <a href="${msg.attachment_url}" target="_blank" class="btn btn-sm btn-primary">
+                                                ${attachmentIcons[msg.attachment_type]} Открыть изображение
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             `;
                         } else {
                             attachmentHtml = `
                                 <div class="message-attachment">
-                                    <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
-                                        ${attachmentIcons[msg.attachment_type]} ${attachmentNames[msg.attachment_type]}
-                                    </a>
+                                    <div class="attachment-item">
+                                        <span class="attachment-icon">${attachmentIcons[msg.attachment_type]}</span>
+                                        <a href="${msg.attachment_url}" target="_blank" class="attachment-link">
+                                            ${attachmentNames[msg.attachment_type]}
+                                        </a>
+                                    </div>
                                 </div>
                             `;
                         }
