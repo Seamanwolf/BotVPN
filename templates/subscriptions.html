@@ -419,7 +419,12 @@ document.head.insertAdjacentHTML('beforeend', `
         
         .search-input, .form-select {
             height: 38px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .form-select {
+            padding-right: 1.5rem;
         }
         
         .search-input:focus {
@@ -599,6 +604,30 @@ document.head.insertAdjacentHTML('beforeend', `
         [data-theme="dark"] .modal-footer {
             background-color: #0f172a;
             border-top-color: #334155;
+        }
+        
+        /* Улучшенные модальные окна */
+        .modal-content {
+            border-radius: 0.75rem;
+            border: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .modal-header {
+            background: #1e40af;
+            color: white;
+            border-radius: 0.75rem 0.75rem 0 0;
+            padding: 1rem 1.25rem;
+        }
+        
+        .modal-body {
+            padding: 1.25rem;
+        }
+        
+        .modal-footer {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 0 0 0.75rem 0.75rem;
+            padding: 1rem 1.25rem;
         }
     </style>
 `);
