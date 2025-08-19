@@ -62,7 +62,7 @@ async def check_notifications():
                 notification = {
                     'type': 'new_ticket',
                     'count': current_counts['tickets'],
-                    'sound': 'ticket.mp3',
+                    'sound': 'ticket.wav',
                     'message': f'Новый тикет! Всего новых: {current_counts["tickets"]}'
                 }
                 await broadcast_notification(notification)
@@ -71,7 +71,7 @@ async def check_notifications():
                 notification = {
                     'type': 'new_user',
                     'count': current_counts['users'],
-                    'sound': 'user.mp3',
+                    'sound': 'user.wav',
                     'message': f'Новый пользователь! Всего новых: {current_counts["users"]}'
                 }
                 await broadcast_notification(notification)
@@ -80,7 +80,7 @@ async def check_notifications():
                 notification = {
                     'type': 'new_subscription',
                     'count': current_counts['subscriptions'],
-                    'sound': 'subscription.mp3',
+                    'sound': 'subscription.wav',
                     'message': f'Новая подписка! Всего новых: {current_counts["subscriptions"]}'
                 }
                 await broadcast_notification(notification)
@@ -89,7 +89,7 @@ async def check_notifications():
                 notification = {
                     'type': 'new_message',
                     'count': current_counts['messages'],
-                    'sound': 'message.mp3',
+                    'sound': 'message.wav',
                     'message': f'Новое сообщение! Всего новых: {current_counts["messages"]}'
                 }
                 await broadcast_notification(notification)
@@ -115,7 +115,7 @@ async def broadcast_notification(notification):
             return_exceptions=True
         )
 
-async def websocket_handler(websocket, path):
+async def websocket_handler(websocket):
     """Обработчик WebSocket соединений"""
     try:
         # Добавляем клиента в список подключенных

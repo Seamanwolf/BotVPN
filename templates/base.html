@@ -1349,6 +1349,8 @@
         
         // Обработка сообщений от WebSocket
         function handleWebSocketMessage(data) {
+            console.log('Получено WebSocket сообщение:', data);
+            
             if (data.type === 'initial_counts') {
                 // Обновляем счетчики при подключении
                 updateNotificationsToggle('tickets', data.counts.tickets);

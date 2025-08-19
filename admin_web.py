@@ -1333,6 +1333,67 @@ def get_new_tickets():
     except Exception as e:
                     return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/tickets')
+@login_required
+def get_tickets_list():
+    """API для получения списка тикетов"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем ID администратора из текущего пользователя
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                # Для суперадмина получаем его реальный ID из базы
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
+            
+            # Получаем все тикеты с информацией о пользователях и сообщениях
+            tickets = db.query(Ticket).join(User, Ticket.user_id == User.id).all()
+            
+            tickets_data = []
+            for ticket in tickets:
+                # Подсчитываем общее количество сообщений
+                messages_count = db.query(TicketMessage).filter(TicketMessage.ticket_id == ticket.id).count()
+                
+                # Получаем последнее прочитанное сообщение для этого тикета
+                last_read = db.query(AdminReadMessages).filter(
+                    AdminReadMessages.admin_id == admin_id,
+                    AdminReadMessages.ticket_id == ticket.id
+                ).first()
+                
+                last_read_id = last_read.last_read_message_id if last_read else 0
+                
+                # Подсчитываем непрочитанные сообщения
+                new_messages_count = db.query(TicketMessage).filter(
+                    TicketMessage.ticket_id == ticket.id,
+                    TicketMessage.id > last_read_id
+                ).count()
+                
+                tickets_data.append({
+                    'id': ticket.id,
+                    'ticket_number': ticket.ticket_number,
+                    'subject': ticket.subject,
+                    'status': ticket.status,
+                    'user_id': ticket.user_id,
+                    'user_name': ticket.user.full_name or f'Пользователь {ticket.user.telegram_id}',
+                    'messages_count': messages_count,
+                    'new_messages_count': new_messages_count,
+                    'created_at': ticket.created_at.isoformat()
+                })
+            
+            return jsonify({
+                'success': True,
+                'tickets': tickets_data
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/notifications/settings', methods=['GET', 'POST'])
 @login_required
 def notification_settings():

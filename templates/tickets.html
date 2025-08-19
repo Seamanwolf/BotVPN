@@ -260,6 +260,61 @@
 <script>
 let currentTicketId = null;
 
+// Функция для обновления таблицы тикетов в реальном времени
+function updateTicketsTable() {
+    fetch('/api/tickets')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const tbody = document.querySelector('#ticketsTable tbody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    data.tickets.forEach(ticket => {
+                        const row = createTicketRow(ticket);
+                        tbody.appendChild(row);
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при обновлении таблицы тикетов:', error);
+        });
+}
+
+// Функция для создания строки тикета
+function createTicketRow(ticket) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <a href="#" onclick="showUserDetailsModal(${ticket.user_id}, '${ticket.user_name}', 0)" class="user-link">
+                ${ticket.user_name}
+            </a>
+        </td>
+        <td>${ticket.subject}</td>
+        <td>
+            <span class="badge ${ticket.status === 'open' ? 'bg-success' : 'bg-secondary'}">
+                ${ticket.status === 'open' ? 'Открыт' : 'Закрыт'}
+            </span>
+        </td>
+        <td>
+            <span class="messages-count">${ticket.messages_count}</span>
+            ${ticket.new_messages_count > 0 ? `<span class="new-messages-badge">${ticket.new_messages_count}</span>` : ''}
+        </td>
+        <td>${new Date(ticket.created_at).toLocaleDateString()}</td>
+        <td>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-primary" onclick="viewTicketDetails(${ticket.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTicket(${ticket.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    return row;
+}
+
 function viewTicketDetails(ticketId) {
     currentTicketId = ticketId;
     
