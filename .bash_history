@@ -1,35 +1,3 @@
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot_demo.py
-pkill -f bot_demo.py
-ls
-python3 bot.py 
-python3 migrate_db.py
-python3 bot.py
-pkill -f python
-python3 fix_referral_codes.py
-ps aux | grep python
-python3 bot.py
-pkill -f bot
-python3 bot.py
-pkill -f bot
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 migrate_db.py && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 fix_referral_codes.py && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-pkill -f python
 python3 bot.py
 pkill -9 -f python
 python3 bot.py
@@ -1983,3 +1951,50 @@ systemctl status seavpn-admin.service
 curl -I http://localhost:8080
 systemctl reload nginx
 curl -I https://admin.universaltools.pro
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 -c "from database import SessionLocal, AdminNotificationsViewed; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_notifications_viewed (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), notification_type VARCHAR NOT NULL, last_viewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_notifications_viewed создана')"
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены уведомления: убран белый отступ, добавлено отслеживание просмотров, кнопки исчезают после просмотра"
+git push origin master
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+journalctl -u seavpn-admin.service -n 20 --no-pager
+curl -s "http://localhost:8080/api/notifications/count" | python3 -m json.tool
+curl -s "http://localhost:8080/api/notifications/count"
+python3 -c "from database import SessionLocal, Admin; db = SessionLocal(); admins = db.query(Admin).all(); print('Администраторы:'); [print(f'ID: {a.id}, Telegram: {a.telegram_id}, Superadmin: {a.is_superadmin}, Active: {a.is_active}') for a in admins]; db.close()"
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -f --no-pager | head -20
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены отступы и уведомления: убран белый отступ сверху, исправлено исчезновение кнопок после просмотра"
+git push origin master
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 10 --no-pager
+sleep 5 && journalctl -u seavpn-admin.service -n 20 --no-pager
+git add .
+git commit -m "Добавлена подсветка новых пользователей и исправлены отступы: убран белый отступ сверху, добавлена анимация для новых пользователей"
+git push origin master
+journalctl -u seavpn-admin.service -n 20 --no-pager
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+git add admin_web.py
+git commit -m "Исправлена ошибка 500: добавлен timedelta в шаблон users.html"
+git push origin master
+python3 -c "from database import SessionLocal, AdminViewedUsers; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_viewed_users (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), user_id INTEGER REFERENCES users(id), viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_viewed_users создана')"
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Реализована система новых пользователей: перманентная подсветка, исчезновение после просмотра, правильный подсчет в сайдбаре"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Добавлены функции управления монетами и подписками: списание монет, продление подписок, улучшенный интерфейс"
+git push origin master
+journalctl -u seavpn-admin.service -n 20 --no-pager
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+git add admin_web.py
+git commit -m "Исправлена ошибка 502: удалена дублирующаяся функция extend_subscription"
+git push origin master
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 -c "from database import SessionLocal, AdminViewedUsers; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_viewed_users (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), user_id INTEGER REFERENCES users(id), viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_viewed_users создана')"

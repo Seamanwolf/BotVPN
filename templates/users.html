@@ -168,34 +168,6 @@
     </div>
 </div>
 
-<!-- Модальное окно продления подписки -->
-<div class="modal fade" id="extendSubscriptionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Продлить подписку</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="subscriptionSelect" class="form-label">Выберите подписку для продления:</label>
-                    <select class="form-select" id="subscriptionSelect">
-                        <option value="">Загрузка подписок...</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="extendDays" class="form-label">Количество дней для продления:</label>
-                    <input type="number" class="form-control" id="extendDays" placeholder="Введите количество дней" min="1" value="30">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="extendSubscription()">Продлить</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Модальное окно рефералов пользователя -->
 <div class="modal fade" id="userReferralsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -307,7 +279,7 @@ function viewUserDetails(userId) {
             'Content-Type': 'application/json'
         }
     }).then(() => {
-        // Убираем подсветку с строки пользователя
+        // Убираем подсветку с пользователя
         const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
         if (userRow) {
             userRow.classList.remove('new-user-row');
@@ -318,7 +290,12 @@ function viewUserDetails(userId) {
         }
         
         // Обновляем счетчик новых пользователей
-        updateNewUsersCount();
+        const notificationElement = document.getElementById('usersNotification');
+        if (notificationElement) {
+            const currentCount = parseInt(notificationElement.textContent || '0');
+            const newCount = Math.max(0, currentCount - 1);
+            updateNotification('users', newCount);
+        }
     });
     
     fetch(`/api/user/${userId}`)
@@ -346,9 +323,6 @@ function viewUserDetails(userId) {
                                 <button class="btn btn-sm btn-outline-success ms-2" onclick="showAddCoinsForm(${user.id}, ${user.bonus_coins})">
                                     <i class="fas fa-plus"></i> Начислить
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="showRemoveCoinsForm(${user.id}, ${user.bonus_coins})">
-                                    <i class="fas fa-minus"></i> Списать
-                                </button>
                             </div>
                             <div id="addCoinsForm" style="display: none;" class="mb-3 p-2 border rounded">
                                 <div class="mb-2"><strong>Начисление монет</strong></div>
@@ -358,22 +332,14 @@ function viewUserDetails(userId) {
                                 </div>
                                 <small class="text-muted">Текущий баланс: <span id="currentCoinsBalance">0</span> 🪙</small>
                             </div>
-                            <div id="removeCoinsForm" style="display: none;" class="mb-3 p-2 border rounded">
-                                <div class="mb-2"><strong>Списание монет</strong></div>
-                                <div class="input-group mb-2">
-                                    <input type="number" class="form-control" id="removeCoinsAmount" placeholder="Количество монет" min="1">
-                                    <button class="btn btn-danger" onclick="removeCoinsFromUser()">Списать</button>
-                                </div>
-                                <small class="text-muted">Текущий баланс: <span id="currentRemoveCoinsBalance">0</span> 🪙</small>
-                            </div>
                             <p><strong>Реферальный код:</strong> <code>${user.referral_code}</code></p>
                             <p><strong>Приглашен от:</strong> ${user.referred_by || 'Нет'}</p>
                             <p><strong>Количество рефералов:</strong> <span class="badge bg-info">${user.referrals_count || 0} приглашенных</span></p>
                             <p><strong>Первая покупка:</strong> ${user.has_made_first_purchase ? 'Да' : 'Нет'}</p>
                             <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
                             <div class="mt-3">
-                                <button class="btn btn-primary" onclick="showExtendSubscriptionModal(${user.id})">
-                                    <i class="fas fa-clock"></i> Продлить подписку
+                                <button class="btn btn-primary" onclick="showAddSubscriptionModal(${user.id})">
+                                    <i class="fas fa-plus-circle"></i> Добавить подписку
                                 </button>
                             </div>
                         </div>
@@ -682,16 +648,7 @@ function addSubscription() {
 
 function showAddCoinsForm(userId, currentCoins) {
     document.getElementById('addCoinsForm').style.display = 'block';
-    document.getElementById('removeCoinsForm').style.display = 'none';
     document.getElementById('currentCoinsBalance').textContent = currentCoins;
-    currentUserId = userId;
-    currentUserCoins = currentCoins;
-}
-
-function showRemoveCoinsForm(userId, currentCoins) {
-    document.getElementById('removeCoinsForm').style.display = 'block';
-    document.getElementById('addCoinsForm').style.display = 'none';
-    document.getElementById('currentRemoveCoinsBalance').textContent = currentCoins;
     currentUserId = userId;
     currentUserCoins = currentCoins;
 }
@@ -745,63 +702,6 @@ function addCoinsToUser() {
     .catch(error => {
         console.error('Error:', error);
         showError('Произошла ошибка при начислении монет');
-    });
-}
-
-function removeCoinsFromUser() {
-    const coinsAmount = parseInt(document.getElementById('removeCoinsAmount').value);
-    
-    if (!coinsAmount || coinsAmount <= 0) {
-        showError('Пожалуйста, введите положительное количество монет');
-        return;
-    }
-    
-    if (coinsAmount > currentUserCoins) {
-        showError('Нельзя списать больше монет, чем у пользователя');
-        return;
-    }
-    
-    fetch(`/api/user/${currentUserId}/remove_coins`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ coins: coinsAmount })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Обновляем отображение монет
-            document.getElementById('userCoinsDisplay').textContent = `${data.new_balance} 🪙`;
-            document.getElementById('currentRemoveCoinsBalance').textContent = data.new_balance;
-            
-            // Скрываем форму
-            document.getElementById('removeCoinsForm').style.display = 'none';
-            
-            // Сбрасываем поле ввода
-            document.getElementById('removeCoinsAmount').value = '';
-            
-            // Обновляем текущее значение монет
-            currentUserCoins = data.new_balance;
-            
-            // Показываем сообщение об успехе
-            showSuccess(data.message);
-            
-            // Обновляем отображение монет в таблице пользователей
-            const userRow = document.querySelector(`#usersTable tr[data-user-id="${currentUserId}"]`);
-            if (userRow) {
-                const coinsBadge = userRow.querySelector('.coins-badge');
-                if (coinsBadge) {
-                    coinsBadge.textContent = `${data.new_balance} 🪙`;
-                }
-            }
-        } else {
-            showError('Ошибка: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showError('Произошла ошибка при списании монет');
     });
 }
 
@@ -1076,6 +976,12 @@ document.head.insertAdjacentHTML('beforeend', `
             border-left: 4px solid #48bb78 !important;
         }
         
+        .new-user-row:hover {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%) !important;
+            transform: scale(1.005);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
         [data-theme="dark"] .new-user-row {
             background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%) !important;
             border-left: 4px solid #48bb78;
@@ -1229,88 +1135,6 @@ document.head.insertAdjacentHTML('beforeend', `
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        // Функция для обновления счетчика новых пользователей
-        function updateNewUsersCount() {
-            fetch('/api/notifications/count')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        updateNotification('users', data.users || 0);
-                        updateNotificationsToggle('users', data.users || 0);
-                    }
-                });
-        }
-        
-        // Функция для показа модального окна продления подписки
-        function showExtendSubscriptionModal(userId) {
-            currentUserId = userId;
-            
-            // Загружаем подписки пользователя
-            fetch(`/api/user/${userId}/subscriptions`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const select = document.getElementById('subscriptionSelect');
-                        select.innerHTML = '<option value="">Выберите подписку...</option>';
-                        
-                        if (data.subscriptions.length > 0) {
-                            data.subscriptions.forEach(sub => {
-                                const option = document.createElement('option');
-                                option.value = sub.id;
-                                option.textContent = `${sub.plan_name} (${sub.status}) - до ${sub.expires_at || 'не указано'}`;
-                                select.appendChild(option);
-                            });
-                        } else {
-                            select.innerHTML = '<option value="">У пользователя нет подписок</option>';
-                        }
-                        
-                        new bootstrap.Modal(document.getElementById('extendSubscriptionModal')).show();
-                    } else {
-                        showError('Ошибка при загрузке подписок');
-                    }
-                });
-        }
-        
-        // Функция для продления подписки
-        function extendSubscription() {
-            const subscriptionId = document.getElementById('subscriptionSelect').value;
-            const days = parseInt(document.getElementById('extendDays').value);
-            
-            if (!subscriptionId) {
-                showError('Пожалуйста, выберите подписку');
-                return;
-            }
-            
-            if (!days || days <= 0) {
-                showError('Пожалуйста, введите положительное количество дней');
-                return;
-            }
-            
-            fetch(`/api/subscription/${subscriptionId}/extend`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ days: days })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showSuccess(data.message);
-                    bootstrap.Modal.getInstance(document.getElementById('extendSubscriptionModal')).hide();
-                    
-                    // Обновляем отображение подписок в таблице
-                    refreshUsers();
-                } else {
-                    showError('Ошибка: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Произошла ошибка при продлении подписки');
-            });
         }
     </style>
 `);
