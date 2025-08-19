@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed
 from config import ADMIN_IDS
 from xui_client import XUIClient
 
@@ -243,45 +243,6 @@ def get_user_details(user_id):
             return jsonify({'success': False, 'message': 'Пользователь не найден'})
     finally:
         db.close()
-
-@app.route('/api/user/<int:user_id>/coins', methods=['POST'])
-@login_required
-def manage_user_coins(user_id):
-    """API для управления монетами пользователя"""
-    try:
-        data = request.json
-        action = data.get('action')  # 'add' или 'subtract'
-        amount = data.get('amount', 0)
-        
-        if not action or amount <= 0:
-            return jsonify({'success': False, 'error': 'Неверные параметры'})
-        
-        db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.id == user_id).first()
-            if not user:
-                return jsonify({'success': False, 'error': 'Пользователь не найден'})
-            
-            if action == 'add':
-                user.bonus_coins += amount
-            elif action == 'subtract':
-                if user.bonus_coins < amount:
-                    return jsonify({'success': False, 'error': 'Недостаточно монет'})
-                user.bonus_coins -= amount
-            else:
-                return jsonify({'success': False, 'error': 'Неверное действие'})
-            
-            db.commit()
-            
-            return jsonify({
-                'success': True,
-                'new_balance': user.bonus_coins,
-                'message': f'Монеты успешно {"начислены" if action == "add" else "списаны"}'
-            })
-        finally:
-            db.close()
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/user/<int:user_id>/subscriptions')
 @login_required
@@ -926,9 +887,6 @@ def get_ticket_details(ticket_id):
                     'sender_name': sender_name,
                     'sender_type': msg.sender_type,
                     'message': msg.message,
-                    'attachment_type': msg.attachment_type,
-                    'attachment_file_id': msg.attachment_file_id,
-                    'attachment_url': msg.attachment_url,
                     'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
                 })
             
@@ -1230,22 +1188,43 @@ def get_notifications_count():
     try:
         db = SessionLocal()
         try:
-            # Получаем количество новых тикетов (за последние 24 часа)
-            yesterday = datetime.utcnow() - timedelta(days=1)
-            new_tickets = db.query(Ticket).filter(Ticket.created_at >= yesterday).count()
+            admin_id = session.get('admin_id')
+            if not admin_id:
+                return jsonify({'success': False, 'error': 'Не авторизован'})
             
-            # Получаем количество новых пользователей (за последние 24 часа)
-            new_users = db.query(User).filter(User.created_at >= yesterday).count()
+            # Получаем время последнего просмотра для каждого типа уведомлений
+            tickets_viewed = db.query(AdminNotificationsViewed).filter(
+                AdminNotificationsViewed.admin_id == admin_id,
+                AdminNotificationsViewed.notification_type == 'tickets'
+            ).first()
             
-            # Получаем количество новых подписок (за последние 24 часа)
-            new_subscriptions = db.query(Subscription).filter(Subscription.created_at >= yesterday).count()
+            users_viewed = db.query(AdminNotificationsViewed).filter(
+                AdminNotificationsViewed.admin_id == admin_id,
+                AdminNotificationsViewed.notification_type == 'users'
+            ).first()
+            
+            subscriptions_viewed = db.query(AdminNotificationsViewed).filter(
+                AdminNotificationsViewed.admin_id == admin_id,
+                AdminNotificationsViewed.notification_type == 'subscriptions'
+            ).first()
+            
+            # Получаем количество новых тикетов с момента последнего просмотра
+            tickets_since = tickets_viewed.last_viewed if tickets_viewed else datetime.utcnow() - timedelta(days=30)
+            new_tickets = db.query(Ticket).filter(Ticket.created_at >= tickets_since).count()
+            
+            # Получаем количество новых пользователей с момента последнего просмотра
+            users_since = users_viewed.last_viewed if users_viewed else datetime.utcnow() - timedelta(days=30)
+            new_users = db.query(User).filter(User.created_at >= users_since).count()
+            
+            # Получаем количество новых подписок с момента последнего просмотра
+            subscriptions_since = subscriptions_viewed.last_viewed if subscriptions_viewed else datetime.utcnow() - timedelta(days=30)
+            new_subscriptions = db.query(Subscription).filter(Subscription.created_at >= subscriptions_since).count()
             
             return jsonify({
                 'success': True,
                 'tickets': new_tickets,
                 'users': new_users,
-                'subscriptions': new_subscriptions,
-                'yesterday': yesterday.isoformat()
+                'subscriptions': new_subscriptions
             })
         finally:
             db.close()
@@ -1260,9 +1239,34 @@ def mark_notifications_viewed():
         data = request.json
         notification_type = data.get('type')  # 'tickets', 'users', 'subscriptions'
         
-        # Здесь можно добавить логику для сохранения времени последнего просмотра
-        # Пока просто возвращаем успех
-        return jsonify({'success': True})
+        if not notification_type:
+            return jsonify({'success': False, 'error': 'Тип уведомления не указан'})
+        
+        db = SessionLocal()
+        try:
+            admin_id = session.get('admin_id')
+            if not admin_id:
+                return jsonify({'success': False, 'error': 'Не авторизован'})
+            
+            # Обновляем или создаем запись о просмотре
+            viewed_record = db.query(AdminNotificationsViewed).filter(
+                AdminNotificationsViewed.admin_id == admin_id,
+                AdminNotificationsViewed.notification_type == notification_type
+            ).first()
+            
+            if viewed_record:
+                viewed_record.last_viewed = datetime.utcnow()
+            else:
+                viewed_record = AdminNotificationsViewed(
+                    admin_id=admin_id,
+                    notification_type=notification_type
+                )
+                db.add(viewed_record)
+            
+            db.commit()
+            return jsonify({'success': True, 'message': 'Уведомления отмечены как просмотренные'})
+        finally:
+            db.close()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 

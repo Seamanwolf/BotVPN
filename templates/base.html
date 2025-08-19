@@ -1160,16 +1160,25 @@
                     if (data.success) {
                         let content = '';
                         if (data.tickets > 0) {
-                            content = `<p>У вас ${data.tickets} новых тикетов за последние 24 часа.</p>`;
+                            content = `<p>У вас ${data.tickets} новых тикетов с момента последнего просмотра.</p>`;
                         } else {
                             content = '<p class="text-muted">Новых тикетов нет</p>';
                         }
                         document.getElementById('newTicketsContent').innerHTML = content;
-                        const modal = new bootstrap.Modal(document.getElementById('newTicketsModal'));
-                        modal.show();
+                        new bootstrap.Modal(document.getElementById('newTicketsModal')).show();
                         
-                        // Обновляем счетчик после просмотра
-                        updateNotificationsToggle('tickets', 0);
+                        // Отмечаем как просмотренные
+                        if (data.tickets > 0) {
+                            fetch('/api/notifications/mark-viewed', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ type: 'tickets' })
+                            }).then(() => {
+                                updateNotificationsToggle('tickets', 0);
+                            });
+                        }
                     }
                 });
         }
@@ -1181,16 +1190,25 @@
                     if (data.success) {
                         let content = '';
                         if (data.users > 0) {
-                            content = `<p>Зарегистрировано ${data.users} новых пользователей за последние 24 часа.</p>`;
+                            content = `<p>Зарегистрировано ${data.users} новых пользователей с момента последнего просмотра.</p>`;
                         } else {
                             content = '<p class="text-muted">Новых пользователей нет</p>';
                         }
                         document.getElementById('newUsersContent').innerHTML = content;
-                        const modal = new bootstrap.Modal(document.getElementById('newUsersModal'));
-                        modal.show();
+                        new bootstrap.Modal(document.getElementById('newUsersModal')).show();
                         
-                        // Обновляем счетчик после просмотра
-                        updateNotificationsToggle('users', 0);
+                        // Отмечаем как просмотренные
+                        if (data.users > 0) {
+                            fetch('/api/notifications/mark-viewed', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ type: 'users' })
+                            }).then(() => {
+                                updateNotificationsToggle('users', 0);
+                            });
+                        }
                     }
                 });
         }
@@ -1202,12 +1220,25 @@
                     if (data.success) {
                         let content = '';
                         if (data.subscriptions > 0) {
-                            content = `<p>Активировано ${data.subscriptions} новых подписок за последние 24 часа.</p>`;
+                            content = `<p>Активировано ${data.subscriptions} новых подписок с момента последнего просмотра.</p>`;
                         } else {
                             content = '<p class="text-muted">Новых подписок нет</p>';
                         }
                         document.getElementById('newSubscriptionsContent').innerHTML = content;
                         new bootstrap.Modal(document.getElementById('newSubscriptionsModal')).show();
+                        
+                        // Отмечаем как просмотренные
+                        if (data.subscriptions > 0) {
+                            fetch('/api/notifications/mark-viewed', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ type: 'subscriptions' })
+                            }).then(() => {
+                                updateNotificationsToggle('subscriptions', 0);
+                            });
+                        }
                     }
                 });
         }

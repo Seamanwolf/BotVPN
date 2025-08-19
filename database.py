@@ -174,3 +174,14 @@ class AdminReadMessages(Base):
     admin = relationship("Admin", backref="read_messages")
     ticket = relationship("Ticket", backref="admin_reads")
     last_message = relationship("TicketMessage")
+
+class AdminNotificationsViewed(Base):
+    __tablename__ = "admin_notifications_viewed"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("admins.id"), nullable=False)
+    notification_type = Column(String(50), nullable=False)  # 'tickets', 'users', 'subscriptions'
+    last_viewed = Column(DateTime, default=datetime.utcnow)
+    
+    # Отношения
+    admin = relationship("Admin", backref="notifications_viewed")
