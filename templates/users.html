@@ -169,7 +169,7 @@
 </div>
 
 <!-- Модальное окно продления подписок -->
-<div class="modal fade" id="extendSubscriptionModal" tabindex="-1">
+<div class="modal fade" id="extendSubscriptionModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -745,22 +745,23 @@ function showExtendSubscriptionModal(userId) {
                                 <td><span class="badge ${statusClass}">${sub.status}</span></td>
                                 <td>${dateDisplay}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button class="btn btn-outline-success" onclick="extendSubscription(${sub.id}, 1)" title="+1 день">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="extendSubscription(${sub.id}, 7)" title="+7 дней">
-                                            +7
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="extendSubscription(${sub.id}, 30)" title="+30 дней">
-                                            +30
-                                        </button>
-                                        <button class="btn btn-outline-danger" onclick="extendSubscription(${sub.id}, -1)" title="-1 день">
-                                            <i class="fas fa-minus"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger" onclick="extendSubscription(${sub.id}, -7)" title="-7 дней">
-                                            -7
-                                        </button>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control form-control-sm" id="addDays_${sub.id}" placeholder="Дни" min="1" style="height: 30px;">
+                                                <button class="btn btn-outline-success btn-sm" onclick="extendSubscription(${sub.id}, parseInt(document.getElementById('addDays_${sub.id}').value || 0))" style="height: 30px; padding: 0.25rem 0.5rem;" title="Добавить дни">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control form-control-sm" id="removeDays_${sub.id}" placeholder="Дни" min="1" style="height: 30px;">
+                                                <button class="btn btn-outline-danger btn-sm" onclick="extendSubscription(${sub.id}, -parseInt(document.getElementById('removeDays_${sub.id}').value || 0))" style="height: 30px; padding: 0.25rem 0.5rem;" title="Удалить дни">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -894,6 +895,11 @@ function removeCoinsFromUser() {
 }
 
 function extendSubscription(subscriptionId, days) {
+    if (days === 0) {
+        showError('Пожалуйста, введите количество дней');
+        return;
+    }
+    
     const action = days > 0 ? 'продлена' : 'сокращена';
     const daysText = Math.abs(days);
     
@@ -909,11 +915,9 @@ function extendSubscription(subscriptionId, days) {
         .then(data => {
             if (data.success) {
                 showSuccess(data.message);
-                // Обновляем модальное окно
-                const modal = bootstrap.Modal.getInstance(document.getElementById('extendSubscriptionModal'));
-                if (modal) {
-                    modal.hide();
-                }
+                // Очищаем поля ввода
+                document.getElementById(`addDays_${subscriptionId}`).value = '';
+                document.getElementById(`removeDays_${subscriptionId}`).value = '';
                 // Перезагружаем данные пользователя
                 if (currentUserId) {
                     viewUserDetails(currentUserId);
