@@ -86,7 +86,12 @@
                             <td>{{ ticket.ticket_number }}</td>
                             <td>
                                 {% if ticket.user %}
-                                <a href="#" onclick="viewUserDetails({{ ticket.user.id }})">{{ ticket.user.full_name }}</a>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ ticket.user.full_name }}</span>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewUserDetails({{ ticket.user.id }})" title="Просмотреть пользователя">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                                 {% else %}
                                 Неизвестный пользователь
                                 {% endif %}
@@ -108,15 +113,20 @@
                             <td>{{ ticket.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ ticket.messages|length }}</td>
                             <td>
-                                <button class="btn btn-sm btn-primary" onclick="viewTicketDetails({{ ticket.id }})">
+                                <button class="btn btn-sm btn-primary" onclick="viewTicketDetails({{ ticket.id }})" title="Просмотреть">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 {% if ticket.status == 'open' %}
-                                <button class="btn btn-sm btn-success" onclick="replyToTicket({{ ticket.id }})">
+                                <button class="btn btn-sm btn-success" onclick="replyToTicket({{ ticket.id }})" title="Ответить">
                                     <i class="fas fa-reply"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="closeTicket({{ ticket.id }})">
+                                <button class="btn btn-sm btn-danger" onclick="closeTicket({{ ticket.id }})" title="Закрыть">
                                     <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                                {% if session.get('is_superadmin') %}
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTicket({{ ticket.id }})" title="Удалить тикет">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                                 {% endif %}
                             </td>
@@ -192,6 +202,32 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="button" class="btn btn-danger" onclick="confirmCloseTicket()">Закрыть тикет</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно удаления тикета -->
+<div class="modal fade" id="deleteTicketModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление тикета</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteTicketId" value="">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Внимание!</strong> Это действие нельзя отменить. Тикет будет удален навсегда.
+                </div>
+                <p>Вы действительно хотите удалить этот тикет?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteTicket()">
+                    <i class="fas fa-trash me-1"></i>Удалить тикет
+                </button>
             </div>
         </div>
     </div>
@@ -474,6 +510,46 @@ function clearFilters() {
     applyFilters();
 }
 
+function deleteTicket(ticketId) {
+    document.getElementById('deleteTicketId').value = ticketId;
+    new bootstrap.Modal(document.getElementById('deleteTicketModal')).show();
+}
+
+function confirmDeleteTicket() {
+    const ticketId = document.getElementById('deleteTicketId').value;
+    
+    fetch(`/api/ticket/${ticketId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTicketModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Показываем сообщение об успехе
+            showToast('Тикет успешно удален', 'success');
+            
+            // Обновляем таблицу тикетов
+            setTimeout(() => {
+                refreshTickets();
+            }, 1000);
+        } else {
+            showToast(`Ошибка: ${data.error || 'Неизвестная ошибка'}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Произошла ошибка при удалении тикета', 'error');
+    });
+}
+
 // Функция для просмотра деталей пользователя
 function viewUserDetails(userId) {
     // Перенаправляем на страницу пользователей с открытием деталей пользователя
@@ -490,35 +566,36 @@ document.head.insertAdjacentHTML('beforeend', `
     <style>
         /* Улучшенные стили для фильтров */
         .filter-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e40af;
             color: white;
         }
         
         .filter-card .card-body {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border-radius: 1rem;
+            border-radius: 0.75rem;
         }
         
         .search-input:focus {
-            border-color: #3a86ff;
-            box-shadow: 0 0 0 0.2rem rgba(58, 134, 255, 0.25);
+            border-color: #1e40af;
+            box-shadow: 0 0 0 0.2rem rgba(30, 64, 175, 0.25);
         }
         
         .filter-btn {
-            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            background: #1e40af;
             border: none;
             transition: all 0.3s ease;
         }
         
         .filter-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         /* Улучшенные стили для таблицы */
         .tickets-table-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: #0f766e;
         }
         
         .tickets-table-card .card-body {
@@ -527,12 +604,12 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .tickets-table {
-            border-radius: 1rem;
+            border-radius: 0.75rem;
             overflow: hidden;
         }
         
         .tickets-table thead th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e40af;
             color: white;
             border: none;
             font-weight: 600;
@@ -546,10 +623,10 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .tickets-table tbody tr:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e40af;
             color: white;
-            transform: scale(1.01);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: scale(1.005);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .tickets-table tbody tr:hover .badge {
@@ -688,17 +765,17 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            background: #1e40af;
             border: none;
         }
         
         .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #059669;
             border: none;
         }
         
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            background: #dc2626;
             border: none;
         }
         
