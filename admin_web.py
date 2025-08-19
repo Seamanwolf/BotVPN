@@ -141,7 +141,9 @@ def users():
         for user in users:
             user.referrals_count = db.query(User).filter(User.referred_by == user.id).count()
         
-        return render_template('users.html', users=users, subscriptions=subscriptions)
+        from datetime import timedelta
+        now = datetime.utcnow()
+        return render_template('users.html', users=users, subscriptions=subscriptions, now=now, timedelta=timedelta)
     finally:
         db.close()
 
