@@ -1407,33 +1407,6 @@ def remove_coins_from_user(user_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/subscription/<int:subscription_id>/extend', methods=['POST'])
-@login_required
-def extend_subscription(subscription_id):
-    """API для продления подписки"""
-    try:
-        days = request.json.get('days', 0)
-        if days <= 0:
-            return jsonify({'success': False, 'message': 'Количество дней должно быть больше 0'})
-        
-        db = SessionLocal()
-        try:
-            subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
-            if subscription:
-                if subscription.expires_at:
-                    subscription.expires_at += timedelta(days=days)
-                else:
-                    subscription.expires_at = datetime.utcnow() + timedelta(days=days)
-                
-                db.commit()
-                return jsonify({'success': True, 'message': f'Подписка продлена на {days} дней'})
-            else:
-                return jsonify({'success': False, 'message': 'Подписка не найдена'})
-        finally:
-            db.close()
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
-
 @app.route('/api/notifications/new-messages')
 @login_required
 def get_new_messages_count():
