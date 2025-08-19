@@ -88,7 +88,7 @@
                                 {% if ticket.user %}
                                 <div class="d-flex align-items-center">
                                     <span class="me-2">{{ ticket.user.full_name }}</span>
-                                    <button class="btn btn-sm btn-outline-info" onclick="viewUserDetails({{ ticket.user.id }})" title="Просмотреть пользователя">
+                                    <button class="btn btn-sm btn-outline-info user-details-btn" onclick="showUserDetailsModal({{ ticket.user.id }}, '{{ ticket.user.full_name }}', {{ ticket.user.telegram_id }})" title="Просмотреть пользователя">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -233,6 +233,27 @@
     </div>
 </div>
 
+<!-- Модальное окно деталей пользователя -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Информация о пользователе</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userDetailsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="goToUserBtn">
+                    <i class="fas fa-external-link-alt me-1"></i>Перейти к пользователю
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentTicketId = null;
 
@@ -248,7 +269,7 @@ function viewTicketDetails(ticketId) {
                 
                 let content = `
                     <div class="ticket-header mb-4">
-                        <div class="card bg-gradient-primary text-white">
+                        <div class="card bg-primary text-white">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col-md-8">
@@ -259,7 +280,7 @@ function viewTicketDetails(ticketId) {
                                         <p class="mb-1"><strong>Тема:</strong> ${ticket.subject}</p>
                                         <p class="mb-0">
                                             <strong>Пользователь:</strong> 
-                                            <a href="#" onclick="viewUserDetails(${ticket.user_id})" class="text-white text-decoration-underline">
+                                            <a href="#" onclick="showUserDetailsModal(${ticket.user_id}, '${ticket.user_name}', 0)" class="text-white text-decoration-underline">
                                                 ${ticket.user_name}
                                             </a>
                                         </p>
@@ -550,6 +571,50 @@ function confirmDeleteTicket() {
     });
 }
 
+function showUserDetailsModal(userId, userName, telegramId) {
+    // Загружаем данные пользователя
+    fetch(`/api/user/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const user = data.user;
+                let content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>ID:</strong> ${user.id}</p>
+                            <p><strong>Имя:</strong> ${user.full_name || 'Не указано'}</p>
+                            <p><strong>Telegram ID:</strong> ${user.telegram_id}</p>
+                            <p><strong>Email:</strong> ${user.email || 'Не указан'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Монеты:</strong> <span class="badge bg-warning">${user.bonus_coins} 🪙</span></p>
+                            <p><strong>Рефералы:</strong> <span class="badge bg-info">${user.referrals_count || 0}</span></p>
+                            <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+                            <p><strong>Статус:</strong> <span class="badge bg-success">Активен</span></p>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('userDetailsContent').innerHTML = content;
+                
+                // Настраиваем кнопку перехода к пользователю
+                const goToUserBtn = document.getElementById('goToUserBtn');
+                goToUserBtn.onclick = function() {
+                    window.location.href = `/users?open_user=${userId}`;
+                };
+                
+                // Показываем модальное окно
+                new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+            } else {
+                showToast('Ошибка при загрузке данных пользователя', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Произошла ошибка при загрузке данных пользователя', 'error');
+        });
+}
+
 // Функция для просмотра деталей пользователя
 function viewUserDetails(userId) {
     // Перенаправляем на страницу пользователей с открытием деталей пользователя
@@ -576,6 +641,11 @@ document.head.insertAdjacentHTML('beforeend', `
             border-radius: 0.75rem;
         }
         
+        .search-input {
+            height: 38px;
+            font-size: 0.875rem;
+        }
+        
         .search-input:focus {
             border-color: #1e40af;
             box-shadow: 0 0 0 0.2rem rgba(30, 64, 175, 0.25);
@@ -585,12 +655,29 @@ document.head.insertAdjacentHTML('beforeend', `
             background: #1e40af;
             border: none;
             transition: all 0.3s ease;
+            height: 38px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
         }
         
         .filter-btn:hover {
             background: #1d4ed8;
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-outline-secondary {
+            height: 38px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-color: white;
+            color: white;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: white;
+            color: #1e40af;
+            border-color: white;
         }
         
         /* Улучшенные стили для таблицы */
@@ -623,14 +710,14 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .tickets-table tbody tr:hover {
-            background: #1e40af;
-            color: white;
+            background: rgba(30, 64, 175, 0.1);
+            color: var(--text-primary);
             transform: scale(1.005);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .tickets-table tbody tr:hover .badge {
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: var(--primary-color) !important;
             color: white !important;
         }
         
@@ -647,7 +734,7 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .user-message .message-body {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            background: #e3f2fd;
             border: none;
             border-radius: 0 1rem 1rem 0;
         }
@@ -657,7 +744,7 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .admin-message .message-body {
-            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            background: #e8f5e8;
             border: none;
             border-radius: 0 1rem 1rem 0;
         }
@@ -667,7 +754,7 @@ document.head.insertAdjacentHTML('beforeend', `
         }
         
         .system-message .message-body {
-            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            background: #fff3e0;
             border: none;
             border-radius: 0 1rem 1rem 0;
             font-style: italic;
@@ -779,6 +866,46 @@ document.head.insertAdjacentHTML('beforeend', `
             border: none;
         }
         
+        /* Темная тема */
+        [data-theme="dark"] .tickets-table-card .card-body {
+            background: rgba(30, 41, 59, 0.95);
+        }
+        
+        [data-theme="dark"] .tickets-table {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .tickets-table tbody tr {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .tickets-table tbody tr:hover {
+            background: rgba(30, 64, 175, 0.2);
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .tickets-table tbody td {
+            border-color: #334155;
+        }
+        
+        [data-theme="dark"] .modal-content {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+        
+        [data-theme="dark"] .modal-header {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-bottom-color: #334155;
+        }
+        
+        [data-theme="dark"] .modal-footer {
+            background-color: #0f172a;
+            border-top-color: #334155;
+        }
+        
         /* Дополнительные градиенты */
         .bg-gradient-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
@@ -810,10 +937,17 @@ document.head.insertAdjacentHTML('beforeend', `
         /* Анимация для кнопок действий */
         .btn-sm {
             transition: all 0.2s ease;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
         }
         
         .btn-sm:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
+        }
+        
+        .user-details-btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
         }
     </style>
 `);
