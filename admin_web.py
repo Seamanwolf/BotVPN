@@ -1284,6 +1284,55 @@ def get_notifications_count():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/notifications/new-tickets')
+@login_required
+def get_new_tickets():
+    """API для получения списка новых тикетов"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем ID администратора из текущего пользователя
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                # Для суперадмина получаем его реальный ID из базы
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
+            
+            # Получаем время последнего просмотра тикетов
+            tickets_viewed = db.query(AdminNotificationsViewed).filter(
+                AdminNotificationsViewed.admin_id == admin_id,
+                AdminNotificationsViewed.notification_type == 'tickets'
+            ).first()
+            
+            tickets_since = tickets_viewed.last_viewed if tickets_viewed else datetime.utcnow() - timedelta(days=30)
+            
+            # Получаем новые тикеты с информацией о пользователях
+            new_tickets = db.query(Ticket).join(User, Ticket.user_id == User.id).filter(
+                Ticket.created_at >= tickets_since
+            ).all()
+            
+            tickets_data = []
+            for ticket in new_tickets:
+                tickets_data.append({
+                    'id': ticket.id,
+                    'subject': ticket.subject,
+                    'user_name': ticket.user.full_name or f'Пользователь {ticket.user.telegram_id}',
+                    'created_at': ticket.created_at.strftime('%d.%m.%Y %H:%M')
+                })
+            
+            return jsonify({
+                'success': True,
+                'tickets': tickets_data
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/notifications/mark-viewed', methods=['POST'])
 @login_required
 def mark_notifications_viewed():
