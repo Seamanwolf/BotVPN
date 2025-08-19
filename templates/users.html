@@ -14,29 +14,49 @@
     </div>
 
     <!-- Фильтры -->
-    <div class="card mb-4">
+    <div class="card mb-4 filter-card">
         <div class="card-body">
-            <div class="row">
+            <div class="row g-3">
                 <div class="col-md-3">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Поиск по имени или email...">
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control search-input" id="searchInput" placeholder="Поиск по имени или email...">
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select" id="statusFilter">
-                        <option value="">Все статусы</option>
-                        <option value="active">Активные</option>
-                        <option value="inactive">Неактивные</option>
-                    </select>
+                    <div class="input-group">
+                        <span class="input-group-text bg-success text-white">
+                            <i class="fas fa-toggle-on"></i>
+                        </span>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">Все статусы</option>
+                            <option value="active">Активные</option>
+                            <option value="inactive">Неактивные</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select" id="subscriptionFilter">
-                        <option value="">Все подписки</option>
-                        <option value="has_subscription">С подпиской</option>
-                        <option value="no_subscription">Без подписки</option>
-                    </select>
+                    <div class="input-group">
+                        <span class="input-group-text bg-info text-white">
+                            <i class="fas fa-credit-card"></i>
+                        </span>
+                        <select class="form-select" id="subscriptionFilter">
+                            <option value="">Все подписки</option>
+                            <option value="has_subscription">С подпиской</option>
+                            <option value="no_subscription">Без подписки</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-outline-secondary" onclick="applyFilters()">
+                    <button class="btn btn-primary filter-btn" onclick="applyFilters()">
                         <i class="fas fa-filter"></i> Применить
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Очистить
                     </button>
                 </div>
             </div>
@@ -44,10 +64,10 @@
     </div>
 
     <!-- Таблица пользователей -->
-    <div class="card">
+    <div class="card users-table-card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped" id="usersTable">
+                <table class="table table-hover users-table" id="usersTable">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -684,6 +704,13 @@ function applyFilters() {
     });
 }
 
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('subscriptionFilter').value = '';
+    applyFilters();
+}
+
 // Применяем фильтры при вводе
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('statusFilter').addEventListener('change', applyFilters);
@@ -810,5 +837,132 @@ function viewUserTickets(userId, telegramId) {
             showError('Произошла ошибка при загрузке тикетов пользователя');
         });
 }
+
+// Добавляем улучшенные стили
+document.head.insertAdjacentHTML('beforeend', `
+    <style>
+        /* Улучшенные стили для фильтров */
+        .filter-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .filter-card .card-body {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+        }
+        
+        .search-input:focus {
+            border-color: #3a86ff;
+            box-shadow: 0 0 0 0.2rem rgba(58, 134, 255, 0.25);
+        }
+        
+        .filter-btn {
+            background: linear-gradient(135deg, #3a86ff 0%, #8338ec 100%);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Улучшенные стили для таблицы пользователей */
+        .users-table-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .users-table-card .card-body {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        .users-table {
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        
+        .users-table thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .users-table tbody tr {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .users-table tbody tr:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.01);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .users-table tbody tr:hover .badge {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
+        }
+        
+        /* Улучшенные бейджи */
+        .coins-badge {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+            color: white !important;
+            font-weight: 600;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+        }
+        
+        .badge {
+            font-weight: 500;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+        }
+        
+        /* Улучшенные кнопки действий */
+        .btn-sm {
+            transition: all 0.2s ease;
+            border-radius: 0.5rem;
+        }
+        
+        .btn-sm:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Улучшенные модальные окна */
+        .modal-content {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 1rem 1rem 0 0;
+        }
+        
+        .modal-footer {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 0 0 1rem 1rem;
+        }
+        
+        /* Анимации */
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+`);
 </script>
 {% endblock %}
