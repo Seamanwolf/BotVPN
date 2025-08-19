@@ -387,12 +387,6 @@ function viewTicketDetails(ticketId) {
             
             // Отмечаем тикет как прочитанный
             markTicketAsRead(ticketId);
-            
-            // Убираем подсветку с просмотренного тикета
-            const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
-            if (ticketRow) {
-                ticketRow.classList.remove('new-item');
-            }
             } else {
                 showError('Ошибка при загрузке данных тикета');
             }
@@ -1159,30 +1153,6 @@ document.head.insertAdjacentHTML('beforeend', `
         
         [data-theme="dark"] .message-attachment {
             background: rgba(255, 255, 255, 0.1);
-        }
-        
-        /* Подсветка новых записей */
-        .new-item {
-            background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%) !important;
-            border-left: 4px solid #22c55e !important;
-            animation: newItemPulse 2s ease-in-out infinite;
-        }
-        
-        .new-item:hover {
-            background: linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
-        }
-        
-        @keyframes newItemPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-        
-        [data-theme="dark"] .new-item {
-            background: linear-gradient(90deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%) !important;
-        }
-        
-        [data-theme="dark"] .new-item:hover {
-            background: linear-gradient(90deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.15) 100%) !important;
         }
     </style>
 `);

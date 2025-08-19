@@ -1835,3 +1835,151 @@ pkill -9 -f "python3 /root/admin_web.py" && pkill -9 -f "python3 /root/support_b
 ld
 ls
 sudo nano xui_client.py 
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+git status
+git add admin_web.py templates/ migrations/ support_bot/ .dockerignore
+git add templates/tickets.html
+git commit -m "Улучшен дизайн страницы тикетов: добавлены современные стили, градиенты, анимации и улучшенная UX"
+git push origin master
+git add templates/users.html templates/subscriptions.html
+git commit -m "Улучшен дизайн страниц пользователей и подписок: добавлены современные стили, градиенты и улучшенная UX"
+git push origin master
+git add templates/dashboard.html
+git commit -m "Улучшен дизайн дашборда: добавлены современные градиенты, анимации и улучшенная визуализация статистики"
+git push origin master
+git status
+systemctl status admin_web
+systemctl list-units --type=service | grep -i web
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+git add templates/base.html templates/tickets.html
+git commit -m "Обновлен дизайн: морская цветовая схема, уменьшены размеры, добавлены уведомления и кнопка удаления тикетов для суперадмина"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/tickets.html
+git commit -m "Исправлены стили тикетов: светлое выделение строк, уменьшены поля ввода, добавлена темная тема, модальное окно пользователя, убраны градиенты"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/tickets.html
+git commit -m "Улучшен интерфейс тикетов: уменьшены поля фильтров, сообщения в стиле Telegram, добавлена темная тема для чата"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/tickets.html templates/users.html templates/subscriptions.html templates/dashboard.html
+git commit -m "Унифицированы стили всех страниц: морская цветовая схема, убраны градиенты, добавлена темная тема, уменьшены размеры элементов"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/tickets.html templates/users.html templates/subscriptions.html
+git commit -m "Исправлены фильтры и модальные окна: уменьшен шрифт в селектах, обновлены стили модальных окон, убраны градиенты"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/tickets.html templates/admins.html
+git commit -m "Исправлена темная тема для таблиц и добавлены стили для страницы администраторов"
+git push origin master
+systemctl restart seavpn-admin.service
+git add templates/tickets.html templates/users.html templates/subscriptions.html templates/dashboard.html
+git commit -m "Исправлена темная тема для всех страниц и кнопка удаления тикета теперь видна всем администраторам"
+git push origin master
+systemctl restart seavpn-admin.service
+git add admin_web.py
+git commit -m "Добавлен API endpoint для удаления тикетов с уведомлением пользователя в боте"
+git push origin master
+systemctl restart seavpn-admin.service
+git add database.py admin_web.py templates/tickets.html templates/base.html
+git commit -m "Добавлена система отслеживания новых сообщений: убрано уведомление об удалении, добавлена таблица AdminReadMessages, API для новых сообщений, иконка в навигации, модальное окно с новыми сообщениями"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Полное обновление проекта: система уведомлений, темная тема, стили всех страниц"
+git push origin master
+git add database.py admin_web.py templates/tickets.html templates/base.html
+git commit -m "Исправлены уведомления и добавлена поддержка вложений: убрана кнопка из боковой панели, добавлена кнопка новых сообщений рядом с темной темой, поддержка фото/видео/документов в тикетах"
+git push origin master
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+python3 -c "from database import SessionLocal, TicketMessage; from sqlalchemy import text; db = SessionLocal(); db.execute(text('ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS attachment_type VARCHAR;')); db.execute(text('ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS attachment_file_id VARCHAR;')); db.execute(text('ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS attachment_url VARCHAR;')); db.commit(); db.close(); print('База данных обновлена')"
+python3 -c "from database import SessionLocal, AdminReadMessages; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_read_messages (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), ticket_id INTEGER REFERENCES tickets(id), last_read_message_id INTEGER REFERENCES ticket_messages(id), read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_read_messages создана')"
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+git add admin_web.py templates/base.html support_bot/bot.py
+git commit -m "Добавлены уведомления в веб-админке и поддержка вложений в боте: кнопки уведомлений рядом с темной темой, API для подсчета уведомлений, обработка фото/видео/документов в боте"
+git push origin master
+systemctl restart seavpn-admin.service
+systemctl restart seavpn-support-bot.service
+git add templates/base.html admin_web.py templates/tickets.html
+git commit -m "Исправлены проблемы интерфейса: убран белый отступ сверху, добавлена подсветка новых записей в таблицах, исправлено отображение вложений в модальном окне"
+git push origin master
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 20 --no-pager
+git add .
+git commit -m "Исправлены все проблемы: убран отступ сверху, добавлена подсветка новых пользователей, исправлены уведомления, добавлено управление монетами"
+git push origin master
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 20 --no-pager
+curl -I http://localhost:8080/
+systemctl restart seavpn-admin.service
+curl -I http://localhost:8080/
+git add .
+git commit -m "Исправлена критическая ошибка: убрана подсветка новых записей из шаблонов для стабильности"
+git push origin master
+systemctl status seavpn-admin.service
+systemctl status nginx
+nginx -t
+cat /etc/nginx/sites-available/admin.universaltools.pro
+ls /etc/nginx/sites-available/
+cat /etc/nginx/sites-available/seavpn-admin
+ls /etc/nginx/sites-enabled/
+ls -la /etc/letsencrypt/live/admin.universaltools.pro/
+systemctl reload nginx
+curl -I http://admin.universaltools.pro
+curl -I https://admin.universaltools.pro
+nslookup admin.universaltools.pro
+netstat -tlnp | grep :80
+netstat -tlnp | grep :443
+tail -20 /var/log/nginx/access.log
+curl -v https://admin.universaltools.pro
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl status seavpn-admin.service
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 -c "from database import SessionLocal; from sqlalchemy import text; db = SessionLocal(); db.execute(text('CREATE TABLE IF NOT EXISTS admin_notifications_viewed (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), notification_type VARCHAR(50), last_viewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')); db.commit(); db.close(); print('Таблица admin_notifications_viewed создана')"
+git add database.py admin_web.py templates/base.html
+git commit -m "Исправлены уведомления: убран белый отступ, добавлена система отслеживания просмотренных уведомлений, счетчики исчезают после просмотра"
+git push origin master
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+journalctl -u seavpn-admin.service --since "5 minutes ago" | tail -20
+python3 -m py_compile admin_web.py
+python3 -m py_compile database.py
+systemctl stop seavpn-admin.service
+python3 admin_web.py
+python3 -c "from database import AdminNotificationsViewed; print('Модель импортирована успешно')"
+python3 -c "from database import SessionLocal; from sqlalchemy import text; db = SessionLocal(); result = db.execute(text('SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = \'admin_notifications_viewed\');')); print('Таблица существует:', result.scalar()); db.close()"
+systemctl start seavpn-admin.service
+curl -I http://localhost:8080
+systemctl status nginx
+nginx -t
+find /etc/nginx -name "*universaltools*" -o -name "*admin*" | head -5
+cat /etc/nginx/sites-enabled/seavpn-admin
+ls -la /etc/letsencrypt/live/admin.universaltools.pro/
+systemctl reload nginx
+curl -I https://admin.universaltools.pro
+systemctl status seavpn-admin.service --no-pager
+git log --oneline -5
+git show --name-only 9be6f66
+git show 9be6f66 -- admin_web.py | head -50
+python3 -c "from database import SessionLocal; from sqlalchemy import text; db = SessionLocal(); result = db.execute(text('SELECT COUNT(*) FROM admin_notifications_viewed;')); print('Записей в таблице:', result.scalar()); db.close()"
+git log --oneline -3
+git checkout 1972b7c
+systemctl restart seavpn-admin.service
+curl -I https://admin.universaltools.pro
+git checkout master
+git show 9be6f66 -- admin_web.py | grep -A 20 -B 5 "get_notifications_count"
+python3 -m py_compile admin_web.py
+systemctl restart seavpn-admin.service
+curl -I https://admin.universaltools.pro
+git add admin_web.py
+git commit -m "Исправлена критическая ошибка: правильное получение admin_id из current_user вместо session"
+git push origin master
+systemctl status seavpn-admin.service
+curl -I http://localhost:8080
+systemctl reload nginx
+curl -I https://admin.universaltools.pro

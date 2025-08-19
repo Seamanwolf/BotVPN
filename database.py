@@ -180,7 +180,7 @@ class AdminNotificationsViewed(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     admin_id = Column(Integer, ForeignKey("admins.id"), nullable=False)
-    notification_type = Column(String(50), nullable=False)  # 'tickets', 'users', 'subscriptions'
+    notification_type = Column(String, nullable=False)  # 'tickets', 'users', 'subscriptions'
     last_viewed = Column(DateTime, default=datetime.utcnow)
     
     # Отношения
