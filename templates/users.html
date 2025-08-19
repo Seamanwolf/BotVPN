@@ -320,26 +320,26 @@ function viewUserDetails(userId) {
                             <div class="d-flex align-items-center mb-2">
                                 <div class="me-2"><strong>Бонусные монеты:</strong></div>
                                 <div class="me-2"><span class="badge bg-warning" id="userCoinsDisplay">${user.bonus_coins} 🪙</span></div>
-                                <button class="btn btn-sm btn-outline-success ms-2" onclick="showAddCoinsForm(${user.id}, ${user.bonus_coins})">
-                                    <i class="fas fa-plus"></i> Начислить
+                                <button class="btn btn-sm btn-outline-success ms-2" onclick="showAddCoinsForm(${user.id}, ${user.bonus_coins})" title="Начислить монеты">
+                                    <i class="fas fa-plus"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="showRemoveCoinsForm(${user.id}, ${user.bonus_coins})">
-                                    <i class="fas fa-minus"></i> Списать
+                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="showRemoveCoinsForm(${user.id}, ${user.bonus_coins})" title="Списать монеты">
+                                    <i class="fas fa-minus"></i>
                                 </button>
                             </div>
                             <div id="addCoinsForm" style="display: none;" class="mb-3 p-2 border rounded">
                                 <div class="mb-2"><strong>Начисление монет</strong></div>
                                 <div class="input-group mb-2">
-                                    <input type="number" class="form-control" id="coinsAmount" placeholder="Количество монет" min="1">
-                                    <button class="btn btn-success" onclick="addCoinsToUser()">Начислить</button>
+                                    <input type="number" class="form-control form-control-sm" id="coinsAmount" placeholder="Количество монет" min="1" style="height: 30px;">
+                                    <button class="btn btn-success btn-sm" onclick="addCoinsToUser()" style="height: 30px; padding: 0.25rem 0.5rem;">Начислить</button>
                                 </div>
                                 <small class="text-muted">Текущий баланс: <span id="currentCoinsBalance">0</span> 🪙</small>
                             </div>
                             <div id="removeCoinsForm" style="display: none;" class="mb-3 p-2 border rounded">
                                 <div class="mb-2"><strong>Списание монет</strong></div>
                                 <div class="input-group mb-2">
-                                    <input type="number" class="form-control" id="removeCoinsAmount" placeholder="Количество монет" min="1">
-                                    <button class="btn btn-danger" onclick="removeCoinsFromUser()">Списать</button>
+                                    <input type="number" class="form-control form-control-sm" id="removeCoinsAmount" placeholder="Количество монет" min="1" style="height: 30px;">
+                                    <button class="btn btn-danger btn-sm" onclick="removeCoinsFromUser()" style="height: 30px; padding: 0.25rem 0.5rem;">Списать</button>
                                 </div>
                                 <small class="text-muted">Текущий баланс: <span id="currentRemoveCoinsBalance">0</span> 🪙</small>
                             </div>
