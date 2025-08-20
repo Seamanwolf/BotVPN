@@ -537,7 +537,8 @@
             right: 60px !important;
             left: auto !important;
             z-index: 1000;
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border: none;
             border-radius: 50%;
             width: 40px;
@@ -583,7 +584,8 @@
             top: 10px !important;
             left: auto !important;
             z-index: 1000;
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border: none;
             border-radius: 50%;
             width: 40px;
@@ -864,19 +866,19 @@
                 <!-- Кнопка новых сообщений -->
                 <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" data-role="messages-bell">
                     <i class="fas fa-comments"></i>
-                    <span class="messages-count" id="messagesCount" data-role="messages-badge">0</span>
+                    <span class="messages-count" id="messagesCount" data-role="messages-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка новых тикетов -->
-                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" data-role="tickets-bell">
+                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" data-role="tickets-bell" style="right: 110px !important;">
                     <i class="fas fa-ticket-alt"></i>
-                    <span class="notifications-count" id="ticketsCount" data-role="tickets-badge">0</span>
+                    <span class="notifications-count" id="ticketsCount" data-role="tickets-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка новых пользователей -->
-                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" data-role="users-bell">
+                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" data-role="users-bell" style="right: 160px !important;">
                     <i class="fas fa-users"></i>
-                    <span class="notifications-count" id="usersCount" data-role="users-badge">0</span>
+                    <span class="notifications-count" id="usersCount" data-role="users-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка новых подписок -->
@@ -1387,9 +1389,15 @@
                     console.log('[Socket.IO] Получено событие ticket:new_message:', { ticket_id, message_id, preview, author });
                     appendMessageToOpenThread({ ticket_id, message_id, preview, author });
                     incTicketCardBadge(ticket_id);
-                    bumpTicketsBell();
+                    incMessagesBadge();
+                    bumpMessagesBell();
                     playDing();
                     showToast(`Новое сообщение: ${preview.substring(0, 50)}...`, 'warning', 2000);
+                    
+                    // Обновляем бейдж новых сообщений в таблице тикетов
+                    if (typeof updateTicketNewMessagesBadge === 'function') {
+                        updateTicketNewMessagesBadge(ticket_id);
+                    }
                 });
                 
                 socket.on('disconnect', () => {
@@ -1420,6 +1428,7 @@
             if (!el) return;
             const n = parseInt(el.textContent || '0', 10) + 1;
             el.textContent = String(n);
+            el.style.display = 'flex';
             el.classList.add('has-unread');
         }
         
@@ -1443,11 +1452,28 @@
             if (!el) return;
             const n = parseInt(el.textContent || '0', 10) + 1;
             el.textContent = String(n);
+            el.style.display = 'flex';
             el.classList.add('has-unread');
         }
         
         function bumpUsersBell() {
             const bell = qs('#usersToggle');
+            if (!bell) return;
+            bell.classList.add('pulse');
+            setTimeout(() => bell.classList.remove('pulse'), 1000);
+        }
+        
+        function incMessagesBadge() {
+            const el = qs('[data-role="messages-badge"]');
+            if (!el) return;
+            const n = parseInt(el.textContent || '0', 10) + 1;
+            el.textContent = String(n);
+            el.style.display = 'flex';
+            el.classList.add('has-unread');
+        }
+        
+        function bumpMessagesBell() {
+            const bell = qs('#messagesToggle');
             if (!bell) return;
             bell.classList.add('pulse');
             setTimeout(() => bell.classList.remove('pulse'), 1000);

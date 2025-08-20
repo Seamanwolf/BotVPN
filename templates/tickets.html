@@ -818,6 +818,27 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.removeItem('highlightTicket');
         }, 1000);
     }
+    
+    // Функция для обновления бейджа новых сообщений в тикете
+    function updateTicketNewMessagesBadge(ticketId) {
+        const badge = document.getElementById(`newMessagesBadge_${ticketId}`);
+        if (!badge) return;
+        
+        const countEl = badge.querySelector('.new-count');
+        if (!countEl) return;
+        
+        const currentCount = parseInt(countEl.textContent || '0', 10);
+        const newCount = currentCount + 1;
+        countEl.textContent = String(newCount);
+        badge.style.display = 'inline-block';
+        
+        // Подсвечиваем строку тикета
+        const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+        if (ticketRow) {
+            ticketRow.classList.add('new-item-highlight');
+            setTimeout(() => ticketRow.classList.remove('new-item-highlight'), 5000);
+        }
+    }
 });
 
 // Стили для сообщений и улучшенный дизайн
