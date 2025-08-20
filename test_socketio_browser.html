@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+
+    <script>
+        const socket = io('http://127.0.0.1:8080', {
+            transports: ['websocket', 'polling'],
+            timeout: 20000
+        });
+
+        socket.on('connect', () => {
+            document.getElementById('status').innerHTML = 'Connected! Socket ID: ' + socket.id;
+            console.log('Connected:', socket.id);
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('status').innerHTML = 'Disconnected';
+            console.log('Disconnected');
+        });
+
+        socket.on('connect_error', (error) => {
+            document.getElementById('status').innerHTML = 'Connection Error: ' + error.message;
+            console.error('Connection error:', error);
+        });
+
+        socket.on('tickets:badge_inc', (data) => {
+            const div = document.createElement('div');
+            div.textContent = 'Badge increment: ' + JSON.stringify(data);
+            document.getElementById('messages').appendChild(div);
+        });
+
+        socket.on('ticket:new_message', (data) => {
+            const div = document.createElement('div');
+            div.textContent = 'New message: ' + JSON.stringify(data);
+            document.getElementById('messages').appendChild(div);
+        });
+    </script>
+</body>
+</html>

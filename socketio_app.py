@@ -8,5 +8,8 @@ socketio = SocketIO(
     message_queue=os.getenv("REDIS_URL"),  # None, если одиночный процесс
     async_mode='eventlet',
     logger=False,
-    engineio_logger=False
+    engineio_logger=False,
+    ping_timeout=20,
+    ping_interval=25,
+    always_connect=True
 )
