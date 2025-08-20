@@ -804,6 +804,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ticketId && typeof joinTicket === 'function') {
         joinTicket(ticketId);
     }
+    
+    // Проверяем, нужно ли подсветить тикет
+    const highlightTicketId = sessionStorage.getItem('highlightTicket');
+    if (highlightTicketId) {
+        setTimeout(() => {
+            const ticketRow = document.querySelector(`tr[data-ticket-id="${highlightTicketId}"]`);
+            if (ticketRow) {
+                highlightNewElement(ticketRow.id || `ticket-${highlightTicketId}`, 'ticket');
+                // Прокручиваем к элементу
+                ticketRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            sessionStorage.removeItem('highlightTicket');
+        }, 1000);
+    }
 });
 
 // Стили для сообщений и улучшенный дизайн
