@@ -397,6 +397,13 @@ async def email_handler(message: Message, state: FSMContext):
                 f"🕐 Время: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
             )
             await send_admin_notification(notification_text)
+            
+            # Отправляем уведомление через Socket.IO
+            try:
+                from notifications import notify_new_user
+                notify_new_user(str(user.id), full_name, phone, email or "")
+            except Exception as e:
+                print(f"Ошибка при отправке Socket.IO уведомления о новом пользователе: {e}")
     except ValueError as e:
         await message.answer(
             f"❌ Ошибка регистрации: {str(e)}\n\nПопробуйте еще раз или обратитесь в поддержку.",

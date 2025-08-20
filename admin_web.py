@@ -1732,20 +1732,42 @@ def internal_notify():
       "preview": "Короткий текст",
       "author": "user|operator"
     }
+    или
+    {
+      "type": "new_user",
+      "user_id": "123",
+      "full_name": "Имя",
+      "phone": "Телефон",
+      "email": "Email"
+    }
     """
     data = request.get_json(force=True) or {}
-    ticket_id = str(data.get('ticket_id', ''))
-    payload = {
-        "ticket_id": ticket_id,
-        "message_id": data.get('message_id'),
-        "preview": data.get('preview'),
-        "author": data.get('author'),
-    }
-    # В комнату конкретного тикета (если открыт)
-    socketio.emit('ticket:new_message', payload, room=f"ticket:{ticket_id}")
-    # И глобально — чтобы дернуть колокольчик/бейдж в шапке
-    socketio.emit('tickets:badge_inc', {"ticket_id": ticket_id})
-    return ('', 204)
+    
+    # Проверяем тип уведомления
+    if data.get('type') == 'new_user':
+        # Уведомление о новом пользователе
+        payload = {
+            "user_id": data.get('user_id'),
+            "full_name": data.get('full_name'),
+            "phone": data.get('phone'),
+            "email": data.get('email'),
+        }
+        socketio.emit('users:badge_inc', payload)
+        return ('', 204)
+    else:
+        # Уведомление о новом сообщении в тикете
+        ticket_id = str(data.get('ticket_id', ''))
+        payload = {
+            "ticket_id": ticket_id,
+            "message_id": data.get('message_id'),
+            "preview": data.get('preview'),
+            "author": data.get('author'),
+        }
+        # В комнату конкретного тикета (если открыт)
+        socketio.emit('ticket:new_message', payload, room=f"ticket:{ticket_id}")
+        # И глобально — чтобы дернуть колокольчик/бейдж в шапке
+        socketio.emit('tickets:badge_inc', {"ticket_id": ticket_id})
+        return ('', 204)
 
 if __name__ == '__main__':
     # Создаем папку для шаблонов если её нет

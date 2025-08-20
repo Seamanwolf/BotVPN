@@ -308,3 +308,23 @@ def notify_new_message(ticket_id: str, message_id: str, preview: str, author: st
     except Exception as e:
         # Не роняем поток — логируй по месту
         print(f"[notify] failed: {e}")
+
+def notify_new_user(user_id: str, full_name: str, phone: str, email: str):
+    """
+    Вызывать сразу после регистрации нового пользователя.
+    """
+    try:
+        requests.post(
+            INTERNAL_NOTIFY_URL,
+            json={
+                "type": "new_user",
+                "user_id": str(user_id),
+                "full_name": full_name or "",
+                "phone": phone or "",
+                "email": email or "",
+            },
+            timeout=3,
+        )
+    except Exception as e:
+        # Не роняем поток — логируй по месту
+        print(f"[notify] failed: {e}") 

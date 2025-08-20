@@ -1352,8 +1352,18 @@
                     incGlobalBadge();
                     bumpTicketsBell();
                     playDing();
+                    showToast('Новый тикет!', 'info', 2000);
                     // Опционально: подсветить карточку тикета, если она видима где-то на странице
                     incTicketCardBadge(ticket_id);
+                });
+                
+                // Уведомление о новом пользователе
+                socket.on('users:badge_inc', ({ user_id, full_name, phone, email }) => {
+                    console.log('[Socket.IO] Получено событие users:badge_inc:', { user_id, full_name, phone, email });
+                    incUsersBadge();
+                    bumpUsersBell();
+                    playDing();
+                    showToast(`Новый пользователь: ${full_name}`, 'success', 2000);
                 });
                 
                 // Точечное событие для открытой вкладки тикета
@@ -1363,6 +1373,7 @@
                     incTicketCardBadge(ticket_id);
                     bumpTicketsBell();
                     playDing();
+                    showToast(`Новое сообщение: ${preview.substring(0, 50)}...`, 'warning', 2000);
                 });
                 
                 socket.on('disconnect', () => {
@@ -1406,6 +1417,21 @@
         
         function bumpTicketsBell() {
             const bell = qs('[data-role="tickets-bell"]');
+            if (!bell) return;
+            bell.classList.add('pulse');
+            setTimeout(() => bell.classList.remove('pulse'), 1000);
+        }
+        
+        function incUsersBadge() {
+            const el = qs('#usersCount');
+            if (!el) return;
+            const n = parseInt(el.textContent || '0', 10) + 1;
+            el.textContent = String(n);
+            el.classList.add('has-unread');
+        }
+        
+        function bumpUsersBell() {
+            const bell = qs('#usersToggle');
             if (!bell) return;
             bell.classList.add('pulse');
             setTimeout(() => bell.classList.remove('pulse'), 1000);
