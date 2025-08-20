@@ -797,6 +797,13 @@ setInterval(updateNewMessagesCount, 30000);
 // Обновляем при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     updateNewMessagesCount();
+    
+    // Подключаемся к комнате тикета, если открыт конкретный тикет
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticketId = urlParams.get('ticket_id');
+    if (ticketId && typeof joinTicket === 'function') {
+        joinTicket(ticketId);
+    }
 });
 
 // Стили для сообщений и улучшенный дизайн

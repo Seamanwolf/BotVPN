@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 # Импортируем модели базы данных
 from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage
 from config import ADMIN_IDS as CONFIG_ADMIN_IDS
+from notifications import notify_new_message
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -301,6 +302,17 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
             )
             db.add(ticket_message)
             db.commit()
+            
+            # Отправляем уведомление через Socket.IO
+            try:
+                notify_new_message(
+                    ticket_id=str(ticket.id),
+                    message_id=str(ticket_message.id),
+                    preview=text[:120],
+                    author="user"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при отправке уведомления: {e}")
         except Exception as e:
             logger.error(f"Ошибка при добавлении сообщения тикета: {e}")
             # Тикет уже создан, так что продолжаем
@@ -614,6 +626,17 @@ async def process_reply(message: Message, state: FSMContext):
         
         db.commit()
         
+        # Отправляем уведомление через Socket.IO
+        try:
+            notify_new_message(
+                ticket_id=str(ticket.id),
+                message_id=str(ticket_message.id),
+                preview=reply_text[:120],
+                author="operator" if is_admin_reply else "user"
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при отправке уведомления: {e}")
+        
         # Отправляем подтверждение
         await message.answer(
             f"✅ Ваш ответ на тикет #{ticket_number} успешно отправлен!",
@@ -713,6 +736,17 @@ async def close_ticket_callback(callback: CallbackQuery):
         )
         db.add(ticket_message)
         db.commit()
+        
+        # Отправляем уведомление через Socket.IO
+        try:
+            notify_new_message(
+                ticket_id=str(ticket.id),
+                message_id=str(ticket_message.id),
+                preview="Тикет был закрыт администратором",
+                author="system"
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при отправке уведомления: {e}")
         
         # Отправляем подтверждение
         await callback.message.edit_text(

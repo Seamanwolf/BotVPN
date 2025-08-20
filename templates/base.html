@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Подключение Socket.IO клиента -->
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             /* Морская цветовая схема */
@@ -497,6 +499,20 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
+        /* Простые эффекты для колокольчика/бейджей */
+        [data-role="global-badge"].has-unread { 
+            background: #d00; 
+            color:#fff; 
+        }
+        .pulse { 
+            animation: pulse 1s ease; 
+        }
+        @keyframes pulse {
+            0%{transform:scale(1)}
+            50%{transform:scale(1.1)}
+            100%{transform:scale(1)}
+        }
+
         .theme-toggle i {
             color: var(--text-primary);
             font-size: 1.25rem;
@@ -834,27 +850,27 @@
                 </div>
                 
                 <!-- Кнопка новых сообщений -->
-                <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" style="display: none;">
+                <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" data-role="tickets-bell" style="display: none;">
                     <i class="fas fa-comments"></i>
-                    <span class="messages-count" id="messagesCount">0</span>
+                    <span class="messages-count" id="messagesCount" data-role="global-badge">0</span>
                 </div>
                 
                 <!-- Кнопка новых тикетов -->
-                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" style="display: none;">
+                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" data-role="tickets-bell" style="display: none;">
                     <i class="fas fa-ticket-alt"></i>
-                    <span class="notifications-count" id="ticketsCount">0</span>
+                    <span class="notifications-count" id="ticketsCount" data-role="global-badge">0</span>
                 </div>
                 
                 <!-- Кнопка новых пользователей -->
-                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" style="display: none;">
+                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" data-role="tickets-bell" style="display: none;">
                     <i class="fas fa-users"></i>
-                    <span class="notifications-count" id="usersCount">0</span>
+                    <span class="notifications-count" id="usersCount" data-role="global-badge">0</span>
                 </div>
                 
                 <!-- Кнопка новых подписок -->
-                <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" style="display: none;">
+                <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" data-role="tickets-bell" style="display: none;">
                     <i class="fas fa-key"></i>
-                    <span class="notifications-count" id="subscriptionsCount">0</span>
+                    <span class="notifications-count" id="subscriptionsCount" data-role="global-badge">0</span>
                 </div>
                 
                 <!-- Кнопка настроек уведомлений -->
@@ -1078,8 +1094,8 @@
             // Загружаем настройки уведомлений
             loadNotificationSettings();
             
-            // Инициализируем WebSocket
-            initWebSocket();
+            // Инициализируем Socket.IO
+            initSocketIO();
         });
         
         /**
@@ -1292,8 +1308,8 @@
             }
         }
         
-        // Глобальные переменные для WebSocket и настроек
-        let websocket = null;
+        // Глобальные переменные для Socket.IO и настроек
+        let socket = null;
         let notificationSettings = {
             notificationsEnabled: true,
             soundsEnabled: true,
@@ -1315,73 +1331,102 @@
             message: new Audio('/static/sounds/message.wav')
         };
         
-        // Инициализация WebSocket
-        function initWebSocket() {
+        // Инициализация Socket.IO
+        function initSocketIO() {
             try {
-                // Используем текущий хост для WebSocket
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const host = window.location.hostname;
-                const port = '8765';
-                websocket = new WebSocket(`${protocol}//${host}:${port}`);
+                // Подключаем Socket.IO клиент
+                socket = io({ transports: ['websocket'], withCredentials: true });
                 
-                websocket.onopen = function(event) {
-                    console.log('WebSocket соединение установлено');
-                };
+                socket.on('connect', () => {
+                    console.log('[ws] connected', socket.id);
+                });
                 
-                websocket.onmessage = function(event) {
-                    const data = JSON.parse(event.data);
-                    handleWebSocketMessage(data);
-                };
+                // Глобальный инкремент бейджа в шапке и звук
+                socket.on('tickets:badge_inc', ({ ticket_id }) => {
+                    incGlobalBadge();
+                    bumpTicketsBell();
+                    playDing();
+                    // Опционально: подсветить карточку тикета, если она видима где-то на странице
+                    incTicketCardBadge(ticket_id);
+                });
                 
-                websocket.onclose = function(event) {
-                    console.log('WebSocket соединение закрыто');
-                    // Переподключение через 5 секунд
-                    setTimeout(initWebSocket, 5000);
-                };
+                // Точечное событие для открытой вкладки тикета
+                socket.on('ticket:new_message', ({ ticket_id, message_id, preview, author }) => {
+                    appendMessageToOpenThread({ ticket_id, message_id, preview, author });
+                    incTicketCardBadge(ticket_id);
+                    bumpTicketsBell();
+                    playDing();
+                });
                 
-                websocket.onerror = function(error) {
-                    console.error('WebSocket ошибка:', error);
-                };
+                socket.on('disconnect', () => {
+                    console.log('[ws] disconnected');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    console.error('[ws] connection error:', error);
+                });
+                
             } catch (error) {
-                console.error('Ошибка при инициализации WebSocket:', error);
+                console.error('Ошибка при инициализации Socket.IO:', error);
             }
         }
         
-        // Обработка сообщений от WebSocket
-        function handleWebSocketMessage(data) {
-            console.log('Получено WebSocket сообщение:', data);
-            
-            if (data.type === 'initial_counts') {
-                // Обновляем счетчики при подключении
-                updateNotificationsToggle('tickets', data.counts.tickets);
-                updateNotificationsToggle('users', data.counts.users);
-                updateNotificationsToggle('subscriptions', data.counts.subscriptions);
-                updateMessagesToggle(data.counts.messages);
-            } else if (data.type === 'new_ticket' && notificationSettings.newTicketNotifications) {
-                updateNotificationsToggle('tickets', data.count);
-                showToast(data.message, 'info');
-                if (notificationSettings.soundsEnabled && notificationSettings.ticketSoundEnabled) {
-                    playSound('ticket');
-                }
-            } else if (data.type === 'new_user' && notificationSettings.newUserNotifications) {
-                updateNotificationsToggle('users', data.count);
-                showToast(data.message, 'info');
-                if (notificationSettings.soundsEnabled && notificationSettings.userSoundEnabled) {
-                    playSound('user');
-                }
-            } else if (data.type === 'new_subscription' && notificationSettings.newSubscriptionNotifications) {
-                updateNotificationsToggle('subscriptions', data.count);
-                showToast(data.message, 'info');
-                if (notificationSettings.soundsEnabled && notificationSettings.subscriptionSoundEnabled) {
-                    playSound('subscription');
-                }
-            } else if (data.type === 'new_message' && notificationSettings.newMessageNotifications) {
-                updateMessagesToggle(data.count);
-                showToast(data.message, 'info');
-                if (notificationSettings.soundsEnabled && notificationSettings.messageSoundEnabled) {
-                    playSound('message');
-                }
+        // Вызови это при открытии страницы конкретного тикета
+        function joinTicket(ticketId) {
+            if (socket) {
+                socket.emit('tickets:join', { ticket_id: String(ticketId) });
             }
+        }
+        
+        // ===== UI-утилиты =====
+        function qs(sel){ return document.querySelector(sel); }
+        
+        function incGlobalBadge() {
+            const el = qs('[data-role="global-badge"]');
+            if (!el) return;
+            const n = parseInt(el.textContent || '0', 10) + 1;
+            el.textContent = String(n);
+            el.classList.add('has-unread');
+        }
+        
+        function incTicketCardBadge(ticketId) {
+            const el = document.querySelector(`[data-ticket-id="${ticketId}"] [data-role="ticket-badge"]`);
+            if (!el) return;
+            const n = parseInt(el.textContent || '0', 10) + 1;
+            el.textContent = String(n);
+            el.classList.add('has-unread');
+        }
+        
+        function bumpTicketsBell() {
+            const bell = qs('[data-role="tickets-bell"]');
+            if (!bell) return;
+            bell.classList.add('pulse');
+            setTimeout(() => bell.classList.remove('pulse'), 1000);
+        }
+        
+        // ===== Звук (обход запрета автоплея) =====
+        const ding = new Audio('/static/sounds/new.wav');
+        ding.preload = 'auto';
+        // «Разрешаем» звук первым кликом
+        document.addEventListener('click', () => {
+            ding.play().then(() => ding.pause()).catch(() => {});
+        }, { once: true });
+        
+        function playDing() {
+            try {
+                ding.currentTime = 0;
+                ding.play().catch(() => {});
+            } catch (e) {}
+        }
+        
+        // ===== Заглушка: если нужно, допиши реальную подстановку в открытый тред =====
+        function appendMessageToOpenThread({ ticket_id, message_id, preview, author }) {
+            const box = document.querySelector('[data-role="open-thread"]');
+            if (!box) return;
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.textContent = (author === 'operator' ? 'Оператор: ' : 'Клиент: ') + (preview || 'Новое сообщение');
+            box.appendChild(div);
         }
         
         // Воспроизведение звука

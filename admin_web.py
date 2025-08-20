@@ -6,6 +6,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_socketio import join_room, emit
 import json
 from datetime import datetime, timedelta
 import os
@@ -19,9 +20,14 @@ load_dotenv()
 from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings
 from config import ADMIN_IDS
 from xui_client import XUIClient
+from socketio_app import socketio
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
 app.secret_key = 'your-secret-key-change-this'  # Измените на свой секретный ключ
+
+# Инициализация Socket.IO
+socketio.init_app(app)
 
 # Настройка Flask-Login
 login_manager = LoginManager()
@@ -1706,9 +1712,47 @@ def mark_ticket_as_read(ticket_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# ===== Socket.IO Events =====
+
+@socketio.on('tickets:join')
+def ws_join_ticket(data):
+    ticket_id = str(data.get('ticket_id'))
+    join_room(f"ticket:{ticket_id}")
+    emit('tickets:joined', {'ticket_id': ticket_id})
+
+# ===== Внутренний хук для уведомлений из других процессов (бот и т.п.) =====
+
+@app.post('/internal/notify')
+def internal_notify():
+    """
+    JSON:
+    {
+      "ticket_id": "123",
+      "message_id": "456",
+      "preview": "Короткий текст",
+      "author": "user|operator"
+    }
+    """
+    data = request.get_json(force=True) or {}
+    ticket_id = str(data.get('ticket_id', ''))
+    payload = {
+        "ticket_id": ticket_id,
+        "message_id": data.get('message_id'),
+        "preview": data.get('preview'),
+        "author": data.get('author'),
+    }
+    # В комнату конкретного тикета (если открыт)
+    socketio.emit('ticket:new_message', payload, room=f"ticket:{ticket_id}")
+    # И глобально — чтобы дернуть колокольчик/бейдж в шапке
+    socketio.emit('tickets:badge_inc', {"ticket_id": ticket_id})
+    return ('', 204)
+
 if __name__ == '__main__':
     # Создаем папку для шаблонов если её нет
     os.makedirs('templates', exist_ok=True)
     
-    # Запускаем сервер
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    # Для Socket.IO нужен eventlet/gevent
+    # eventlet нужен в requirements
+    import eventlet
+    import eventlet.wsgi  # noqa
+    socketio.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))

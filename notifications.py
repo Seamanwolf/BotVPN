@@ -3,6 +3,10 @@ from datetime import datetime, timedelta
 from database import SessionLocal, User, Subscription, AdminSettings
 from config import BOT_TOKEN
 from aiogram import Bot
+import os
+import requests
+
+INTERNAL_NOTIFY_URL = os.getenv("INTERNAL_NOTIFY_URL", "http://127.0.0.1:5000/internal/notify")
 
 class NotificationManager:
     def __init__(self):
@@ -283,3 +287,24 @@ async def send_admin_notification(message: str):
         
     except Exception as e:
         print(f"Ошибка при отправке уведомления администраторам: {e}")
+
+def notify_new_message(ticket_id: str, message_id: str, preview: str, author: str):
+    """
+    Вызывать сразу после сохранения сообщения в тикете.
+    Если бот/обработчик работает в другом процессе или контейнере — стучимся HTTP.
+    Если в одном процессе — можешь вместо HTTP импортировать socketio и emit-ить напрямую.
+    """
+    try:
+        requests.post(
+            INTERNAL_NOTIFY_URL,
+            json={
+                "ticket_id": str(ticket_id),
+                "message_id": str(message_id),
+                "preview": preview or "",
+                "author": author or "",
+            },
+            timeout=3,
+        )
+    except Exception as e:
+        # Не роняем поток — логируй по месту
+        print(f"[notify] failed: {e}")
