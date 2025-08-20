@@ -1348,6 +1348,7 @@
                 
                 // Глобальный инкремент бейджа в шапке и звук
                 socket.on('tickets:badge_inc', ({ ticket_id }) => {
+                    console.log('[Socket.IO] Получено событие tickets:badge_inc:', { ticket_id });
                     incGlobalBadge();
                     bumpTicketsBell();
                     playDing();
@@ -1357,6 +1358,7 @@
                 
                 // Точечное событие для открытой вкладки тикета
                 socket.on('ticket:new_message', ({ ticket_id, message_id, preview, author }) => {
+                    console.log('[Socket.IO] Получено событие ticket:new_message:', { ticket_id, message_id, preview, author });
                     appendMessageToOpenThread({ ticket_id, message_id, preview, author });
                     incTicketCardBadge(ticket_id);
                     bumpTicketsBell();

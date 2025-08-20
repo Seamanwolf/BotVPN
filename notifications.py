@@ -6,7 +6,7 @@ from aiogram import Bot
 import os
 import requests
 
-INTERNAL_NOTIFY_URL = os.getenv("INTERNAL_NOTIFY_URL", "http://127.0.0.1:5000/internal/notify")
+INTERNAL_NOTIFY_URL = os.getenv("INTERNAL_NOTIFY_URL", "http://127.0.0.1:8080/internal/notify")
 
 class NotificationManager:
     def __init__(self):
