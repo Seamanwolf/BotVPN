@@ -1,46 +1,3 @@
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 admin_web.py &
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 admin_web.py &
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-cd /root && python3 -c "import bot; print('Бот импортируется успешно')"
-ps aux | grep python | grep bot
-tail -20 /var/log/syslog | grep -i bot
-ls -la *.log 2>/dev/null || echo "Логи не найдены"
-ls -la .env* 2>/dev/null || echo "Файлы .env не найдены"
-cat .env | grep -v PASSWORD | grep -v TOKEN
-python3 -c "from database import SessionLocal; db = SessionLocal(); print('База данных подключена успешно'); db.close()"
-python3 test_xui_api.py
-sleep 3 && ps aux | grep "python3 bot.py" | grep -v grep
-python3 test_add_client.py
-python3 check_subscriptions.py
-python3 -c "
-from database import SessionLocal, User, Subscription
-from datetime import datetime
-
-db = SessionLocal()
-try:
-    # Находим все подписки пользователя 261337953
-    user = db.query(User).filter(User.telegram_id == 261337953).first()
-    if user:
-        print(f'Пользователь: {user.full_name} ({user.email})')
-        subscriptions = db.query(Subscription).filter(Subscription.user_id == user.id).all()
-        print(f'Всего подписок: {len(subscriptions)}')
-        
         for sub in subscriptions:
             print(f'ID: {sub.id}, Статус: {sub.status}, Истекает: {sub.expires_at}, Тариф: {sub.plan}')
     else:
@@ -1998,3 +1955,46 @@ git push origin master
 . "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 websocket_server.py &
+python3 websocket_server.py &
+python3 websocket_server.py &
+python3 websocket_server.py &
+python3 websocket_server.py &
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлено позиционирование иконок уведомлений: добавлены важные стили для принудительного позиционирования справа"
+git push origin master
+mkdir -p static/sounds
+python3 -c "from database import engine, AdminSettings; from sqlalchemy import text; engine.execute(text('CREATE TABLE IF NOT EXISTS admin_settings (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), notifications_enabled BOOLEAN DEFAULT TRUE, sounds_enabled BOOLEAN DEFAULT TRUE, new_ticket_notifications BOOLEAN DEFAULT TRUE, new_user_notifications BOOLEAN DEFAULT TRUE, new_subscription_notifications BOOLEAN DEFAULT TRUE, new_message_notifications BOOLEAN DEFAULT TRUE, ticket_sound_enabled BOOLEAN DEFAULT TRUE, user_sound_enabled BOOLEAN DEFAULT TRUE, subscription_sound_enabled BOOLEAN DEFAULT TRUE, message_sound_enabled BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'))"
+python3 -c "from database import engine, AdminSettings; from sqlalchemy import text; with engine.connect() as conn: conn.execute(text('CREATE TABLE IF NOT EXISTS admin_settings (id SERIAL PRIMARY KEY, admin_id INTEGER REFERENCES admins(id), notifications_enabled BOOLEAN DEFAULT TRUE, sounds_enabled BOOLEAN DEFAULT TRUE, new_ticket_notifications BOOLEAN DEFAULT TRUE, new_user_notifications BOOLEAN DEFAULT TRUE, new_subscription_notifications BOOLEAN DEFAULT TRUE, new_message_notifications BOOLEAN DEFAULT TRUE, ticket_sound_enabled BOOLEAN DEFAULT TRUE, user_sound_enabled BOOLEAN DEFAULT TRUE, subscription_sound_enabled BOOLEAN DEFAULT TRUE, message_sound_enabled BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')); conn.commit()"
+python3 create_admin_settings_table.py
+pip3 install websockets
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Добавлена система уведомлений в реальном времени с WebSocket, звуками и настройками"
+git push origin master
+python3 create_sounds.py
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены проблемы: WebSocket соединение, звуки, уведомления о сообщениях, отображение вложений"
+git push origin master
+pkill -f websocket_server.py
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены критические ошибки WebSocket: убрал параметр path, обновил звуки на WAV, добавил API для тикетов"
+git push origin master
+pkill -f websocket_server.py
+systemctl status seavpn-support-bot.service
+systemctl restart seavpn-support-bot.service
+systemctl status seavpn-support-bot.service
+git add .
+git commit -m "Исправлена генерация номеров тикетов: теперь учитывает максимальный существующий номер"
+git push origin master
+pkill -f websocket_server.py
+python3 test_attachments.py
+ps aux | grep websocket_server
+tail -f /dev/null & sleep 1 && kill %1
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены вложения и WebSocket: улучшено отображение вложений, исправлен WebSocket сервер"
+git push origin master
