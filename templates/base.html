@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Подключение Socket.IO клиента -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             /* Морская цветовая схема */
@@ -1094,8 +1094,8 @@
             // Загружаем настройки уведомлений
             loadNotificationSettings();
             
-            // Инициализируем Socket.IO
-            initSocketIO();
+            // Инициализируем Socket.IO (временно отключено для восстановления работы сайта)
+            // initSocketIO();
         });
         
         /**
@@ -1335,7 +1335,12 @@
         function initSocketIO() {
             try {
                 // Подключаем Socket.IO клиент
-                socket = io({ transports: ['websocket'], withCredentials: true });
+                socket = io({ 
+                    transports: ['websocket'], 
+                    withCredentials: true,
+                    forceNew: true,
+                    timeout: 20000
+                });
                 
                 socket.on('connect', () => {
                     console.log('[ws] connected', socket.id);
