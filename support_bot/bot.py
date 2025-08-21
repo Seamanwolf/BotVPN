@@ -67,9 +67,7 @@ def get_admin_ids():
 ADMIN_IDS = get_admin_ids()
 
 # Инициализация бота с увеличенными таймаутами сети, чтобы избежать падений по timeout
-custom_timeout = ClientTimeout(total=30)
-aiohttp_session = AiohttpSession(timeout=custom_timeout)
-bot = Bot(token=BOT_TOKEN, session=aiohttp_session)
+bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 

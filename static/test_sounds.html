@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест звуков</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .sound-test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        button { margin: 5px; padding: 10px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Тест звуков SeaVPN</h1>
+    
+    <div class="sound-test">
+        <h3>Тикет (новый тикет)</h3>
+        <button onclick="testSound('ticket')">🔊 Проиграть ticket.wav</button>
+        <button onclick="testMP3('ticket')">🔊 Проиграть ticket.mp3</button>
+    </div>
+    
+    <div class="sound-test">
+        <h3>Пользователь (новый пользователь)</h3>
+        <button onclick="testSound('user')">🔊 Проиграть user.wav</button>
+        <button onclick="testMP3('user')">🔊 Проиграть user.mp3</button>
+    </div>
+    
+    <div class="sound-test">
+        <h3>Подписка (новая покупка)</h3>
+        <button onclick="testSound('subscription')">🔊 Проиграть subscription.wav</button>
+        <button onclick="testMP3('subscription')">🔊 Проиграть subscription.mp3</button>
+    </div>
+    
+    <div class="sound-test">
+        <h3>Сообщение (новое сообщение)</h3>
+        <button onclick="testSound('message')">🔊 Проиграть message.wav</button>
+        <button onclick="testMP3('message')">🔊 Проиграть message.mp3</button>
+    </div>
+
+    <script>
+        function testSound(type) {
+            const audio = new Audio(`/static/sounds/${type}.wav`);
+            audio.volume = 0.5;
+            audio.play().catch(error => {
+                console.error(`Ошибка воспроизведения ${type}.wav:`, error);
+                alert(`Ошибка: ${error.message}`);
+            });
+        }
+        
+        function testMP3(type) {
+            const audio = new Audio(`/static/sounds/${type}.mp3`);
+            audio.volume = 0.5;
+            audio.play().catch(error => {
+                console.error(`Ошибка воспроизведения ${type}.mp3:`, error);
+                alert(`Ошибка: ${error.message}`);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1065,24 +1065,36 @@
                                 <label class="form-check-label" for="ticketSoundEnabled">
                                     Звук для новых тикетов
                                 </label>
+                                <button class="btn btn-sm btn-outline-primary ms-2" onclick="testSound('ticket')" title="Тест звука">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="userSoundEnabled" checked>
                                 <label class="form-check-label" for="userSoundEnabled">
                                     Звук для новых пользователей
                                 </label>
+                                <button class="btn btn-sm btn-outline-primary ms-2" onclick="testSound('user')" title="Тест звука">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="subscriptionSoundEnabled" checked>
                                 <label class="form-check-label" for="subscriptionSoundEnabled">
                                     Звук для новых подписок
                                 </label>
+                                <button class="btn btn-sm btn-outline-primary ms-2" onclick="testSound('subscription')" title="Тест звука">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="messageSoundEnabled" checked>
                                 <label class="form-check-label" for="messageSoundEnabled">
                                     Звук для новых сообщений
                                 </label>
+                                <button class="btn btn-sm btn-outline-primary ms-2" onclick="testSound('message')" title="Тест звука">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -1208,6 +1220,8 @@
                     notificationElement.textContent = count;
                     notificationElement.style.display = 'flex';
                 } else {
+                    // Не скрываем элемент, только обнуляем счетчик
+                    notificationElement.textContent = '0';
                     notificationElement.style.display = 'none';
                 }
             }
@@ -1262,7 +1276,11 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        updateMessagesToggle(data.total_new_messages);
+                        // Обновляем счетчик только если есть новые сообщения
+                        const totalMessages = data.total_new_messages || 0;
+                        if (totalMessages > 0) {
+                            updateMessagesToggle(totalMessages);
+                        }
                     }
                 })
                 .catch(error => {
@@ -1314,17 +1332,10 @@
                         const modalEl = document.getElementById('newMessagesModal');
                         const modal = new bootstrap.Modal(modalEl);
                         modal.show();
-                        // По закрытию отметим весь список как прочитанный
+                        // По закрытию НЕ отмечаем как прочитанный - только при реальном просмотре
                         modalEl.addEventListener('hidden.bs.modal', function once() {
                             modalEl.removeEventListener('hidden.bs.modal', once);
-                            // Для каждого тикета из списка — отметим прочитанным
-                            if (data.tickets_with_new_messages) {
-                                data.tickets_with_new_messages.forEach(t => {
-                                    fetch(`/api/ticket/${t.ticket_id}/mark-read`, { method: 'POST' });
-                                });
-                            }
-                            // Обновим счетчики
-                            setTimeout(checkNewNotifications, 300);
+                            // НЕ обновляем счетчики при простом закрытии модального окна
                         });
                     } else {
                         showToast('Ошибка при загрузке новых сообщений', 'error');
@@ -1415,8 +1426,11 @@
             if (count > 0) {
                 toggle.style.display = 'flex';
                 countElement.textContent = count;
+                countElement.style.display = 'flex';
             } else {
-                toggle.style.display = 'none';
+                // Не скрываем кнопку, только обнуляем счетчик
+                countElement.textContent = '0';
+                countElement.style.display = 'none';
             }
         }
         
@@ -1443,18 +1457,74 @@
         // Отложенные таймеры показа "Новое сообщение" для предотвращения гонки с созданием тикета
         const pendingNewMessageTimers = {};
         
-        // Звуковые элементы
-        const sounds = {
-            ticket: new Audio('/static/sounds/ticket.wav'),
-            user: new Audio('/static/sounds/user.wav'),
-            subscription: new Audio('/static/sounds/subscription.wav'),
-            message: new Audio('/static/sounds/message.wav')
-        };
+        // Звуковые элементы (используем WAV как основной формат)
+        const sounds = {};
         
-        // Предзагружаем звуки
-        Object.values(sounds).forEach(sound => {
-            sound.load();
-        });
+        // Инициализация звуков с проверкой поддержки
+        function initSounds() {
+            const soundTypes = ['ticket', 'user', 'subscription', 'message'];
+            
+            soundTypes.forEach(type => {
+                try {
+                    const audio = new Audio();
+                    audio.volume = 0.5;
+                    audio.preload = 'auto';
+                    
+                    // Для тикета используем финальный файл
+                    if (type === 'ticket') {
+                        audio.src = `/static/sounds/ticket_final.wav`;
+                    } else {
+                        // Для остальных пробуем сначала WAV, потом MP3
+                        audio.src = `/static/sounds/${type}.wav`;
+                    }
+                    
+                    // Проверяем, что аудио загружается
+                    audio.addEventListener('canplaythrough', () => {
+                        console.log(`Звук ${type} готов к воспроизведению`);
+                        sounds[type] = audio;
+                    });
+                    
+                    audio.addEventListener('error', (e) => {
+                        if (type === 'ticket') {
+                            console.log(`Ошибка загрузки звука тикета, используем user.wav как fallback`);
+                            // Используем user.wav как fallback для тикета
+                            audio.src = `/static/sounds/user.wav`;
+                            audio.load();
+                            
+                            audio.addEventListener('canplaythrough', () => {
+                                console.log(`Звук тикета (fallback) готов к воспроизведению`);
+                                sounds[type] = audio;
+                            });
+                            
+                            audio.addEventListener('error', (e2) => {
+                                console.error(`Ошибка загрузки звука тикета (fallback):`, e2);
+                            });
+                        } else {
+                            console.log(`WAV не поддерживается для ${type}, пробуем MP3`);
+                            // Пробуем MP3 как fallback
+                            audio.src = `/static/sounds/${type}.mp3`;
+                            audio.load();
+                            
+                            audio.addEventListener('canplaythrough', () => {
+                                console.log(`Звук ${type} (MP3) готов к воспроизведению`);
+                                sounds[type] = audio;
+                            });
+                            
+                            audio.addEventListener('error', (e2) => {
+                                console.error(`Ошибка загрузки звука ${type} (MP3):`, e2);
+                            });
+                        }
+                    });
+                    
+                    audio.load();
+                } catch (error) {
+                    console.error(`Ошибка создания звука ${type}:`, error);
+                }
+            });
+        }
+        
+        // Инициализируем звуки при загрузке страницы
+        initSounds();
         
         // CSS анимация для пульсации
         const style = document.createElement('style');
@@ -1593,6 +1663,21 @@
                     }, 600);
                 });
                 
+                // Уведомление о новой подписке
+                socket.on('subscriptions:badge_inc', ({ subscription_id, user_name, plan_name }) => {
+                    console.log('[Socket.IO] Получено событие subscriptions:badge_inc:', { subscription_id, user_name, plan_name });
+                    incSubscriptionsBadge();
+                    bumpSubscriptionsBell();
+                    
+                    // Показываем тост для новых подписок
+                    console.log('[Socket.IO] Показываем тост для новой подписки');
+                    showToast(`Новая подписка: ${user_name} - ${plan_name}`, 'info', 2000);
+                    if (notificationSettings.soundsEnabled && notificationSettings.subscriptionSoundEnabled) {
+                        console.log('[Socket.IO] Проигрываем звук для новой подписки');
+                        playSound('subscription');
+                    }
+                });
+                
                 socket.on('disconnect', () => {
                     console.log('[Socket.IO] Отключено');
                 });
@@ -1674,6 +1759,24 @@
                 el.style.display = 'flex';
                 el.classList.add('has-unread');
             }
+        }
+        
+        function incSubscriptionsBadge() {
+            const el = document.getElementById('subscriptionsCount');
+            if (!el) return;
+            const n = parseInt(el.textContent || '0', 10) + 1;
+            el.textContent = String(n);
+            if (n > 0) {
+                el.style.display = 'flex';
+                el.classList.add('has-unread');
+            }
+        }
+        
+        function bumpSubscriptionsBell() {
+            const bell = qs('[data-role="subscriptions-bell"]');
+            if (!bell) return;
+            bell.classList.add('pulse');
+            setTimeout(() => bell.classList.remove('pulse'), 1000);
         }
         
         // Функция для обновления счетчика сообщений
@@ -1809,15 +1912,18 @@
             box.appendChild(div);
         }
         
-        // Воспроизведение звука
+        // Воспроизведение звука с проверкой автовоспроизведения
         function playSound(soundType) {
             try {
                 if (sounds[soundType]) {
                     sounds[soundType].currentTime = 0;
                     sounds[soundType].play().catch(error => {
                         console.error('Ошибка воспроизведения звука:', error);
-                        // Если звук не воспроизводится, показываем визуальное уведомление
-                        showVisualNotification(soundType);
+                        // Если браузер блокирует автовоспроизведение, показываем визуальное уведомление
+                        if (error.name === 'NotAllowedError') {
+                            console.log('Браузер заблокировал автовоспроизведение, показываем визуальное уведомление');
+                            showVisualNotification(soundType);
+                        }
                     });
                 }
             } catch (error) {
@@ -1897,6 +2003,17 @@
             window.location.href = '/tickets';
         }
         
+        // Функция для перехода к конкретному тикету с подсветкой
+        function goToTicketWithHighlight(ticketId) {
+            // Сохраняем ID тикета для подсветки
+            sessionStorage.setItem('highlightTicket', String(ticketId));
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newTicketsModal'));
+            if (modal) modal.hide();
+            // Переходим на страницу тикетов
+            window.location.href = '/tickets';
+        }
+        
         // Функции для модальных окон
         
         
@@ -1920,8 +2037,11 @@
             if (count > 0) {
                 toggle.style.display = 'flex';
                 countElement.textContent = count;
+                countElement.style.display = 'flex';
             } else {
-                toggle.style.display = 'none';
+                // Не скрываем кнопку, только обнуляем счетчик
+                countElement.textContent = '0';
+                countElement.style.display = 'none';
             }
         }
         
@@ -1943,7 +2063,7 @@
                                             <small class="text-muted">От: ${ticket.user_name || 'Неизвестно'}</small><br>
                                             <small class="text-muted">Тема: ${ticket.subject || 'Без темы'}</small>
                                         </div>
-                                        <a href="/tickets" class="btn btn-primary btn-sm">Перейти к тикету</a>
+                                        <button onclick="goToTicketWithHighlight(${ticket.id})" class="btn btn-primary btn-sm">Перейти к тикету</button>
                                     </div>
                                 `;
                             });
@@ -2058,8 +2178,24 @@
             
             // Небольшая задержка для корректного закрытия предыдущей модалки
             setTimeout(() => {
-                // Открываем модалку профиля пользователя
-                fetch(`/api/users/${userId}`)
+                // Отмечаем пользователя как просмотренного (как в viewUserDetails)
+                fetch(`/api/user/${userId}/mark-viewed`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).then(() => {
+                    // Обновляем счетчик новых пользователей
+                    const notificationElement = document.getElementById('usersNotification');
+                    if (notificationElement) {
+                        const currentCount = parseInt(notificationElement.textContent || '0');
+                        const newCount = Math.max(0, currentCount - 1);
+                        updateNotification('users', newCount);
+                    }
+                });
+                
+                // Открываем модалку профиля пользователя (используем тот же API что и на странице пользователей)
+                fetch(`/api/user/${userId}`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -2074,16 +2210,19 @@
                                     <div class="col-md-6">
                                         <h6>Основная информация</h6>
                                         <p><strong>ID:</strong> ${user.id}</p>
-                                        <p><strong>ФИО:</strong> ${user.full_name || 'Не указано'}</p>
-                                        <p><strong>Email:</strong> ${user.email || 'Не указано'}</p>
+                                        <p><strong>Имя:</strong> ${user.full_name || 'Не указано'}</p>
                                         <p><strong>Telegram ID:</strong> ${user.telegram_id}</p>
-                                        <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString('ru-RU')}</p>
+                                        <p><strong>Email:</strong> ${user.email || 'Не указан'}</p>
+                                        <p><strong>Телефон:</strong> ${user.phone || 'Не указан'}</p>
                                     </div>
                                     <div class="col-md-6">
                                         <h6>Статистика</h6>
-                                        <p><strong>Подписок:</strong> ${user.subscriptions_count || 0}</p>
-                                        <p><strong>Тикетов:</strong> ${user.tickets_count || 0}</p>
-                                        <p><strong>Рефералов:</strong> ${user.referrals_count || 0}</p>
+                                        <p><strong>Бонусные монеты:</strong> <span class="badge bg-warning">${user.bonus_coins} 🪙</span></p>
+                                        <p><strong>Реферальный код:</strong> <code>${user.referral_code}</code></p>
+                                        <p><strong>Приглашен от:</strong> ${user.referred_by || 'Нет'}</p>
+                                        <p><strong>Количество рефералов:</strong> <span class="badge bg-info">${user.referrals_count || 0} приглашенных</span></p>
+                                        <p><strong>Первая покупка:</strong> ${user.has_made_first_purchase ? 'Да' : 'Нет'}</p>
+                                        <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString()}</p>
                                     </div>
                                 </div>
                             `;
@@ -2111,6 +2250,19 @@
         
         function showNotificationSettings() {
             new bootstrap.Modal(document.getElementById('notificationSettingsModal')).show();
+        }
+        
+        // Функция для тестирования звуков
+        function testSound(soundType) {
+            console.log(`Тестируем звук: ${soundType}`);
+            
+            if (sounds[soundType]) {
+                console.log(`Звук ${soundType} найден, воспроизводим...`);
+                playSound(soundType);
+            } else {
+                console.error(`Звук ${soundType} не найден`);
+                showToast(`Звук ${soundType} не загружен`, 'error');
+            }
         }
         
         function loadNotificationSettings() {

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  support-bot:
+    build: .
+    container_name: seavpn-support-bot
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPPORT_BOT_TOKEN=${SUPPORT_BOT_TOKEN}
+      - INTERNAL_NOTIFY_URL=${INTERNAL_NOTIFY_URL}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - seavpn-network
+
+networks:
+  seavpn-network:
+    external: true

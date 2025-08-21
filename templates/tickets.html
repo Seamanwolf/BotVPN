@@ -590,6 +590,11 @@ function confirmCloseTicket() {
             // Показываем сообщение об успехе
             showSuccess('Тикет успешно закрыт');
             
+            // Скрываем метку "Новый" при закрытии тикета
+            if (typeof hideNewTicketBadge === 'function') {
+                hideNewTicketBadge(ticketId);
+            }
+            
             // Обновляем таблицу тикетов
             setTimeout(() => {
                 refreshTickets();
