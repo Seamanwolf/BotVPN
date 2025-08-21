@@ -313,21 +313,31 @@ def notify_new_user(user_id: str, full_name: str, phone: str, email: str):
     """
     Вызывать сразу после регистрации нового пользователя.
     """
+    print(f"[notify_new_user] Отправляем уведомление о новом пользователе: {user_id}, {full_name}")
     try:
-        requests.post(
+        data = {
+            "type": "new_user",
+            "user_id": str(user_id),
+            "full_name": full_name or "",
+            "phone": phone or "",
+            "email": email or "",
+        }
+        print(f"[notify_new_user] Данные для отправки: {data}")
+        print(f"[notify_new_user] URL: {INTERNAL_NOTIFY_URL}")
+        
+        response = requests.post(
             INTERNAL_NOTIFY_URL,
-            json={
-                "type": "new_user",
-                "user_id": str(user_id),
-                "full_name": full_name or "",
-                "phone": phone or "",
-                "email": email or "",
-            },
+            json=data,
             timeout=3,
         )
+        print(f"[notify_new_user] Ответ сервера: {response.status_code}")
+        
+        if response.status_code != 204:
+            print(f"[notify_new_user] Неожиданный статус ответа: {response.status_code}, {response.text}")
+            
     except Exception as e:
         # Не роняем поток — логируй по месту
-        print(f"[notify] failed: {e}")
+        print(f"[notify_new_user] Ошибка: {e}")
 
 def notify_new_ticket(ticket_id: str):
     """

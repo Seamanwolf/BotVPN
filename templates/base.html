@@ -967,6 +967,24 @@
         </div>
     </div>
     
+    <!-- Модальное окно профиля пользователя -->
+    <div class="modal fade" id="userDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Профиль пользователя</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="userDetailsContent">
+                    <!-- Контент будет загружен динамически -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Модальное окно новых подписок -->
     <div class="modal fade" id="newSubscriptionsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1516,10 +1534,20 @@
                     
                     // Всегда показываем тост для новых пользователей
                     console.log('[Socket.IO] Показываем тост для нового пользователя');
-                    showToast(`Новый пользователь: ${full_name}`, 'success', 2000);
+                    try {
+                        showToast(`Новый пользователь: ${full_name}`, 'success', 2000);
+                        console.log('[Socket.IO] Toast показан успешно');
+                    } catch (error) {
+                        console.error('[Socket.IO] Ошибка показа toast:', error);
+                    }
+                    
                     if (notificationSettings.soundsEnabled && notificationSettings.userSoundEnabled) {
                         console.log('[Socket.IO] Проигрываем звук для нового пользователя');
-                        playSound('user');
+                        try {
+                            playSound('user');
+                        } catch (error) {
+                            console.error('[Socket.IO] Ошибка воспроизведения звука:', error);
+                        }
                     }
                     
                     // Сохраняем ID нового пользователя для подсветки
@@ -1944,13 +1972,31 @@
         }
         
         function showNewUsersModal() {
-            fetch('/api/notifications/count')
+            // Сразу сбрасываем счетчик при открытии модалки
+            updateNotificationsToggle('users', 0);
+            updateNotification('users', 0);
+            
+            fetch('/api/users/new')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         let content = '';
-                        if (data.users > 0) {
-                            content = `<p>Зарегистрировано ${data.users} новых пользователей с момента последнего просмотра.</p>`;
+                        if (data.users && data.users.length > 0) {
+                            content = `<p class="mb-3">Зарегистрировано ${data.users.length} новых пользователей с момента последнего просмотра.</p>`;
+                            content += '<div class="list-group">';
+                            data.users.forEach(u => {
+                                content += `
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${u.full_name || 'Не указано'}</strong><br>
+                                            <small class="text-muted">Email: ${u.email || '—'}</small><br>
+                                            <small class="text-muted">Telegram ID: ${u.telegram_id}</small>
+                                        </div>
+                                        <button onclick="showUserProfile(${u.id})" class="btn btn-primary btn-sm">Открыть профиль</button>
+                                    </div>
+                                `;
+                            });
+                            content += '</div>';
                         } else {
                             content = '<p class="text-muted">Новых пользователей нет</p>';
                         }
@@ -1958,16 +2004,13 @@
                         new bootstrap.Modal(document.getElementById('newUsersModal')).show();
                         
                         // Отмечаем как просмотренные
-                        if (data.users > 0) {
+                        if (data.users && data.users.length > 0) {
                             fetch('/api/notifications/mark-viewed', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({ type: 'users' })
-                            }).then(() => {
-                                updateNotificationsToggle('users', 0);
-                                updateNotification('users', 0);
                             });
                         }
                     }
@@ -2006,6 +2049,66 @@
         }
         
         // Функции для работы с настройками уведомлений
+        function showUserProfile(userId) {
+            // Закрываем модалку новых пользователей
+            const newUsersModal = bootstrap.Modal.getInstance(document.getElementById('newUsersModal'));
+            if (newUsersModal) {
+                newUsersModal.hide();
+            }
+            
+            // Небольшая задержка для корректного закрытия предыдущей модалки
+            setTimeout(() => {
+                // Открываем модалку профиля пользователя
+                fetch(`/api/users/${userId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const user = data.user;
+                            const content = `
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Основная информация</h6>
+                                        <p><strong>ID:</strong> ${user.id}</p>
+                                        <p><strong>ФИО:</strong> ${user.full_name || 'Не указано'}</p>
+                                        <p><strong>Email:</strong> ${user.email || 'Не указано'}</p>
+                                        <p><strong>Telegram ID:</strong> ${user.telegram_id}</p>
+                                        <p><strong>Дата регистрации:</strong> ${new Date(user.created_at).toLocaleString('ru-RU')}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Статистика</h6>
+                                        <p><strong>Подписок:</strong> ${user.subscriptions_count || 0}</p>
+                                        <p><strong>Тикетов:</strong> ${user.tickets_count || 0}</p>
+                                        <p><strong>Рефералов:</strong> ${user.referrals_count || 0}</p>
+                                    </div>
+                                </div>
+                            `;
+                            document.getElementById('userDetailsContent').innerHTML = content;
+                            new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+                            
+                            // Сбрасываем уведомление о новом пользователе после просмотра профиля
+                            updateNotificationsToggle('users', 0);
+                            updateNotification('users', 0);
+                        } else {
+                            console.error('Ошибка получения данных пользователя:', data.error || data.message);
+                            alert('Ошибка получения данных пользователя: ' + (data.error || data.message || 'Неизвестная ошибка'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка запроса:', error);
+                        if (error.message.includes('HTTP 302')) {
+                            alert('Ошибка авторизации. Пожалуйста, войдите в систему заново.');
+                        } else {
+                            alert('Ошибка при получении данных пользователя: ' + error.message);
+                        }
+                    });
+            }, 300);
+        }
+        
         function showNotificationSettings() {
             new bootstrap.Modal(document.getElementById('notificationSettingsModal')).show();
         }

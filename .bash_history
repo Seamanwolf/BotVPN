@@ -1,258 +1,3 @@
-        for sub in subscriptions:
-            print(f'ID: {sub.id}, Статус: {sub.status}, Истекает: {sub.expires_at}, Тариф: {sub.plan}')
-    else:
-        print('Пользователь не найден')
-finally:
-    db.close()
-"
-python3 -c "
-import asyncio
-from xui_client import XUIClient
-
-async def check_user_in_xui():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            if 'clientStats' in inbound:
-                for client_stat in inbound['clientStats']:
-                    if client_stat.get('email') == 'Fenix_220291@mail.ru':
-                        print(f'Найден клиент в 3xUI:')
-                        print(f'  ID: {client_stat.get(\"id\")}')
-                        print(f'  Email: {client_stat.get(\"email\")}')
-                        print(f'  Включен: {client_stat.get(\"enable\")}')
-                        print(f'  Истекает: {client_stat.get(\"expiryTime\")}')
-                        print(f'  TG ID: {client_stat.get(\"tgId\")}')
-                        print(f'  Sub ID: {client_stat.get(\"subId\")}')
-                        return client_stat.get('id')
-    return None
-
-result = asyncio.run(check_user_in_xui())
-print(f'\\nАктивный ID в 3xUI: {result}')
-"
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def check_all_clients():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            print(f'Inbound ID: {inbound.get(\"id\")}')
-            if 'clientStats' in inbound:
-                for client_stat in inbound['clientStats']:
-                    print(f'  Клиент: {client_stat.get(\"email\")} (ID: {client_stat.get(\"id\")})')
-                    if client_stat.get(\"email\") == 'Fenix_220291@mail.ru':
-                        print(f'    *** НАЙДЕН ПОЛЬЗОВАТЕЛЬ ***')
-                        print(f'    ID: {client_stat.get(\"id\")}')
-                        print(f'    Включен: {client_stat.get(\"enable\")}')
-                        print(f'    Истекает: {client_stat.get(\"expiryTime\")}')
-                        print(f'    TG ID: {client_stat.get(\"tgId\")}')
-                        print(f'    Sub ID: {client_stat.get(\"subId\")}')
-
-asyncio.run(check_all_clients())
-"
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def find_client_by_id():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    target_id = 'ed43a3bc-a1f7-42c3-9521-cb636b37999e'
-    
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            if 'clientStats' in inbound:
-                for client_stat in inbound['clientStats']:
-                    if client_stat.get('id') == target_id:
-                        print(f'Найден клиент с ID {target_id}:')
-                        print(f'  Email: {client_stat.get(\"email\")}')
-                        print(f'  Включен: {client_stat.get(\"enable\")}')
-                        print(f'  Истекает: {client_stat.get(\"expiryTime\")}')
-                        print(f'  TG ID: {client_stat.get(\"tgId\")}')
-                        print(f'  Sub ID: {client_stat.get(\"subId\")}')
-                        return True
-    print(f'Клиент с ID {target_id} не найден')
-    return False
-
-asyncio.run(find_client_by_id())
-"
-python3 cleanup_database.py
-python3 check_subscriptions.py
-sleep 3 && ps aux | grep "python3 bot.py" | grep -v grep
-python3 test_xui_api.py
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def check_specific_client():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    target_email = 'Fenix_220291@mail.ru'
-    target_id = 'ed43a3bc-a1f7-42c3-9521-cb636b37999e'
-    
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            if 'clientStats' in inbound:
-                for client_stat in inbound['clientStats']:
-                    if client_stat.get('email') == target_email or client_stat.get('id') == target_id:
-                        print(f'✅ НАЙДЕН КЛИЕНТ!')
-                        print(f'  Email: {client_stat.get(\"email\")}')
-                        print(f'  ID: {client_stat.get(\"id\")}')
-                        print(f'  Включен: {client_stat.get(\"enable\")}')
-                        print(f'  Истекает: {client_stat.get(\"expiryTime\")}')
-                        print(f'  TG ID: {client_stat.get(\"tgId\")}')
-                        print(f'  Sub ID: {client_stat.get(\"subId\")}')
-                        return True
-    
-    print(f'❌ Клиент не найден')
-    return False
-
-asyncio.run(check_specific_client())
-"
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def list_all_clients():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    print('Все клиенты в 3xUI:')
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            print(f'Inbound ID: {inbound.get(\"id\")}')
-            if 'clientStats' in inbound:
-                for client_stat in inbound['clientStats']:
-                    print(f'  - {client_stat.get(\"email\")} (ID: {client_stat.get(\"id\")})')
-                    if 'Fenix' in client_stat.get('email', ''):
-                        print(f'    *** ЭТО ВАШ КЛИЕНТ! ***')
-                        print(f'    Включен: {client_stat.get(\"enable\")}')
-                        print(f'    Истекает: {client_stat.get(\"expiryTime\")}')
-
-asyncio.run(list_all_clients())
-"
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def check_inbound_settings():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            print(f'Inbound ID: {inbound.get(\"id\")}')
-            print(f'Remark: {inbound.get(\"remark\")}')
-            print(f'Enable: {inbound.get(\"enable\")}')
-            
-            # Проверяем settings
-            settings_str = inbound.get('settings', '{}')
-            try:
-                settings = json.loads(settings_str)
-                clients = settings.get('clients', [])
-                print(f'Клиентов в settings: {len(clients)}')
-                
-                for client_config in clients:
-                    email = client_config.get('email', '')
-                    client_id = client_config.get('id', '')
-                    enable = client_config.get('enable', False)
-                    print(f'  - {email} (ID: {client_id}) - Включен: {enable}')
-                    
-                    if 'Fenix' in email:
-                        print(f'    *** ВАШ КЛИЕНТ В SETTINGS! ***')
-                        print(f'    Полная конфигурация: {json.dumps(client_config, indent=2)}')
-                        
-            except json.JSONDecodeError as e:
-                print(f'Ошибка парсинга settings: {e}')
-
-asyncio.run(check_inbound_settings())
-"
-python3 fix_subscriptions.py
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def debug_settings():
-    client = XUIClient()
-    await client.login()
-    inbounds = await client.get_inbounds()
-    
-    if inbounds and inbounds.get('obj'):
-        for inbound in inbounds['obj']:
-            print(f'Inbound ID: {inbound.get(\"id\")}')
-            settings_str = inbound.get('settings', '{}')
-            print(f'Settings string length: {len(settings_str)}')
-            print(f'First 200 chars: {settings_str[:200]}')
-            
-            try:
-                settings = json.loads(settings_str)
-                clients = settings.get('clients', [])
-                print(f'Parsed clients count: {len(clients)}')
-                
-                for i, client_config in enumerate(clients):
-                    email = client_config.get('email', '')
-                    enable = client_config.get('enable', False)
-                    print(f'  {i+1}. {email} - enable: {enable}')
-                    
-            except json.JSONDecodeError as e:
-                print(f'JSON decode error: {e}')
-
-asyncio.run(debug_settings())
-"
-python3 -c "
-import asyncio
-import json
-from xui_client import XUIClient
-
-async def debug_api():
-    client = XUIClient()
-    print('Logging in...')
-    success = await client.login()
-    print(f'Login success: {success}')
-    
-    print('Getting inbounds...')
-    inbounds = await client.get_inbounds()
-    print(f'Inbounds response: {type(inbounds)}')
-    
-    if inbounds:
-        print(f'Success: {inbounds.get(\"success\")}')
-        print(f'Has obj: {\"obj\" in inbounds}')
-        if 'obj' in inbounds:
-            print(f'Obj length: {len(inbounds[\"obj\"])}')
-            for i, inbound in enumerate(inbounds['obj']):
-                print(f'Inbound {i}: id={inbound.get(\"id\")}, enable={inbound.get(\"enable\")}')
-
-asyncio.run(debug_api())
-"
-python3 test_xui_api.py
-python3 sync_subscriptions.py
-sleep 3 && ps aux | grep "python3 bot.py" | grep -v grep
-python3 check_subscriptions.py
-pip3 install flask flask-login
-sleep 3 && ps aux | grep python | grep -E "(bot.py|admin_web.py)" | grep -v grep
-curl -s http://localhost:8080 | head -20
-apt update && apt install -y nginx certbot python3-certbot-nginx
-pkill -f "admin_web.py"
-ln -s /etc/nginx/sites-available/seavpn-admin /etc/nginx/sites-enabled/ && rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl restart nginx && systemctl status nginx
 certbot --nginx -d admin.universaltools.pro --non-interactive --agree-tos --email admin@universaltools.pro
@@ -1998,3 +1743,258 @@ systemctl restart seavpn-admin.service
 git add .
 git commit -m "Исправлены вложения и WebSocket: улучшено отображение вложений, исправлен WebSocket сервер"
 git push origin master
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-bot.service -f --no-pager &
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -f --no-pager &
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -f --no-pager &
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -n 20 --no-pager
+systemctl status seavpn-admin.service
+curl -I http://localhost:8080
+systemctl status nginx
+tail -n 20 /var/log/nginx/error.log
+tail -n 10 /var/log/nginx/access.log
+ps aux | grep python3
+netstat -tlnp | grep :8080
+curl -v https://admin.universaltools.pro
+curl -v https://admin.universaltools.pro/socket.io/socket.io.js
+ls -la static/socket.io.js
+nginx -t
+systemctl reload nginx
+curl -I https://admin.universaltools.pro/static/socket.io.js
+chmod 755 /root/static && chmod 644 /root/static/socket.io.js
+curl -I https://admin.universaltools.pro/static/socket.io.js
+systemctl reload nginx
+curl -I https://admin.universaltools.pro/static/socket.io.js
+tail -n 5 /var/log/nginx/error.log
+chown -R www-data:www-data /root/static
+curl -I https://admin.universaltools.pro/static/socket.io.js
+mkdir -p /var/www/admin && cp -r /root/static /var/www/admin/ && chown -R www-data:www-data /var/www/admin
+systemctl reload nginx
+curl -I https://admin.universaltools.pro/static/socket.io.js
+cp -r /root/static/sounds /var/www/admin/static/ && chown -R www-data:www-data /var/www/admin/static/sounds
+curl -I https://admin.universaltools.pro
+journalctl -u seavpn-admin.service -n 10 --no-pager
+cd /var/www/admin/static && wget -O socket.io.js https://cdn.socket.io/4.7.2/socket.io.min.js
+chown www-data:www-data socket.io.js
+cd /root && systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 20 --no-pager
+python3 test_notifications.py
+curl -I https://admin.universaltools.pro/static/socket.io.js
+systemctl restart seavpn-admin.service
+python3 test_notifications.py
+systemctl restart seavpn-admin.service
+python3 test_notifications.py
+journalctl -u seavpn-admin.service -n 10 --no-pager
+systemctl restart seavpn-admin.service
+python3 test_notifications.py
+journalctl -u seavpn-admin.service -n 20 --no-pager
+systemctl restart seavpn-admin.service
+python3 test_notifications.py
+systemctl restart seavpn-bot.service
+python3 test_ticket_vs_message.py
+journalctl -u seavpn-admin.service -n 15 --no-pager
+journalctl -u seavpn-bot.service -n 10 --no-pager
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 20 --no-pager
+journalctl -u seavpn-bot.service -n 10 --no-pager
+python3 test_new_ticket_notification.py
+journalctl -u seavpn-admin.service -n 5 --no-pager
+systemctl restart seavpn-bot.service
+systemctl restart seavpn-admin.service
+python3 test_ticket_vs_message.py
+ls -la /root/static/sounds/
+journalctl -u seavpn-bot.service -n 20 --no-pager
+systemctl restart seavpn-bot.service
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-bot.service -n 10 --no-pager
+systemctl status nginx
+systemctl status seavpn-admin.service
+systemctl restart seavpn-admin.service
+curl -I http://localhost:8080/socket.io/
+journalctl -u seavpn-admin.service -n 10 --no-pager
+curl -s https://admin.universaltools.pro/static/socket.io.js | head -5
+pip3 show python-socketio
+curl -o /var/www/admin/static/socket.io.js https://cdn.socket.io/4.7.2/socket.io.min.js
+head -5 /var/www/admin/static/socket.io.js
+pip3 install python-socketio==4.7.2
+pip3 install python-socketio==4.6.1
+pip3 install flask-socketio==4.3.6
+pip3 install flask-socketio==4.3.2
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 5 --no-pager
+pip3 install flask-socketio==5.5.1 python-socketio==5.13.0
+curl -o /var/www/admin/static/socket.io.js https://cdn.socket.io/5.0.0/socket.io.min.js
+curl -o /var/www/admin/static/socket.io.js https://cdn.socket.io/5.1.0/socket.io.min.js
+curl -o /var/www/admin/static/socket.io.js https://raw.githubusercontent.com/socketio/socket.io-client/master/dist/socket.io.min.js
+head -5 /var/www/admin/static/socket.io.js
+curl -o /var/www/admin/static/socket.io.js https://unpkg.com/socket.io-client@5.1.0/dist/socket.io.min.js
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-admin.service -n 10 --no-pager
+curl -I http://localhost:8080/socket.io/
+python3 test_new_ticket_notification.py
+journalctl -u seavpn-admin.service -n 5 --no-pager
+journalctl -u seavpn-bot.service -n 20 --no-pager
+python3 test_bot_ticket_creation.py
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 20 --no-pager
+python3 test_create_ticket_via_bot.py
+journalctl -u seavpn-admin.service -n 10 --no-pager
+systemctl restart seavpn-admin.service
+python3 test_new_ticket_notification.py
+journalctl -u seavpn-bot.service -n 30 --no-pager
+journalctl -u seavpn-bot.service -n 50 --no-pager
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 50 --no-pager
+journalctl -u seavpn-bot.service -n 30 --no-pager
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 30 --no-pager
+journalctl -u seavpn-bot.service -n 50 --no-pager
+journalctl -u seavpn-admin.service -n 10 --no-pager
+journalctl -u seavpn-admin.service -n 20 --no-pager
+curl -X POST http://localhost:8080/internal/notify -H "Content-Type: application/json" -d '{"type": "new_ticket", "ticket_id": "49"}' -v
+journalctl -u seavpn-admin.service -n 10 --no-pager
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 30 --no-pager
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 50 --no-pager
+systemctl restart seavpn-bot.service
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-admin.service
+journalctl -u seavpn-bot.service -n 30 --no-pager
+journalctl -u seavpn-bot.service -n 50 --no-pager
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -f --no-pager &
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -f --no-pager &
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+git add .
+git commit -m "Текущее состояние перед внедрением Socket.IO - WebSocket работает, вложения отображаются"
+git push origin master
+pip install flask-socketio eventlet redis
+mkdir -p static/sounds
+python3 create_new_sound.py
+pkill -f websocket_server.py
+systemctl stop seavpn-admin.service
+systemctl start seavpn-admin.service
+systemctl status seavpn-admin.service
+git add .
+git commit -m "Внедрена Socket.IO система: заменен WebSocket на Socket.IO, добавлены real-time уведомления, улучшена обработка вложений"
+git push origin master
+nginx -t
+find /etc/nginx -name "*.conf" -exec grep -l "universaltools" {} \;
+find /etc/nginx -name "*.conf" -exec grep -l "admin" {} \;
+ls -la /etc/nginx/sites-enabled/
+grep -r "admin.universaltools.pro" /etc/nginx/
+nginx -t
+systemctl reload nginx
+systemctl status seavpn-admin.service
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service --no-pager
+git add .
+git commit -m "Исправлена Socket.IO: добавлена поддержка WebSocket в Nginx, обновлена версия клиента"
+git push origin master
+journalctl -u seavpn-admin.service -n 20 --no-pager
+curl -I http://127.0.0.1:8080/socket.io/socket.io.js
+curl -I http://127.0.0.1:8080/
+curl http://127.0.0.1:8080/socket.io/socket.io.js
+systemctl restart seavpn-admin.service
+sleep 3 && curl -I http://127.0.0.1:8080/socket.io/socket.io.js
+curl -I http://127.0.0.1:8080/
+systemctl restart seavpn-admin.service
+sleep 3 && curl -I http://127.0.0.1:8080/socket.io/socket.io.js
+python3 test_socketio.py
+systemctl restart seavpn-admin.service
+sleep 3 && python3 test_socketio.py
+systemctl restart seavpn-admin.service
+curl -I http://127.0.0.1:8080/
+git add .
+git commit -m "Восстановлена работа сайта: временно отключен Socket.IO для стабильности"
+git push origin master
+pip show flask-socketio python-socketio python-engineio
+systemctl restart seavpn-admin.service
+sleep 3 && python3 test_socketio.py
+curl -o static/socket.io.js https://cdn.socket.io/4.7.2/socket.io.min.js
+systemctl restart seavpn-admin.service
+sleep 3 && python3 test_socketio.py
+curl "http://127.0.0.1:8080/socket.io/?EIO=4&transport=polling" | head -1
+systemctl restart seavpn-admin.service
+curl -I http://127.0.0.1:8080/
+git add .
+git commit -m "Исправлен Socket.IO: добавлен локальный клиент версии 4.7.2, настроена совместимость"
+git push origin master
+journalctl -u seavpn-admin.service -n 10 --no-pager
+ps aux | grep bot
+systemctl restart seavpn-support-bot.service
+systemctl status seavpn-support-bot.service --no-pager
+python3 test_notification.py
+systemctl restart seavpn-admin.service
+python3 test_notification.py
+git add .
+git commit -m "Исправлены уведомления: исправлен URL порта, добавлена отладочная информация"
+git push origin master
+systemctl restart seavpn-admin.service
+python3 test_new_user_notification.py
+git add .
+git commit -m "Добавлены уведомления для новых пользователей и сообщений: toast уведомления, звуки, бейджи"
+git push origin master
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены уведомления: правильные toast, иконки в шапке, подсветка новых элементов, метки 'Новый'"
+git push origin master
+systemctl status seavpn-admin.service --no-pager
+curl -I http://127.0.0.1:8080/
+systemctl status nginx --no-pager
+nginx -t
+tail -20 /var/log/nginx/error.log
+tail -20 /var/log/nginx/access.log
+curl -I https://admin.universaltools.pro/
+journalctl -u seavpn-admin.service -n 10 --no-pager
+netstat -tlnp | grep :8080
+netstat -tlnp | grep :443
+systemctl restart seavpn-admin.service
+systemctl reload nginx
+systemctl status seavpn-admin.service --no-pager
+curl -I https://admin.universaltools.pro/
+systemctl restart seavpn-admin.service
+git add .
+git commit -m "Исправлены иконки уведомлений: полупрозрачный фон, скрытие нулей, правильные счетчики, индикаторы новых сообщений"
+git push origin master
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+journalctl -u seavpn-bot.service -n 50 --no-pager
+systemctl restart seavpn-bot.service
+python3 -c "from bot import is_admin; print('Админ ID 1:', is_admin(1)); print('Админ ID 123456:', is_admin(123456))"
+python3 -c "from config import ADMIN_IDS; print('Текущие админы:', ADMIN_IDS)"
+journalctl -u seavpn-bot.service -n 20 --no-pager
+journalctl -u seavpn-bot.service -n 50 --no-pager | grep -A 20 "Полный traceback"
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+journalctl -u seavpn-bot.service -n 100 --no-pager
+systemctl status seavpn-webhook.service --no-pager
+journalctl -u seavpn-webhook.service -n 50 --no-pager
+systemctl restart seavpn-webhook.service
+systemctl status seavpn-webhook.service --no-pager
+systemctl restart seavpn-bot.service
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); subs = db.query(Subscription).filter(Subscription.plan_name.like('%5 пользователей%')).all(); [print(f'ID: {s.id}, Plan: {s.plan}, Plan_name: {s.plan_name}, Key_type: {s.key_type}') for s in subs]; db.close()"
+python3 -c "from database import SessionLocal, Subscription; db = SessionLocal(); subs = db.query(Subscription).all(); [print(f'ID: {s.id}, Plan: {s.plan}, Plan_name: {s.plan_name}, Key_type: {s.key_type}') for s in subs if '5 пользователей' in str(s.plan_name)]; db.close()"
+python3 check_subscriptions.py
+journalctl -u seavpn-webhook.service -n 100 --no-pager | grep -A 20 -B 5 "corporate"
+journalctl -u seavpn-webhook.service -n 200 --no-pager | grep -A 50 "corporate_test"
+journalctl -u seavpn-webhook.service -n 200 --no-pager | grep -A 30 "addClient.*200 OK"
+python3 check_subscriptions.py
+journalctl -u seavpn-webhook.service -n 100 --no-pager | grep -i error

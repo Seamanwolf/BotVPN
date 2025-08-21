@@ -1320,10 +1320,11 @@ def get_notifications_count():
                 viewed_users = {record.user_id for record in viewed_records}
             
             # Подсчитываем новых пользователей
-            new_users = db.query(User).filter(
+            new_users_query = db.query(User).filter(
                 User.created_at >= two_hours_ago,
                 ~User.id.in_(viewed_users) if viewed_users else True
-            ).count()
+            )
+            new_users = new_users_query.count()
             
             # Получаем количество новых подписок с момента последнего просмотра
             subscriptions_since = subscriptions_viewed.last_viewed if subscriptions_viewed else datetime.utcnow() - timedelta(days=30)
@@ -1339,6 +1340,80 @@ def get_notifications_count():
                 'users': new_users,
                 'subscriptions': new_subscriptions
             })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/users/new')
+@login_required
+def get_new_users_list():
+    """Список новых пользователей (для модалки)"""
+    try:
+        db = SessionLocal()
+        try:
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
+
+            two_hours_ago = datetime.utcnow() - timedelta(hours=2)
+
+            viewed_users = set()
+            if admin_id:
+                viewed_records = db.query(AdminViewedUsers).filter(AdminViewedUsers.admin_id == admin_id).all()
+                viewed_users = {record.user_id for record in viewed_records}
+
+            users = db.query(User).filter(
+                User.created_at >= two_hours_ago,
+                ~User.id.in_(viewed_users) if viewed_users else True
+            ).order_by(User.created_at.desc()).all()
+
+            users_payload = [{
+                'id': u.id,
+                'full_name': u.full_name,
+                'email': u.email,
+                'telegram_id': u.telegram_id
+            } for u in users]
+
+            return jsonify({'success': True, 'users': users_payload})
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/users/<int:user_id>')
+@login_required
+def get_user_details_for_modal(user_id):
+    """Получение детальной информации о пользователе"""
+    try:
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            # Подсчитываем статистику
+            subscriptions_count = db.query(Subscription).filter(Subscription.user_id == user_id).count()
+            tickets_count = db.query(Ticket).filter(Ticket.user_id == user_id).count()
+            referrals_count = db.query(User).filter(User.referred_by == user_id).count()
+            
+            user_data = {
+                'id': user.id,
+                'full_name': user.full_name,
+                'email': user.email,
+                'telegram_id': user.telegram_id,
+                'created_at': user.created_at.isoformat(),
+                'subscriptions_count': subscriptions_count,
+                'tickets_count': tickets_count,
+                'referrals_count': referrals_count
+            }
+            
+            return jsonify({'success': True, 'user': user_data})
         finally:
             db.close()
     except Exception as e:
@@ -2145,6 +2220,7 @@ def internal_notify():
         }
         logger.info(f"[INTERNAL_NOTIFY] Отправляем users:badge_inc: {payload}")
         socketio.emit('users:badge_inc', payload)
+        # Убираем дублирование - уведомление уже отправляется из бота
         return ('', 204)
     elif notify_type == 'new_ticket':
         # Уведомление о новом тикете

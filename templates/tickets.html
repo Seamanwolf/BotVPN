@@ -82,8 +82,13 @@
                     </thead>
                     <tbody>
                         {% for ticket in tickets %}
-                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}">
-                            <td>{{ ticket.ticket_number }}</td>
+                        <tr data-ticket-id="{{ ticket.id }}" data-ticket-number="{{ ticket.ticket_number }}" data-ticket-type="{{ ticket.ticket_type or 'support' }}" class="ticket-row">
+                            <td>
+                                {{ ticket.ticket_number }}
+                                <span class="new-ticket-badge" id="newTicketBadge_{{ ticket.id }}" style="display: none;">
+                                    <span class="badge bg-danger">Новый</span>
+                                </span>
+                            </td>
                             <td>
                                 {% if ticket.user %}
                                 <div class="d-flex align-items-center">
@@ -328,6 +333,11 @@ function openAttachment(url, type) {
 
 function viewTicketDetails(ticketId) {
     currentTicketId = ticketId;
+    
+    // Скрываем метку "Новый" при просмотре тикета
+    if (typeof hideNewTicketBadge === 'function') {
+        hideNewTicketBadge(ticketId);
+    }
     
     fetch(`/api/ticket/${ticketId}`)
         .then(response => response.json())
@@ -1253,6 +1263,16 @@ document.head.insertAdjacentHTML('beforeend', `
             font-size: 0.75rem;
             font-weight: bold;
             margin-left: 0.5rem;
+        }
+        
+        /* Стили для новых тикетов */
+        .new-ticket-badge {
+            margin-left: 8px;
+        }
+        
+        .new-ticket-badge .badge {
+            font-size: 0.7rem;
+            padding: 0.25em 0.5em;
         }
         
         .messages-count {

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test</h1>
+    <div id="status">Подключение...</div>
+    <div id="events"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const eventsDiv = document.getElementById('events');
+        
+        // Подключаемся к Socket.IO
+        const socket = io('https://admin.universaltools.pro', {
+            transports: ['websocket'],
+            withCredentials: true,
+            forceNew: true,
+            timeout: 20000
+        });
+        
+        // Обработчики событий
+        socket.on('connect', () => {
+            statusDiv.innerHTML = '✅ Подключено к Socket.IO';
+            addEvent('connect', 'Подключение установлено');
+        });
+        
+        socket.on('disconnect', () => {
+            statusDiv.innerHTML = '❌ Отключено от Socket.IO';
+            addEvent('disconnect', 'Соединение разорвано');
+        });
+        
+        socket.on('connect_error', (error) => {
+            statusDiv.innerHTML = '❌ Ошибка подключения';
+            addEvent('connect_error', 'Ошибка: ' + error.message);
+        });
+        
+        socket.on('tickets:badge_inc', (data) => {
+            addEvent('tickets:badge_inc', JSON.stringify(data));
+        });
+        
+        socket.on('users:badge_inc', (data) => {
+            addEvent('users:badge_inc', JSON.stringify(data));
+        });
+        
+        socket.on('ticket:new_message', (data) => {
+            addEvent('ticket:new_message', JSON.stringify(data));
+        });
+        
+        function addEvent(type, data) {
+            const eventDiv = document.createElement('div');
+            eventDiv.innerHTML = `<strong>${type}:</strong> ${data}`;
+            eventDiv.style.margin = '5px 0';
+            eventDiv.style.padding = '5px';
+            eventDiv.style.border = '1px solid #ccc';
+            eventsDiv.appendChild(eventDiv);
+        }
+        
+        // Автоматически тестируем уведомления каждые 10 секунд
+        setInterval(() => {
+            fetch('http://127.0.0.1:8080/internal/notify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticket_id: "test",
+                    message_id: "test_msg",
+                    preview: "Тестовое сообщение",
+                    author: "test"
+                })
+            }).then(response => {
+                addEvent('test_notification', 'Отправлен тест уведомления');
+            }).catch(error => {
+                addEvent('test_error', 'Ошибка теста: ' + error.message);
+            });
+        }, 10000);
+    </script>
+</body>
+</html>
