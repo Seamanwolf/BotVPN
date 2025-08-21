@@ -2007,6 +2007,20 @@
         function goToTicketWithHighlight(ticketId) {
             // Сохраняем ID тикета для подсветки
             sessionStorage.setItem('highlightTicket', String(ticketId));
+            
+            // Отмечаем тикеты как просмотренные на сервере
+            fetch('/api/notifications/mark-viewed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ type: 'tickets' })
+            }).then(() => {
+                // Сбрасываем бейджи только при реальном переходе
+                updateNotificationsToggle('tickets', 0);
+                updateNotification('tickets', 0);
+            }).catch(() => {});
+            
             // Закрываем модальное окно
             const modal = bootstrap.Modal.getInstance(document.getElementById('newTicketsModal'));
             if (modal) modal.hide();
@@ -2074,19 +2088,8 @@
                         document.getElementById('newTicketsContent').innerHTML = content;
                         new bootstrap.Modal(document.getElementById('newTicketsModal')).show();
                         
-                        // Отмечаем как просмотренные
-                        if (data.tickets && data.tickets.length > 0) {
-                            fetch('/api/notifications/mark-viewed', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ type: 'tickets' })
-                            }).then(() => {
-                                updateNotificationsToggle('tickets', 0);
-                                updateNotification('tickets', 0);
-                            });
-                        }
+                        // НЕ отмечаем как просмотренные при открытии модального окна
+                        // Бейджи будут сброшены только при реальном переходе к тикету
                     }
                 });
         }

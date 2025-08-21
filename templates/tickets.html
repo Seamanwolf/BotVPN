@@ -74,8 +74,12 @@
                             <th>Пользователь</th>
                             <th>Тема</th>
                             <th>Статус</th>
-                            <th>Создан</th>
-                            <th>Обновлен</th>
+                            <th onclick="sortTable(4)" style="cursor: pointer;">
+                                Создан <i class="fas fa-sort" id="sortIcon4"></i>
+                            </th>
+                            <th onclick="sortTable(5)" style="cursor: pointer;">
+                                Обновлен <i class="fas fa-sort" id="sortIcon5"></i>
+                            </th>
                             <th>Сообщений</th>
                             <th>Действия</th>
                         </tr>
@@ -855,6 +859,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Функция сортировки таблицы
+let currentSortColumn = -1;
+let currentSortDirection = 'asc';
+
+function sortTable(columnIndex) {
+    const table = document.getElementById('ticketsTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Определяем направление сортировки
+    if (currentSortColumn === columnIndex) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortDirection = 'asc';
+    }
+    currentSortColumn = columnIndex;
+    
+    // Обновляем иконки сортировки
+    document.querySelectorAll('th i.fas').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const sortIcon = document.getElementById(`sortIcon${columnIndex}`);
+    if (sortIcon) {
+        sortIcon.className = currentSortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    }
+    
+    // Сортируем строки
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+        
+        // Для дат используем специальную сортировку
+        if (columnIndex === 4 || columnIndex === 5) { // Создан или Обновлен
+            const aDate = new Date(aValue);
+            const bDate = new Date(bValue);
+            return currentSortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+        }
+        
+        // Для остальных колонок используем строковую сортировку
+        if (currentSortDirection === 'asc') {
+            return aValue.localeCompare(bValue);
+        } else {
+            return bValue.localeCompare(aValue);
+        }
+    });
+    
+    // Перестраиваем таблицу
+    rows.forEach(row => tbody.appendChild(row));
+}
 
 // Стили для сообщений и улучшенный дизайн
 document.head.insertAdjacentHTML('beforeend', `
