@@ -7,9 +7,10 @@ socketio = SocketIO(
     cors_allowed_origins="*",
     message_queue=os.getenv("REDIS_URL"),  # None, если одиночный процесс
     async_mode='eventlet',
-    logger=False,
-    engineio_logger=False,
-    ping_timeout=20,
+    logger=True,
+    engineio_logger=True,
+    ping_timeout=60,
     ping_interval=25,
-    always_connect=True
+    always_connect=True,
+    cors_credentials=True
 )

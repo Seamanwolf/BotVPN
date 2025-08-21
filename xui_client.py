@@ -78,7 +78,7 @@ class XUIClient:
                 except:
                     pass
     
-    async def create_user(self, user_email: str, days: int = 30, note: str = "", tg_id: str = "", subscription_number: int = 1) -> Optional[Dict[str, Any]]:
+    async def create_user(self, user_email: str, days: int = 30, note: str = "", tg_id: str = "", subscription_number: int = 1, ip_limit: int = 3) -> Optional[Dict[str, Any]]:
         """Создание пользователя в 3xUI используя addClient API"""
         await self.ensure_login()
         try:
@@ -141,7 +141,7 @@ class XUIClient:
                             "id": vless_id,
                             "flow": "xtls-rprx-vision",
                             "email": unique_email,  # Используем уникальный ключ
-                            "limitIp": 3,
+                            "limitIp": ip_limit,
                             "totalGB": 0,
                             "expiryTime": expiry_time_ms,
                             "enable": True,

@@ -12,12 +12,17 @@ from datetime import datetime, timedelta
 import os
 import sys
 import asyncio
+import logging
 from dotenv import load_dotenv
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment
 from config import ADMIN_IDS
 from xui_client import XUIClient
 from socketio_app import socketio
@@ -192,6 +197,34 @@ def subscriptions():
         users = db.query(User).all()  # Добавляем пользователей для модального окна создания подписки
         now = datetime.utcnow()
         return render_template('subscriptions.html', subscriptions=subscriptions, users=users, now=now)
+    finally:
+        db.close()
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    """Страница массовых уведомлений"""
+    db = SessionLocal()
+    try:
+        # Получаем статистику
+        total_users = db.query(User).count()
+        active_subscriptions = db.query(Subscription).filter(Subscription.status == "active").count()
+        
+        # Статистика уведомлений
+        sent_today = db.query(MassNotification).filter(
+            MassNotification.created_at >= datetime.utcnow().date()
+        ).count()
+        total_sent = db.query(MassNotification).count()
+        
+        # История уведомлений
+        notifications_history = db.query(MassNotification).order_by(MassNotification.created_at.desc()).limit(20).all()
+        
+        return render_template('notifications.html',
+                             total_users=total_users,
+                             active_subscriptions=active_subscriptions,
+                             sent_today=sent_today,
+                             total_sent=total_sent,
+                             notifications_history=notifications_history)
     finally:
         db.close()
 
@@ -475,15 +508,33 @@ def delete_user(user_id):
         # Получаем все подписки пользователя
         subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
         print(f"Найдено подписок у пользователя: {len(subscriptions)}")
-        
-        # Удаляем пользователя из 3xUI (будет удален при следующей синхронизации)
-        print(f"Пользователь {user.telegram_id} будет удален из 3xUI при следующей синхронизации")
-        
+
+        # Удаляем связанные платежи
+        payments_deleted = db.query(Payment).filter(Payment.user_id == user_id).delete(synchronize_session=False)
+        print(f"Удалено платежей: {payments_deleted}")
+
+        # Удаляем записи о просмотренных пользователях у админов
+        viewed_deleted = db.query(AdminViewedUsers).filter(AdminViewedUsers.user_id == user_id).delete(synchronize_session=False)
+        print(f"Удалено отметок о просмотре пользователя у админов: {viewed_deleted}")
+
+        # Удаляем тикеты пользователя вместе с сообщениями и связями чтения
+        tickets = db.query(Ticket).filter(Ticket.user_id == user_id).all()
+        print(f"Найдено тикетов у пользователя: {len(tickets)}")
+        for ticket in tickets:
+            # Сначала удаляем записи о прочтении сообщений для этого тикета
+            reads_deleted = db.query(AdminReadMessages).filter(AdminReadMessages.ticket_id == ticket.id).delete(synchronize_session=False)
+            print(f"Удалено отметок о чтении для тикета {ticket.id}: {reads_deleted}")
+            # Удаляем сам тикет (сообщения удалятся каскадно через relationship)
+            db.delete(ticket)
+
         # Удаляем все подписки пользователя из БД
         for subscription in subscriptions:
             print(f"Удаляем подписку ID: {subscription.id}")
             db.delete(subscription)
-        
+
+        # Удаляем пользователя из 3xUI (будет удален при следующей синхронизации)
+        print(f"Пользователь {user.telegram_id} будет удален из 3xUI при следующей синхронизации")
+
         # Удаляем пользователя из БД
         print(f"Удаляем пользователя ID: {user.id}")
         db.delete(user)
@@ -1206,6 +1257,9 @@ def delete_ticket(ticket_id):
             # Получаем пользователя для уведомления
             user = db.query(User).filter(User.id == ticket.user_id).first()
             
+            # Сначала удаляем записи о прочтении сообщений этого тикета
+            db.query(AdminReadMessages).filter(AdminReadMessages.ticket_id == ticket_id).delete()
+            
             # Удаляем тикет (каскадное удаление сообщений)
             db.delete(ticket)
             db.commit()
@@ -1614,9 +1668,15 @@ def get_new_messages_count():
     try:
         db = SessionLocal()
         try:
-            admin_id = session.get('admin_id')
-            if not admin_id:
-                return jsonify({'success': False, 'error': 'Не авторизован'})
+            # Получаем ID администратора из текущего пользователя по единому правилу
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
             
             # Получаем все тикеты с новыми сообщениями
             tickets_with_new_messages = []
@@ -1669,6 +1729,62 @@ def get_new_messages_count():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/notifications/messages-count')
+@login_required
+def get_messages_count():
+    """API для получения количества непрочитанных сообщений"""
+    try:
+        db = SessionLocal()
+        try:
+            # Получаем ID администратора из текущего пользователя по единому правилу
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
+            
+            # Получаем общее количество непрочитанных сообщений
+            total_new_messages = 0
+            
+            # Получаем все тикеты
+            tickets = db.query(Ticket).filter(Ticket.status == 'open').all()
+            
+            for ticket in tickets:
+                # Получаем последнее сообщение в тикете
+                last_message = db.query(TicketMessage).filter(
+                    TicketMessage.ticket_id == ticket.id
+                ).order_by(TicketMessage.id.desc()).first()
+                
+                if not last_message:
+                    continue
+                
+                # Проверяем, читал ли администратор это сообщение
+                read_record = db.query(AdminReadMessages).filter(
+                    AdminReadMessages.admin_id == admin_id,
+                    AdminReadMessages.ticket_id == ticket.id
+                ).first()
+                
+                if not read_record or read_record.last_read_message_id < last_message.id:
+                    # Есть новые сообщения
+                    new_messages_count = db.query(TicketMessage).filter(
+                        TicketMessage.ticket_id == ticket.id,
+                        TicketMessage.id > (read_record.last_read_message_id if read_record else 0)
+                    ).count()
+                    
+                    total_new_messages += new_messages_count
+            
+            return jsonify({
+                'success': True,
+                'count': total_new_messages
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/ticket/<int:ticket_id>/mark-read', methods=['POST'])
 @login_required
 def mark_ticket_as_read(ticket_id):
@@ -1676,9 +1792,15 @@ def mark_ticket_as_read(ticket_id):
     try:
         db = SessionLocal()
         try:
-            admin_id = session.get('admin_id')
-            if not admin_id:
-                return jsonify({'success': False, 'error': 'Не авторизован'})
+            # Унифицированное определение admin_id как в других эндпоинтах
+            current_user_id = current_user.id
+            if current_user_id == 'admin':
+                admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+                if not admin:
+                    return jsonify({'success': False, 'error': 'Администратор не найден'})
+                admin_id = admin.id
+            else:
+                admin_id = int(current_user_id)
             
             # Получаем последнее сообщение в тикете
             last_message = db.query(TicketMessage).filter(
@@ -1720,6 +1842,273 @@ def ws_join_ticket(data):
     join_room(f"ticket:{ticket_id}")
     emit('tickets:joined', {'ticket_id': ticket_id})
 
+# ===== API для массовых уведомлений =====
+
+@app.route('/api/notifications/stats')
+@login_required
+def notifications_stats():
+    """API для получения статистики уведомлений"""
+    db = SessionLocal()
+    try:
+        total_users = db.query(User).count()
+        active_subscriptions = db.query(Subscription).filter(Subscription.status == "active").count()
+        
+        # Статистика уведомлений
+        sent_today = db.query(MassNotification).filter(
+            MassNotification.created_at >= datetime.utcnow().date()
+        ).count()
+        total_sent = db.query(MassNotification).count()
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_users': total_users,
+                'active_subscriptions': active_subscriptions,
+                'sent_today': sent_today,
+                'total_sent': total_sent
+            }
+        })
+    finally:
+        db.close()
+
+@app.route('/api/notifications/recipients-count')
+@login_required
+def notifications_recipients_count():
+    """API для получения количества получателей по типу"""
+    recipient_type = request.args.get('type', 'all')
+    db = SessionLocal()
+    try:
+        if recipient_type == 'all':
+            count = db.query(User).count()
+        elif recipient_type == 'active':
+            count = db.query(User).join(Subscription).filter(
+                Subscription.status == "active",
+                Subscription.expires_at > datetime.utcnow()
+            ).distinct().count()
+        elif recipient_type == 'expired':
+            count = db.query(User).join(Subscription).filter(
+                Subscription.status == "expired"
+            ).distinct().count()
+        elif recipient_type == 'new':
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            count = db.query(User).filter(User.created_at >= week_ago).count()
+        elif recipient_type == 'admins':
+            count = db.query(User).filter(User.telegram_id.in_(ADMIN_IDS)).count()
+        else:
+            count = 0
+        
+        return jsonify({
+            'success': True,
+            'count': count
+        })
+    finally:
+        db.close()
+
+@app.route('/api/notifications/send', methods=['POST'])
+@login_required
+def send_notification():
+    """API для отправки массового уведомления"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Нет данных'})
+    
+    title = data.get('title', '').strip()
+    message = data.get('message', '').strip()
+    recipient_type = data.get('recipient_type', 'all')
+    
+    if not title or not message:
+        return jsonify({'success': False, 'message': 'Заголовок и сообщение обязательны'})
+    
+    db = SessionLocal()
+    try:
+        # Получаем список пользователей по типу
+        if recipient_type == 'all':
+            users = db.query(User).all()
+        elif recipient_type == 'active':
+            users = db.query(User).join(Subscription).filter(
+                Subscription.status == "active",
+                Subscription.expires_at > datetime.utcnow()
+            ).distinct().all()
+        elif recipient_type == 'expired':
+            users = db.query(User).join(Subscription).filter(
+                Subscription.status == "expired"
+            ).distinct().all()
+        elif recipient_type == 'new':
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            users = db.query(User).filter(User.created_at >= week_ago).all()
+        elif recipient_type == 'admins':
+            # Получаем администраторов из ADMIN_IDS
+            users = db.query(User).filter(User.telegram_id.in_(ADMIN_IDS)).all()
+        else:
+            return jsonify({'success': False, 'message': 'Неверный тип получателей'})
+        
+        # Создаем запись об уведомлении
+        notification = MassNotification(
+            title=title,
+            message=message,
+            recipient_type=recipient_type,
+            total_count=len(users),
+            sent_count=0,
+            status="in_progress",
+            created_by=current_user.id if hasattr(current_user, 'id') else None
+        )
+        db.add(notification)
+        db.commit()
+        
+        # Отправляем уведомления асинхронно
+        import threading
+        thread = threading.Thread(
+            target=send_notifications_async,
+            args=(notification.id, title, message, [user.telegram_id for user in users])
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Уведомление поставлено в очередь',
+            'sent_count': 0,
+            'total_count': len(users)
+        })
+        
+    except Exception as e:
+        logger.error(f"Ошибка отправки уведомления: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+    finally:
+        db.close()
+
+def send_notifications_async(notification_id, title, message, telegram_ids):
+    """Асинхронная отправка уведомлений"""
+    import asyncio
+    import nest_asyncio
+    
+    # Применяем патч для вложенных event loops
+    nest_asyncio.apply()
+    
+    async def send_notifications():
+        from aiogram import Bot
+        from dotenv import load_dotenv
+        load_dotenv()
+        
+        # Пытаемся получить токен из переменных окружения
+        bot_token = os.getenv('BOT_TOKEN')
+        if not bot_token:
+            # Если не найден в переменных окружения, берем из config.py
+            try:
+                from config import BOT_TOKEN
+                bot_token = BOT_TOKEN
+                logger.info(f"Используем BOT_TOKEN из config.py: {bot_token[:20]}...")
+            except ImportError:
+                logger.error("BOT_TOKEN не найден ни в переменных окружения, ни в config.py")
+                return
+        
+        bot = Bot(token=bot_token)
+        db = SessionLocal()
+        
+        try:
+            notification = db.query(MassNotification).filter(MassNotification.id == notification_id).first()
+            if not notification:
+                logger.error(f"Уведомление {notification_id} не найдено")
+                return
+            
+            sent_count = 0
+            total_count = len(telegram_ids)
+            
+            # Формируем полное сообщение (без тега <br>, который не поддерживается Telegram HTML)
+            full_message = f"<b>{title}</b>\n\n{message}\n\n<i>С уважением,\nкоманда разработки SeaVPN</i>"
+            
+            for telegram_id in telegram_ids:
+                try:
+                    await bot.send_message(
+                        chat_id=telegram_id,
+                        text=full_message,
+                        parse_mode="HTML"
+                    )
+                    sent_count += 1
+                    
+                    # Обновляем счетчик каждые 10 отправок
+                    if sent_count % 10 == 0:
+                        notification.sent_count = sent_count
+                        db.commit()
+                        
+                except Exception as e:
+                    logger.error(f"Ошибка отправки уведомления пользователю {telegram_id}: {e}")
+            
+            # Обновляем статус
+            notification.sent_count = sent_count
+            notification.status = "completed"
+            notification.completed_at = datetime.utcnow()
+            db.commit()
+            
+            logger.info(f"Уведомление {notification_id} отправлено: {sent_count}/{total_count}")
+            
+        except Exception as e:
+            logger.error(f"Ошибка в send_notifications_async: {e}")
+            if notification:
+                notification.status = "error"
+                db.commit()
+        finally:
+            db.close()
+            await bot.session.close()
+    
+    # Запускаем асинхронную функцию
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(send_notifications())
+    except Exception as e:
+        logger.error(f"Ошибка запуска асинхронной функции: {e}")
+    finally:
+        loop.close()
+
+@app.route('/api/notifications/<int:notification_id>')
+@login_required
+def get_notification_details(notification_id):
+    """API для получения деталей уведомления"""
+    db = SessionLocal()
+    try:
+        notification = db.query(MassNotification).filter(MassNotification.id == notification_id).first()
+        if not notification:
+            return jsonify({'success': False, 'message': 'Уведомление не найдено'})
+        
+        return jsonify({
+            'success': True,
+            'notification': {
+                'id': notification.id,
+                'title': notification.title,
+                'message': notification.message,
+                'recipient_type': notification.recipient_type,
+                'total_count': notification.total_count,
+                'sent_count': notification.sent_count,
+                'status': notification.status,
+                'created_at': notification.created_at.strftime('%d.%m.%Y %H:%M') if notification.created_at else None,
+                'completed_at': notification.completed_at.strftime('%d.%m.%Y %H:%M') if notification.completed_at else None
+            }
+        })
+    finally:
+        db.close()
+
+@app.route('/api/notifications/<int:notification_id>/delete', methods=['DELETE'])
+@login_required
+def delete_notification(notification_id):
+    """API для удаления уведомления"""
+    db = SessionLocal()
+    try:
+        notification = db.query(MassNotification).filter(MassNotification.id == notification_id).first()
+        if not notification:
+            return jsonify({'success': False, 'message': 'Уведомление не найдено'})
+        
+        # Удаляем уведомление
+        db.delete(notification)
+        db.commit()
+        
+        return jsonify({'success': True, 'message': 'Уведомление удалено'})
+    except Exception as e:
+        logger.error(f"Ошибка удаления уведомления: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+    finally:
+        db.close()
+
 # ===== Внутренний хук для уведомлений из других процессов (бот и т.п.) =====
 
 @app.post('/internal/notify')
@@ -1742,9 +2131,11 @@ def internal_notify():
     }
     """
     data = request.get_json(force=True) or {}
+    logger.info(f"[INTERNAL_NOTIFY] Получены данные: {data}")
     
     # Проверяем тип уведомления
-    if data.get('type') == 'new_user':
+    notify_type = data.get('type')
+    if notify_type == 'new_user':
         # Уведомление о новом пользователе
         payload = {
             "user_id": data.get('user_id'),
@@ -1752,21 +2143,45 @@ def internal_notify():
             "phone": data.get('phone'),
             "email": data.get('email'),
         }
+        logger.info(f"[INTERNAL_NOTIFY] Отправляем users:badge_inc: {payload}")
         socketio.emit('users:badge_inc', payload)
+        return ('', 204)
+    elif notify_type == 'new_ticket':
+        # Уведомление о новом тикете
+        ticket_id = str(data.get('ticket_id', ''))
+        payload = {"ticket_id": ticket_id}
+        logger.info(f"[INTERNAL_NOTIFY] Отправляем tickets:badge_inc: {payload}")
+        socketio.emit('tickets:badge_inc', payload)
         return ('', 204)
     else:
         # Уведомление о новом сообщении в тикете
         ticket_id = str(data.get('ticket_id', ''))
+        message_id = data.get('message_id')
         payload = {
             "ticket_id": ticket_id,
-            "message_id": data.get('message_id'),
+            "message_id": message_id,
             "preview": data.get('preview'),
             "author": data.get('author'),
         }
-        # В комнату конкретного тикета (если открыт)
-        socketio.emit('ticket:new_message', payload, room=f"ticket:{ticket_id}")
-        # И глобально — чтобы дернуть колокольчик/бейдж в шапке
-        socketio.emit('tickets:badge_inc', {"ticket_id": ticket_id})
+
+        # Защита: если это первое сообщение тикета (создание тикета), не отправляем как new_message
+        try:
+            db = SessionLocal()
+            try:
+                # Найдём самое раннее сообщение этого тикета
+                first_msg = db.query(TicketMessage).filter(TicketMessage.ticket_id == int(ticket_id)).order_by(TicketMessage.id.asc()).first()
+                if first_msg and message_id and str(first_msg.id) == str(message_id):
+                    logger.info(f"[INTERNAL_NOTIFY] Пропускаем ticket:new_message для первого сообщения тикета {ticket_id}")
+                    return ('', 204)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"[INTERNAL_NOTIFY] Ошибка проверки первого сообщения: {e}")
+
+        logger.info(f"[INTERNAL_NOTIFY] Отправляем ticket:new_message: {payload}")
+        # Отправляем глобально всем подключенным клиентам
+        socketio.emit('ticket:new_message', payload)
+        # Глобально бейдж тикетов НЕ увеличиваем, это именно новое сообщение
         return ('', 204)
 
 if __name__ == '__main__':
@@ -1774,7 +2189,15 @@ if __name__ == '__main__':
     os.makedirs('templates', exist_ok=True)
     
     # Для Socket.IO нужен eventlet/gevent
-    # eventlet нужен в requirements
     import eventlet
     import eventlet.wsgi  # noqa
-    socketio.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+    
+    # Настройки Socket.IO
+    socketio.run(
+        app, 
+        host="0.0.0.0", 
+        port=int(os.getenv("PORT", 8080)),
+        debug=False,
+        use_reloader=False,
+        log_output=True
+    )

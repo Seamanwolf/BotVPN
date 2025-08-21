@@ -15,6 +15,8 @@ from aiogram.fsm.context import FSMContext
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from aiogram import Bot, Dispatcher, F
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiohttp import ClientTimeout
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
@@ -25,7 +27,7 @@ from dotenv import load_dotenv
 # Импортируем модели базы данных
 from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage
 from config import ADMIN_IDS as CONFIG_ADMIN_IDS
-from notifications import notify_new_message
+from notifications import notify_new_message, notify_new_ticket, INTERNAL_NOTIFY_URL
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -64,8 +66,10 @@ def get_admin_ids():
 # ID администраторов
 ADMIN_IDS = get_admin_ids()
 
-# Инициализация бота
-bot = Bot(token=BOT_TOKEN)
+# Инициализация бота с увеличенными таймаутами сети, чтобы избежать падений по timeout
+custom_timeout = ClientTimeout(total=30)
+aiohttp_session = AiohttpSession(timeout=custom_timeout)
+bot = Bot(token=BOT_TOKEN, session=aiohttp_session)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
@@ -177,11 +181,13 @@ async def help_handler(message: Message):
 @dp.message(F.text == "📝 Создать тикет")
 async def create_ticket_handler(message: Message, state: FSMContext):
     """Обработчик создания тикета"""
+    logger.info(f"Обработчик создания тикета вызван пользователем {message.from_user.id}")
     await message.answer(
         "📝 Пожалуйста, опишите вашу проблему или задайте вопрос.\n"
         "Постарайтесь указать как можно больше деталей, чтобы мы могли быстрее вам помочь."
     )
     await state.set_state(SupportStates.waiting_for_issue)
+    logger.info(f"Состояние установлено: waiting_for_issue")
 
 @dp.message(F.text == "💡 Предложения")
 async def suggestion_handler(message: Message, state: FSMContext):
@@ -201,10 +207,13 @@ async def process_issue(message: Message, state: FSMContext):
     user_name = message.from_user.full_name
     issue_text = message.text
     
+    logger.info(f"Обработка описания проблемы от пользователя {telegram_id}: {issue_text[:50]}...")
+    
     # Создаем тикет типа "support"
     await create_ticket(message, "support", issue_text)
     # После создания тикета сбрасываем состояние
     await state.clear()
+    logger.info(f"Состояние сброшено после создания тикета")
 
 @dp.message(SupportStates.waiting_for_suggestion)
 async def process_suggestion(message: Message, state: FSMContext):
@@ -267,6 +276,9 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
         try:
             # Генерируем номер тикета
             ticket_number = generate_ticket_number()
+            logger.info(f"Создаем тикет #{ticket_number} типа {ticket_type}")
+            logger.info(f"Пользователь: {user.id} ({user.full_name})")
+            logger.info(f"Текст: {text[:100]}...")
             
             # Формируем тему тикета
             subject_prefix = "[Предложение] " if ticket_type == "suggestion" else ""
@@ -283,6 +295,8 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
             db.add(ticket)
             db.commit()
             db.refresh(ticket)
+            logger.info(f"Тикет #{ticket_number} создан с ID {ticket.id}")
+            logger.info(f"Тикет сохранен в БД успешно")
         except Exception as e:
             logger.error(f"Ошибка при создании тикета в БД: {e}")
             await message.answer(
@@ -303,16 +317,25 @@ async def create_ticket(message: Message, ticket_type: str, text: str):
             db.add(ticket_message)
             db.commit()
             
-            # Отправляем уведомление через Socket.IO
+            # Отправляем уведомление о новом тикете через Socket.IO
             try:
-                notify_new_message(
-                    ticket_id=str(ticket.id),
-                    message_id=str(ticket_message.id),
-                    preview=text[:120],
-                    author="user"
+                logger.info(f"Отправляем уведомление о новом тикете {ticket.id}")
+                logger.info(f"INTERNAL_NOTIFY_URL: {INTERNAL_NOTIFY_URL}")
+                
+                # Тестируем подключение к веб-сервису
+                import requests
+                test_response = requests.get("http://127.0.0.1:8080/", timeout=3)
+                logger.info(f"Тест подключения к веб-сервису: {test_response.status_code}")
+                
+                notify_new_ticket(
+                    ticket_id=str(ticket.id)
                 )
+                logger.info(f"Уведомление о новом тикете {ticket.id} отправлено успешно")
             except Exception as e:
-                logger.error(f"Ошибка при отправке уведомления: {e}")
+                logger.error(f"Ошибка при отправке уведомления о новом тикете: {e}")
+                logger.error(f"Тип ошибки: {type(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
         except Exception as e:
             logger.error(f"Ошибка при добавлении сообщения тикета: {e}")
             # Тикет уже создан, так что продолжаем
@@ -920,7 +943,13 @@ async def back_handler(message: Message):
 # Функция запуска бота
 async def main():
     logger.info("Запуск бота поддержки SeaVPN...")
-    await dp.start_polling(bot)
+    # Добавляем простой авто-ретрай на случай сетевых сбоев
+    while True:
+        try:
+            await dp.start_polling(bot)
+        except Exception as e:
+            logger.error(f"Сбой в polling: {e}")
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -47,7 +47,19 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <span class="input-group-text bg-purple text-white">
+                            <i class="fas fa-key"></i>
+                        </span>
+                        <select class="form-select" id="keyTypeFilter">
+                            <option value="">Все типы ключей</option>
+                            <option value="personal">Личные</option>
+                            <option value="corporate">Корпоративные</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
                     <div class="input-group">
                         <span class="input-group-text bg-primary text-white">
                             <i class="fas fa-search"></i>
@@ -79,6 +91,7 @@
                             <th>ID</th>
                             <th>Пользователь</th>
                             <th>План</th>
+                            <th>Тип ключа</th>
                             <th>Ключ</th>
                             <th>Статус</th>
                             <th>Действует до</th>
@@ -109,6 +122,13 @@
                                     <span class="badge bg-info">🧪 {{ subscription.plan_name or 'Тестовая' }}</span>
                                 {% else %}
                                     <span class="badge bg-primary">{{ subscription.plan_name or subscription.plan }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if subscription.key_type == 'corporate' %}
+                                    <span class="badge bg-purple">🏢 Корпоративный</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">👤 Личный</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -154,19 +174,19 @@
                             </td>
                             <td>{{ subscription.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails({{ subscription.id }})" title="Детали">
+                                <button class="btn btn-sm btn-outline-info btn-compact" onclick="viewSubscriptionDetails({{ subscription.id }})" title="Детали">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 {% if subscription.status == 'active' %}
-                                    <button class="btn btn-sm btn-outline-warning" onclick="pauseSubscription({{ subscription.id }})" title="Приостановить">
+                                    <button class="btn btn-sm btn-outline-warning btn-compact" onclick="pauseSubscription({{ subscription.id }})" title="Приостановить">
                                         <i class="fas fa-pause"></i>
                                     </button>
                                 {% elif subscription.status == 'paused' %}
-                                    <button class="btn btn-sm btn-outline-success" onclick="activateSubscription({{ subscription.id }})" title="Активировать">
+                                    <button class="btn btn-sm btn-outline-success btn-compact" onclick="activateSubscription({{ subscription.id }})" title="Активировать">
                                         <i class="fas fa-play"></i>
                                     </button>
                                 {% endif %}
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSubscription({{ subscription.id }})" title="Удалить">
+                                <button class="btn btn-sm btn-outline-danger btn-compact" onclick="deleteSubscription({{ subscription.id }})" title="Удалить">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>
@@ -360,13 +380,15 @@ function refreshSubscriptions() {
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const planFilter = document.getElementById('planFilter').value;
+    const keyTypeFilter = document.getElementById('keyTypeFilter').value;
     const userFilter = document.getElementById('userFilter').value.toLowerCase();
     
     const rows = document.querySelectorAll('#subscriptionsTable tbody tr');
     
     rows.forEach(row => {
-        const status = row.cells[4].textContent; // Исправляем индекс для статуса
+        const status = row.cells[5].textContent; // Обновляем индекс для статуса
         const plan = row.cells[2].textContent;
+        const keyType = row.cells[3].textContent; // Новый индекс для типа ключа
         const user = row.cells[1].textContent.toLowerCase();
         
         let show = true;
@@ -381,6 +403,15 @@ function applyFilters() {
             show = false;
         }
         
+        // Фильтр типа ключа
+        if (keyTypeFilter) {
+            if (keyTypeFilter === 'personal' && !keyType.includes('Личный')) {
+                show = false;
+            } else if (keyTypeFilter === 'corporate' && !keyType.includes('Корпоративный')) {
+                show = false;
+            }
+        }
+        
         // Фильтр пользователя
         if (userFilter && !user.includes(userFilter)) {
             show = false;
@@ -393,6 +424,7 @@ function applyFilters() {
 function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('planFilter').value = '';
+    document.getElementById('keyTypeFilter').value = '';
     document.getElementById('userFilter').value = '';
     applyFilters();
 }
@@ -400,6 +432,7 @@ function clearFilters() {
 // Применяем фильтры при изменении
 document.getElementById('statusFilter').addEventListener('change', applyFilters);
 document.getElementById('planFilter').addEventListener('change', applyFilters);
+document.getElementById('keyTypeFilter').addEventListener('change', applyFilters);
 document.getElementById('userFilter').addEventListener('input', applyFilters);
 
 // Добавляем улучшенные стили
@@ -534,6 +567,16 @@ document.head.insertAdjacentHTML('beforeend', `
             color: white !important;
         }
         
+        .badge.bg-purple {
+            background: #7c3aed !important;
+            color: white !important;
+        }
+        
+        .badge.bg-secondary {
+            background: #6b7280 !important;
+            color: white !important;
+        }
+        
         /* Улучшенные кнопки */
         .btn {
             border-radius: 0.75rem;
@@ -644,6 +687,22 @@ document.head.insertAdjacentHTML('beforeend', `
             background: rgba(0, 0, 0, 0.02);
             border-radius: 0 0 0.75rem 0.75rem;
             padding: 1rem 1.25rem;
+        }
+        
+        /* Компактные кнопки-иконки (совместно со страницей уведомлений) */
+        .btn-icon {
+            padding: 0.2rem 0.35rem;
+            line-height: 1;
+            font-size: 0.75rem;
+            border-radius: 0.5rem;
+        }
+
+        /* Унифицированный компактный размер как на странице пользователей */
+        .btn-compact {
+            padding: 0.2rem 0.45rem;
+            font-size: 0.8rem;
+            line-height: 1.1;
+            border-radius: 0.5rem;
         }
     </style>
 `);

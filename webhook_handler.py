@@ -19,7 +19,7 @@ load_dotenv()
 
 from database import SessionLocal, Payment, User, Subscription
 from xui_client import XUIClient
-from config import TARIFFS, REFERRAL_BONUS
+from config import TARIFFS, CORPORATE_TARIFFS, REFERRAL_BONUS
 from notifications import NotificationManager
 import hmac
 import hashlib
@@ -294,6 +294,8 @@ def create_new_subscription_from_payment_sync(payment: Payment, db: Session, use
             return
         # Определяем параметры подписки
         tariff = payment.subscription_type
+        key_type = "personal"  # по умолчанию личный ключ
+        users_count = 3  # по умолчанию для личных тарифов
         logging.debug(f"Определение параметров тарифа: {tariff}")
         
         if tariff == "1m":
@@ -305,6 +307,31 @@ def create_new_subscription_from_payment_sync(payment: Payment, db: Session, use
         elif tariff == "test":
             days = TARIFFS["test"]["days"]
             tariff_name = TARIFFS["test"]["name"]
+        elif tariff == "corporate_test":
+            # Тестовый корпоративный тариф
+            days = 1
+            tariff_name = "1 день, 5 пользователей"
+            key_type = "corporate"
+            users_count = 5
+        elif tariff.startswith("corporate_"):
+            # Корпоративный тариф
+            corporate_tariff_type = tariff.split("_")[1]  # 1m или 3m
+            days = CORPORATE_TARIFFS[corporate_tariff_type]["days"]
+            tariff_name = CORPORATE_TARIFFS[corporate_tariff_type]["name"]
+            key_type = "corporate"
+            
+            # Получаем количество пользователей из метаданных
+            if payment.payment_metadata:
+                try:
+                    metadata = json.loads(payment.payment_metadata)
+                    users_count = metadata.get("users_count", 5)
+                    tariff_name += f" ({users_count} пользователей)"
+                except:
+                    users_count = 5
+                    tariff_name += " (5 пользователей)"
+            else:
+                users_count = 5
+                tariff_name += " (5 пользователей)"
         else:
             logging.error(f"Webhook: неизвестный тариф {tariff}")
             return
@@ -325,12 +352,18 @@ def create_new_subscription_from_payment_sync(payment: Payment, db: Session, use
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            # Определяем лимит IP для корпоративных тарифов
+            ip_limit = 3  # по умолчанию для личных тарифов
+            if key_type == "corporate":
+                ip_limit = users_count  # для корпоративных тарифов лимит = количество пользователей
+            
             xui_result = loop.run_until_complete(xui_client.create_user(
                 user_email, 
                 days, 
                 f"{user.full_name} (PAID)", 
                 str(user.telegram_id), 
-                next_subscription_number
+                next_subscription_number,
+                ip_limit=ip_limit
             ))
             
             logging.debug(f"Результат создания пользователя в XUI: {xui_result}")
@@ -351,6 +384,7 @@ def create_new_subscription_from_payment_sync(payment: Payment, db: Session, use
                         plan_name=tariff_name,
                         status="active",
                         subscription_number=next_subscription_number,
+                        key_type=key_type,
                         expires_at=expires_at
                     )
                     db.add(subscription)
@@ -569,12 +603,28 @@ def extend_subscription_from_payment_sync(payment: Payment, db: Session, user: U
             # Если подписка истекла, создаем нового пользователя
             if subscription.status == "expired":
                 logging.debug("Подписка истекла, создаем нового пользователя")
+                # Определяем лимит IP для корпоративных тарифов
+                ip_limit = 3  # по умолчанию для личных тарифов
+                if subscription.key_type == "corporate":
+                    # Для корпоративных тарифов определяем количество пользователей из названия плана
+                    if "5 пользователей" in subscription.plan_name:
+                        ip_limit = 5
+                    elif "10 пользователей" in subscription.plan_name:
+                        ip_limit = 10
+                    elif "15 пользователей" in subscription.plan_name:
+                        ip_limit = 15
+                    elif "20 пользователей" in subscription.plan_name:
+                        ip_limit = 20
+                    else:
+                        ip_limit = 5  # по умолчанию для корпоративных
+                
                 xui_result = loop.run_until_complete(xui_client.create_user(
                     user_email, 
                     days, 
                     f"{user.full_name} (EXTENDED)", 
                     str(user.telegram_id),
-                    subscription.subscription_number
+                    subscription.subscription_number,
+                    ip_limit=ip_limit
                 ))
             else:
                 # Если подписка еще активна, продлеваем существующего пользователя

@@ -476,9 +476,9 @@
 
         /* Кнопка переключения темы */
         .theme-toggle {
-            position: absolute !important;
-            top: 10px !important;
-            right: 10px !important;
+            position: fixed !important;
+            top: 70px !important;
+            right: 20px !important;
             left: auto !important;
             z-index: 1000;
             background: var(--card-bg);
@@ -486,7 +486,7 @@
             border-radius: 50%;
             width: 40px;
             height: 40px;
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             cursor: pointer;
@@ -532,24 +532,23 @@
         
         /* Кнопка новых сообщений */
         .messages-toggle {
-            position: absolute !important;
-            top: 10px !important;
-            right: 60px !important;
+            position: fixed !important;
+            top: 120px !important;
+            right: 20px !important;
             left: auto !important;
-            z-index: 1000;
+            z-index: 1100;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border: none;
             border-radius: 50%;
             width: 40px;
             height: 40px;
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: var(--card-shadow);
-            position: relative;
         }
         
         .messages-toggle:hover {
@@ -580,8 +579,8 @@
         
         /* Кнопки уведомлений */
         .notifications-toggle {
-            position: absolute !important;
-            top: 10px !important;
+            position: fixed !important;
+            top: 20px !important;
             left: auto !important;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.1);
@@ -590,13 +589,12 @@
             border-radius: 50%;
             width: 40px;
             height: 40px;
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: var(--card-shadow);
-            position: relative;
         }
         
         .notifications-toggle:hover {
@@ -840,6 +838,12 @@
                                 <span class="nav-notification" id="ticketsNotification" style="display: none;">0</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'notifications' %}active{% endif %}" href="{{ url_for('notifications') }}">
+                                <i class="fas fa-bullhorn me-2"></i>
+                                Уведомления
+                            </a>
+                        </li>
 
                     </ul>
                     
@@ -864,31 +868,31 @@
                 </div>
                 
                 <!-- Кнопка новых сообщений -->
-                <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" data-role="messages-bell">
+                <div class="messages-toggle" onclick="showNewMessagesModal()" title="Новые сообщения" id="messagesToggle" data-role="messages-bell" style="top: 120px !important; right: 20px !important; z-index: 1100 !important;">
                     <i class="fas fa-comments"></i>
                     <span class="messages-count" id="messagesCount" data-role="messages-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка новых тикетов -->
-                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" data-role="tickets-bell" style="right: 110px !important;">
+                <div class="notifications-toggle" onclick="showNewTicketsModal()" title="Новые тикеты" id="ticketsToggle" data-role="tickets-bell" style="top: 170px !important; right: 20px !important;">
                     <i class="fas fa-ticket-alt"></i>
                     <span class="notifications-count" id="ticketsCount" data-role="tickets-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка новых пользователей -->
-                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" data-role="users-bell" style="right: 160px !important;">
+                <div class="notifications-toggle" onclick="showNewUsersModal()" title="Новые пользователи" id="usersToggle" data-role="users-bell" style="top: 220px !important; right: 20px !important;">
                     <i class="fas fa-users"></i>
                     <span class="notifications-count" id="usersCount" data-role="users-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка новых подписок -->
-                <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" data-role="tickets-bell" style="display: none;">
+                <div class="notifications-toggle" onclick="showNewSubscriptionsModal()" title="Новые подписки" id="subscriptionsToggle" data-role="subscriptions-bell" style="top: 270px !important; right: 20px !important;">
                     <i class="fas fa-key"></i>
-                    <span class="notifications-count" id="subscriptionsCount" data-role="global-badge">0</span>
+                    <span class="notifications-count" id="subscriptionsCount" data-role="subscriptions-badge" style="display: none;">0</span>
                 </div>
                 
                 <!-- Кнопка настроек уведомлений -->
-                <div class="notifications-toggle" onclick="showNotificationSettings()" title="Настройки уведомлений" id="settingsToggle">
+                <div class="notifications-toggle" onclick="showNotificationSettings()" title="Настройки уведомлений" id="settingsToggle" style="top: 320px !important; right: 20px !important;">
                     <i class="fas fa-cog"></i>
                 </div>
                 
@@ -1265,10 +1269,10 @@
                             content = '<p class="text-muted">Новых сообщений нет</p>';
                         } else {
                             content = `<p class="mb-3">У вас ${data.tickets_with_new_messages.length} тикетов с новыми сообщениями:</p>`;
-                            content += '<div class="list-group">';
+                            content += '<div class="list-group" id="newMessagesList">';
                             data.tickets_with_new_messages.forEach(ticket => {
                                 content += `
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="list-group-item d-flex justify-content-between align-items-center" id="nm_item_${ticket.ticket_id}">
                                         <div>
                                             <strong>Тикет #${ticket.ticket_number}</strong><br>
                                             <small class="text-muted">От: ${ticket.user_name}</small><br>
@@ -1278,7 +1282,7 @@
                                         <div class="text-end">
                                             <span class="badge bg-danger rounded-pill">${ticket.new_messages_count} новых</span>
                                             <br>
-                                            <button class="btn btn-primary btn-sm mt-2" onclick="viewTicketFromNotification(${ticket.ticket_id})">
+                                            <button class="btn btn-primary btn-sm mt-2" onclick="viewTicketFromNotification(${ticket.ticket_id}); removeNewMessageItem(${ticket.ticket_id});">
                                                 Перейти к тикету
                                             </button>
                                         </div>
@@ -1289,7 +1293,21 @@
                         }
                         
                         document.getElementById('newMessagesContent').innerHTML = content;
-                        new bootstrap.Modal(document.getElementById('newMessagesModal')).show();
+                        const modalEl = document.getElementById('newMessagesModal');
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                        // По закрытию отметим весь список как прочитанный
+                        modalEl.addEventListener('hidden.bs.modal', function once() {
+                            modalEl.removeEventListener('hidden.bs.modal', once);
+                            // Для каждого тикета из списка — отметим прочитанным
+                            if (data.tickets_with_new_messages) {
+                                data.tickets_with_new_messages.forEach(t => {
+                                    fetch(`/api/ticket/${t.ticket_id}/mark-read`, { method: 'POST' });
+                                });
+                            }
+                            // Обновим счетчики
+                            setTimeout(checkNewNotifications, 300);
+                        });
                     } else {
                         showToast('Ошибка при загрузке новых сообщений', 'error');
                     }
@@ -1299,14 +1317,76 @@
                     showToast('Произошла ошибка при загрузке новых сообщений', 'error');
                 });
         }
+
+        function removeNewMessageItem(ticketId) {
+            const item = document.getElementById(`nm_item_${ticketId}`);
+            if (item) {
+                item.parentNode.removeChild(item);
+                const list = document.getElementById('newMessagesList');
+                if (list && list.children.length === 0) {
+                    document.getElementById('newMessagesContent').innerHTML = '<p class="text-muted">Новых сообщений нет</p>';
+                }
+            }
+        }
+        
+        // Функция для показа метки "Новый" у тикета
+        function showNewTicketBadge(ticketId) {
+            const badge = document.getElementById(`newTicketBadge_${ticketId}`);
+            if (badge) {
+                badge.style.display = 'inline-block';
+                // Автоматически скрываем через 30 минут
+                setTimeout(() => {
+                    if (badge) {
+                        badge.style.display = 'none';
+                    }
+                }, 30 * 60 * 1000); // 30 минут
+            }
+        }
+        
+        // Функция для скрытия метки "Новый" при просмотре тикета
+        function hideNewTicketBadge(ticketId) {
+            const badge = document.getElementById(`newTicketBadge_${ticketId}`);
+            if (badge) {
+                badge.style.display = 'none';
+            }
+        }
         
         // Функция для перехода к тикету из уведомления
         function viewTicketFromNotification(ticketId) {
             // Закрываем модальное окно уведомлений
-            bootstrap.Modal.getInstance(document.getElementById('newMessagesModal')).hide();
+            const modalEl = document.getElementById('newMessagesModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
             
-            // Открываем тикет
-            viewTicketDetails(ticketId);
+            // Отмечаем тикет как прочитанный на сервере
+            fetch(`/api/ticket/${ticketId}/mark-read`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(r => r.json()).then(() => {
+                // Обновляем глобальные счетчики
+                checkNewNotifications();
+                // Скрываем бейдж у конкретного тикета (если есть на странице)
+                const badge = document.getElementById(`newMessagesBadge_${ticketId}`);
+                if (badge) {
+                    const countEl = badge.querySelector('.new-count');
+                    if (countEl) countEl.textContent = '0';
+                    badge.style.display = 'none';
+                }
+                // Скрываем метку "Новый" у тикета
+                const newBadge = document.getElementById(`newTicketBadge_${ticketId}`);
+                if (newBadge) {
+                    newBadge.style.display = 'none';
+                }
+            }).catch(() => {});
+            
+            // Открываем тикет (если функция доступна на странице)
+            if (typeof viewTicketDetails === 'function') {
+                viewTicketDetails(ticketId);
+            } else {
+                // Переходим на страницу тикетов и подсвечиваем по ID
+                sessionStorage.setItem('highlightTicket', String(ticketId));
+                window.location.href = '/tickets';
+            }
         }
         
         // Функция для обновления счетчика новых сообщений в кнопке
@@ -1337,6 +1417,14 @@
             messageSoundEnabled: true
         };
         
+        // Принудительно включаем все уведомления для отладки
+        console.log('[DEBUG] Инициализация настроек уведомлений:', notificationSettings);
+        // Окно подавления уведомления о сообщении сразу после создания тикета
+        const NEW_TICKET_SUPPRESS_MS = 5000;
+        const suppressNewMessageForTicket = {};
+        // Отложенные таймеры показа "Новое сообщение" для предотвращения гонки с созданием тикета
+        const pendingNewMessageTimers = {};
+        
         // Звуковые элементы
         const sounds = {
             ticket: new Audio('/static/sounds/ticket.wav'),
@@ -1345,30 +1433,77 @@
             message: new Audio('/static/sounds/message.wav')
         };
         
+        // Предзагружаем звуки
+        Object.values(sounds).forEach(sound => {
+            sound.load();
+        });
+        
+        // CSS анимация для пульсации
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.2); opacity: 0.8; }
+                100% { transform: scale(1); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
         // Инициализация Socket.IO
         function initSocketIO() {
             try {
+                console.log('[Socket.IO] Начинаем инициализацию...');
                 // Подключаем Socket.IO клиент
                 socket = io({ 
-                    transports: ['websocket'], 
+                    transports: ['websocket', 'polling'], 
                     withCredentials: true,
                     forceNew: true,
-                    timeout: 20000
+                    timeout: 20000,
+                    path: '/socket.io/'
                 });
                 
                 socket.on('connect', () => {
-                    console.log('[ws] connected', socket.id);
+                    console.log('[Socket.IO] Подключено! ID:', socket.id);
                 });
                 
                 // Глобальный инкремент бейджа в шапке и звук
                 socket.on('tickets:badge_inc', ({ ticket_id }) => {
                     console.log('[Socket.IO] Получено событие tickets:badge_inc:', { ticket_id });
+                    console.log('[Socket.IO] Настройки уведомлений:', notificationSettings);
+                    
+                    // Помечаем тикет как только что созданный, чтобы не показывать тут же уведомление о сообщении
+                    if (ticket_id) {
+                        suppressNewMessageForTicket[String(ticket_id)] = Date.now() + NEW_TICKET_SUPPRESS_MS;
+                        setTimeout(() => {
+                            const until = suppressNewMessageForTicket[String(ticket_id)];
+                            if (until && Date.now() >= until) {
+                                delete suppressNewMessageForTicket[String(ticket_id)];
+                            }
+                        }, NEW_TICKET_SUPPRESS_MS + 200);
+                        // Если есть отложенное уведомление о сообщении для этого тикета — отменяем
+                        const pending = pendingNewMessageTimers[String(ticket_id)];
+                        if (pending) {
+                            clearTimeout(pending);
+                            delete pendingNewMessageTimers[String(ticket_id)];
+                            console.log('[Socket.IO] Отменили отложенное уведомление о сообщении из-за нового тикета', ticket_id);
+                        }
+                    }
+                    
                     incGlobalBadge();
                     bumpTicketsBell();
-                    playDing();
+                    
+                    // Всегда показываем тост для новых тикетов (временно отключаем проверку настроек)
+                    console.log('[Socket.IO] Показываем тост для нового тикета');
                     showToast('Новый тикет!', 'info', 2000);
+                    if (notificationSettings.soundsEnabled && notificationSettings.ticketSoundEnabled) {
+                        console.log('[Socket.IO] Проигрываем звук для нового тикета');
+                        playSound('ticket');
+                    }
+                    
                     // Опционально: подсветить карточку тикета, если она видима где-то на странице
                     incTicketCardBadge(ticket_id);
+                    // Показываем метку "Новый" у тикета в таблице
+                    showNewTicketBadge(ticket_id);
                     // Сохраняем ID нового тикета для подсветки
                     localStorage.setItem('newTicketId', ticket_id);
                 });
@@ -1378,8 +1513,15 @@
                     console.log('[Socket.IO] Получено событие users:badge_inc:', { user_id, full_name, phone, email });
                     incUsersBadge();
                     bumpUsersBell();
-                    playDing();
+                    
+                    // Всегда показываем тост для новых пользователей
+                    console.log('[Socket.IO] Показываем тост для нового пользователя');
                     showToast(`Новый пользователь: ${full_name}`, 'success', 2000);
+                    if (notificationSettings.soundsEnabled && notificationSettings.userSoundEnabled) {
+                        console.log('[Socket.IO] Проигрываем звук для нового пользователя');
+                        playSound('user');
+                    }
+                    
                     // Сохраняем ID нового пользователя для подсветки
                     localStorage.setItem('newUserId', user_id);
                 });
@@ -1387,29 +1529,52 @@
                 // Точечное событие для открытой вкладки тикета
                 socket.on('ticket:new_message', ({ ticket_id, message_id, preview, author }) => {
                     console.log('[Socket.IO] Получено событие ticket:new_message:', { ticket_id, message_id, preview, author });
-                    appendMessageToOpenThread({ ticket_id, message_id, preview, author });
-                    incTicketCardBadge(ticket_id);
-                    incMessagesBadge();
-                    bumpMessagesBell();
-                    playDing();
-                    showToast(`Новое сообщение: ${preview.substring(0, 50)}...`, 'warning', 2000);
-                    
-                    // Обновляем бейдж новых сообщений в таблице тикетов
-                    if (typeof updateTicketNewMessagesBadge === 'function') {
-                        updateTicketNewMessagesBadge(ticket_id);
+                    const key = String(ticket_id);
+                    // Отложим показ на короткое время, чтобы успеть получить tickets:badge_inc и отменить
+                    if (pendingNewMessageTimers[key]) {
+                        clearTimeout(pendingNewMessageTimers[key]);
+                        delete pendingNewMessageTimers[key];
                     }
+                    pendingNewMessageTimers[key] = setTimeout(() => {
+                        delete pendingNewMessageTimers[key];
+                        // Если сообщение пришло сразу после создания нового тикета — не показываем как "новое сообщение"
+                        const suppressUntil = suppressNewMessageForTicket[key];
+                        if (suppressUntil && Date.now() < suppressUntil) {
+                            console.log('[Socket.IO] Игнорируем ticket:new_message для только что созданного тикета (после задержки)', ticket_id);
+                            return;
+                        }
+                        appendMessageToOpenThread({ ticket_id, message_id, preview, author });
+                        incTicketCardBadge(ticket_id);
+                        incMessagesBadge();
+                        bumpMessagesBell();
+                        
+                        // Обновляем счетчик в реальном времени
+                        updateMessagesCount();
+                        
+                        // Всегда показываем тост для новых сообщений
+                        console.log('[Socket.IO] Показываем тост для нового сообщения');
+                        showToast(`Новое сообщение: ${preview.substring(0, 50)}...`, 'warning', 2000);
+                        if (notificationSettings.soundsEnabled && notificationSettings.messageSoundEnabled) {
+                            console.log('[Socket.IO] Проигрываем звук для нового сообщения');
+                            playSound('message');
+                        }
+                        // Обновляем бейдж новых сообщений в таблице тикетов
+                        if (typeof updateTicketNewMessagesBadge === 'function') {
+                            updateTicketNewMessagesBadge(ticket_id);
+                        }
+                    }, 600);
                 });
                 
                 socket.on('disconnect', () => {
-                    console.log('[ws] disconnected');
+                    console.log('[Socket.IO] Отключено');
                 });
                 
                 socket.on('connect_error', (error) => {
-                    console.error('[ws] connection error:', error);
+                    console.error('[Socket.IO] Ошибка подключения:', error);
                 });
                 
             } catch (error) {
-                console.error('Ошибка при инициализации Socket.IO:', error);
+                console.error('[Socket.IO] Ошибка при инициализации:', error);
             }
         }
         
@@ -1424,12 +1589,14 @@
         function qs(sel){ return document.querySelector(sel); }
         
         function incGlobalBadge() {
-            const el = qs('[data-role="tickets-badge"]');
+            const el = document.getElementById('ticketsCount');
             if (!el) return;
             const n = parseInt(el.textContent || '0', 10) + 1;
             el.textContent = String(n);
-            el.style.display = 'flex';
-            el.classList.add('has-unread');
+            if (n > 0) {
+                el.style.display = 'flex';
+                el.classList.add('has-unread');
+            }
         }
         
         function incTicketCardBadge(ticketId) {
@@ -1438,6 +1605,11 @@
             const n = parseInt(el.textContent || '0', 10) + 1;
             el.textContent = String(n);
             el.classList.add('has-unread');
+            
+            // Обновляем бейдж новых сообщений в таблице тикетов
+            if (typeof updateTicketNewMessagesBadge === 'function') {
+                updateTicketNewMessagesBadge(ticketId);
+            }
         }
         
         function bumpTicketsBell() {
@@ -1448,12 +1620,14 @@
         }
         
         function incUsersBadge() {
-            const el = qs('[data-role="users-badge"]');
+            const el = document.getElementById('usersCount');
             if (!el) return;
             const n = parseInt(el.textContent || '0', 10) + 1;
             el.textContent = String(n);
-            el.style.display = 'flex';
-            el.classList.add('has-unread');
+            if (n > 0) {
+                el.style.display = 'flex';
+                el.classList.add('has-unread');
+            }
         }
         
         function bumpUsersBell() {
@@ -1464,12 +1638,50 @@
         }
         
         function incMessagesBadge() {
-            const el = qs('[data-role="messages-badge"]');
+            const el = document.getElementById('messagesCount');
             if (!el) return;
             const n = parseInt(el.textContent || '0', 10) + 1;
             el.textContent = String(n);
-            el.style.display = 'flex';
-            el.classList.add('has-unread');
+            if (n > 0) {
+                el.style.display = 'flex';
+                el.classList.add('has-unread');
+            }
+        }
+        
+        // Функция для обновления счетчика сообщений
+        function updateMessagesCount() {
+            fetch('/api/notifications/messages-count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const el = document.getElementById('messagesCount');
+                        if (el) {
+                            const count = data.count || 0;
+                            el.textContent = String(count);
+                            if (count > 0) {
+                                el.style.display = 'flex';
+                                el.classList.add('has-unread');
+                            } else {
+                                el.style.display = 'none';
+                                el.classList.remove('has-unread');
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при обновлении счетчика сообщений:', error);
+                });
+        }
+        
+        function incSubscriptionsBadge() {
+            const el = document.getElementById('subscriptionsCount');
+            if (!el) return;
+            const n = parseInt(el.textContent || '0', 10) + 1;
+            el.textContent = String(n);
+            if (n > 0) {
+                el.style.display = 'flex';
+                el.classList.add('has-unread');
+            }
         }
         
         function bumpMessagesBell() {
@@ -1477,6 +1689,34 @@
             if (!bell) return;
             bell.classList.add('pulse');
             setTimeout(() => bell.classList.remove('pulse'), 1000);
+        }
+        
+        function bumpSubscriptionsBell() {
+            const bell = qs('#subscriptionsToggle');
+            if (!bell) return;
+            bell.classList.add('pulse');
+            setTimeout(() => bell.classList.remove('pulse'), 1000);
+        }
+        
+        // Функция для обновления бейджа новых сообщений в таблице тикетов
+        function updateTicketNewMessagesBadge(ticketId) {
+            const badge = document.getElementById(`newMessagesBadge_${ticketId}`);
+            if (!badge) return;
+            
+            const countEl = badge.querySelector('.new-count');
+            if (!countEl) return;
+            
+            const currentCount = parseInt(countEl.textContent || '0', 10);
+            const newCount = currentCount + 1;
+            countEl.textContent = String(newCount);
+            badge.style.display = 'inline-block';
+            
+            // Подсвечиваем строку тикета
+            const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+            if (ticketRow) {
+                ticketRow.classList.add('new-item-highlight');
+                setTimeout(() => ticketRow.classList.remove('new-item-highlight'), 5000);
+            }
         }
         
         // Функция для подсветки новых элементов
@@ -1548,11 +1788,46 @@
                     sounds[soundType].currentTime = 0;
                     sounds[soundType].play().catch(error => {
                         console.error('Ошибка воспроизведения звука:', error);
+                        // Если звук не воспроизводится, показываем визуальное уведомление
+                        showVisualNotification(soundType);
                     });
                 }
             } catch (error) {
                 console.error('Ошибка при воспроизведении звука:', error);
+                showVisualNotification(soundType);
             }
+        }
+        
+        // Визуальное уведомление если звук не работает
+        function showVisualNotification(type) {
+            const colors = {
+                'ticket': '#dc3545',
+                'user': '#28a745', 
+                'message': '#ffc107',
+                'subscription': '#17a2b8'
+            };
+            
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                background: ${colors[type] || '#007bff'};
+                border-radius: 50%;
+                z-index: 9999;
+                animation: pulse 1s ease-in-out;
+                box-shadow: 0 0 20px ${colors[type] || '#007bff'};
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 1000);
         }
         
         // Проверка новых элементов при загрузке страницы
@@ -1592,6 +1867,21 @@
                 sessionStorage.setItem('highlightTicket', newTicketId);
             }
             window.location.href = '/tickets';
+        }
+        
+        // Функции для модальных окон
+        
+        
+        function showNewTicketsModal() {
+            // Показываем модальное окно с новыми тикетами
+            const modal = new bootstrap.Modal(document.getElementById('newTicketsModal'));
+            modal.show();
+        }
+        
+        function showNewUsersModal() {
+            // Показываем модальное окно с новыми пользователями
+            const modal = new bootstrap.Modal(document.getElementById('newUsersModal'));
+            modal.show();
         }
         
         // Функция для обновления счетчиков уведомлений

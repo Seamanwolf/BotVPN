@@ -37,6 +37,7 @@ class Subscription(Base):
     plan_name = Column(String, nullable=False)
     status = Column(String, default="active")  # "active", "expired", "paused"
     subscription_number = Column(Integer, default=1)  # Уникальный номер подписки для пользователя
+    key_type = Column(String, default="personal")  # "personal", "corporate" - тип ключа
     expires_at = Column(DateTime, nullable=False)
     extensions_count = Column(Integer, default=0)  # Количество продлений
     last_extension_date = Column(DateTime, nullable=True)  # Дата последнего продления
@@ -207,3 +208,20 @@ class AdminViewedUsers(Base):
     # Отношения
     admin = relationship("Admin", backref="viewed_users")
     user = relationship("User", backref="viewed_by_admins")
+
+class MassNotification(Base):
+    __tablename__ = "mass_notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    recipient_type = Column(String, nullable=False)  # 'all', 'active', 'expired', 'new'
+    total_count = Column(Integer, default=0)  # Общее количество получателей
+    sent_count = Column(Integer, default=0)  # Количество отправленных
+    status = Column(String, default="pending")  # 'pending', 'in_progress', 'completed', 'error'
+    created_by = Column(Integer, ForeignKey("admins.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Отношения
+    created_by_admin = relationship("Admin", backref="sent_notifications")

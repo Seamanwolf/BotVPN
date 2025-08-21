@@ -9,7 +9,7 @@ from aiogram.fsm.state import State, StatesGroup
 import json
 
 
-from config import BOT_TOKEN, TARIFFS, REFERRAL_BONUS, BONUS_TO_SUBSCRIPTION, SUPPORT_BOT, ADMIN_IDS
+from config import BOT_TOKEN, TARIFFS, CORPORATE_TARIFFS, calculate_corporate_price, REFERRAL_BONUS, BONUS_TO_SUBSCRIPTION, SUPPORT_BOT, ADMIN_IDS
 from database import SessionLocal, User, Subscription, Admin, AdminSettings, Payment, generate_referral_code, get_user_by_referral_code, check_telegram_id_exists, check_email_exists
 from xui_client import XUIClient
 from yookassa_client import YooKassaClient
@@ -20,6 +20,14 @@ class RegistrationStates(StatesGroup):
     waiting_for_contact = State()
     waiting_for_name = State()
     waiting_for_email = State()
+
+class CorporateStates(StatesGroup):
+    waiting_for_users_count = State()
+
+class NotificationStates(StatesGroup):
+    waiting_for_title = State()
+    waiting_for_message = State()
+    waiting_for_recipient_type = State()
 
 # Инициализация бота
 bot = Bot(token=BOT_TOKEN)
@@ -33,6 +41,8 @@ yookassa_client = YooKassaClient()
 
 # Менеджер уведомлений
 notification_manager = None
+
+
 
 # Клавиатуры
 def get_contact_keyboard():
@@ -67,12 +77,32 @@ def get_tariffs_keyboard(is_admin=False):
     keyboard_buttons = [
         [KeyboardButton(text=f"1 месяц - {TARIFFS['1m']['price']}₽")],
         [KeyboardButton(text=f"3 месяца - {TARIFFS['3m']['price']}₽")],
+        [KeyboardButton(text="🏢 Корпоративные ключи")],
         [KeyboardButton(text="Назад")]
     ]
     
     # Добавляем кнопку тестового тарифа только для администраторов
     if is_admin:
         keyboard_buttons.insert(2, [KeyboardButton(text="Купить тест (1 день)")])
+    
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=keyboard_buttons,
+        resize_keyboard=True
+    )
+    return keyboard
+
+def get_corporate_keyboard(is_admin=False):
+    """Клавиатура с корпоративными тарифами"""
+    keyboard_buttons = [
+        [KeyboardButton(text="🏢 Корпоративный 1 месяц")],
+        [KeyboardButton(text="🏢 Корпоративный 3 месяца")]
+    ]
+    
+    # Добавляем тестовую кнопку только для админа
+    if is_admin:
+        keyboard_buttons.append([KeyboardButton(text="🧪 Тест корпоративный (1 рубль)")])
+    
+    keyboard_buttons.append([KeyboardButton(text="Назад")])
     
     keyboard = ReplyKeyboardMarkup(
         keyboard=keyboard_buttons,
@@ -297,6 +327,21 @@ async def start_handler(message: Message, state: FSMContext):
             welcome_text,
             reply_markup=get_contact_keyboard()
         )
+
+# Команда для отправки массовых уведомлений (только для админов)
+@dp.message(F.text == "/send_notification")
+async def send_notification_command(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ Эта команда доступна только администраторам.")
+        return
+    
+    await state.set_state(NotificationStates.waiting_for_title)
+    await message.answer(
+        "📢 <b>Отправка массового уведомления</b>\n\n"
+        "Введите заголовок уведомления (будет отображаться жирным шрифтом):",
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
+    )
 
 # Обработчик получения контакта
 @dp.message(RegistrationStates.waiting_for_contact, F.contact)
@@ -529,9 +574,7 @@ async def main_menu_handler(message: Message):
     
     elif message.text == "💳 Купить ключ":
         await message.answer(
-            "💳 Выберите тариф:\n\n"
-            f"• 1 месяц - {TARIFFS['1m']['price']}₽\n"
-            f"• 3 месяца - {TARIFFS['3m']['price']}₽",
+            "💳 Выберите тариф:",
             reply_markup=get_tariffs_keyboard(is_admin(message.from_user.id))
         )
     
@@ -711,7 +754,7 @@ async def main_menu_handler(message: Message):
         )
 
 # Обработчик выбора тарифа
-@dp.message(F.text.in_(["1 месяц - 149₽", "3 месяца - 399₽", "Купить тест (1 день)"]))
+@dp.message(F.text.in_(["1 месяц - 149₽", "3 месяца - 399₽", "Купить тест (1 день)", "🏢 Корпоративные ключи", "🏢 Корпоративный 1 месяц", "🏢 Корпоративный 3 месяца", "🧪 Тест корпоративный (1 рубль)", "5 пользователей - 1000₽", "10 пользователей - 1800₽", "15 пользователей - 2550₽", "20 пользователей - 3400₽", "5 пользователей - 900₽", "10 пользователей - 1620₽", "15 пользователей - 2295₽", "20 пользователей - 3060₽"]))
 async def tariff_handler(message: Message):
     user = await get_user(message.from_user.id)
     
@@ -719,18 +762,162 @@ async def tariff_handler(message: Message):
         await message.answer("Пожалуйста, сначала зарегистрируйтесь. Нажмите /start")
         return
     
-    if "1 месяц" in message.text:
+    if message.text == "1 месяц - 149₽":
         tariff = "1m"
         price = TARIFFS["1m"]["price"]
         days = TARIFFS["1m"]["days"]
-    elif "3 месяца" in message.text:
+        # Показываем описание тарифа
+        tariff_info = f"📋 <b>{TARIFFS['1m']['name']}</b>\n\n"
+        tariff_info += TARIFFS['1m']['description']
+        tariff_info += f"\n\n💰 <b>Стоимость:</b> {price}₽"
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💳 Купить", callback_data=f"buy_tariff_1m")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_tariffs")]
+        ])
+        
+        await message.answer(tariff_info, parse_mode="HTML", reply_markup=keyboard)
+        return
+        
+    elif message.text == "3 месяца - 399₽":
         tariff = "3m"
         price = TARIFFS["3m"]["price"]
         days = TARIFFS["3m"]["days"]
-    elif "Купить тест" in message.text:
+        # Показываем описание тарифа
+        tariff_info = f"📋 <b>{TARIFFS['3m']['name']}</b>\n\n"
+        tariff_info += TARIFFS['3m']['description']
+        tariff_info += f"\n\n💰 <b>Стоимость:</b> {price}₽"
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💳 Купить", callback_data=f"buy_tariff_3m")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_tariffs")]
+        ])
+        
+        await message.answer(tariff_info, parse_mode="HTML", reply_markup=keyboard)
+        return
+        
+    elif message.text == "Купить тест (1 день)":
         tariff = "test"
         price = TARIFFS["test"]["price"]
         days = TARIFFS["test"]["days"]
+        # Показываем описание тарифа
+        tariff_info = f"📋 <b>{TARIFFS['test']['name']}</b>\n\n"
+        tariff_info += TARIFFS['test']['description']
+        tariff_info += f"\n\n💰 <b>Стоимость:</b> {price}₽"
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💳 Купить", callback_data=f"buy_tariff_test")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_tariffs")]
+        ])
+        
+        await message.answer(tariff_info, parse_mode="HTML", reply_markup=keyboard)
+        return
+        
+    elif "Корпоративные ключи" in message.text:
+        # Показываем информацию о корпоративных тарифах
+        corporate_info = "🏢 <b>Корпоративные ключи</b>\n\n"
+        corporate_info += "• Минимум 5 пользователей\n"
+        corporate_info += "• Максимум 20 пользователей\n"
+        corporate_info += "• Скидки при большем количестве пользователей\n"
+        corporate_info += "• Приоритетная техническая поддержка\n\n"
+        corporate_info += "Выберите период:"
+        
+        await message.answer(corporate_info, parse_mode="HTML", reply_markup=get_corporate_keyboard(is_admin=is_admin(message.from_user.id)))
+        return
+        
+    elif "Корпоративный 1 месяц" in message.text:
+        # Показываем варианты для корпоративного тарифа 1 месяц
+        tariff_info = CORPORATE_TARIFFS["1m"]
+        info_text = f"🏢 <b>{tariff_info['name']}</b>\n\n"
+        info_text += tariff_info['description']
+        info_text += f"\n\n💰 <b>Базовая цена за пользователя:</b> {tariff_info['base_price_per_user']}₽/месяц"
+        info_text += f"\n\n📊 <b>Скидки:</b>"
+        info_text += f"\n• 5 пользователей: без скидки"
+        info_text += f"\n• 10 пользователей: 10% скидка"
+        info_text += f"\n• 15 пользователей: 15% скидка"
+        info_text += f"\n• 20 пользователей: 15% скидка"
+        
+        # Создаем клавиатуру с вариантами количества пользователей
+        keyboard_buttons = [
+            [KeyboardButton(text="5 пользователей - 1000₽")],
+            [KeyboardButton(text="10 пользователей - 1800₽")],
+            [KeyboardButton(text="15 пользователей - 2550₽")],
+            [KeyboardButton(text="20 пользователей - 3400₽")],
+            [KeyboardButton(text="Назад")]
+        ]
+        
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=keyboard_buttons,
+            resize_keyboard=True
+        )
+        
+        await message.answer(info_text, parse_mode="HTML", reply_markup=keyboard)
+        return
+        
+    elif "Корпоративный 3 месяца" in message.text:
+        # Показываем варианты для корпоративного тарифа 3 месяца
+        tariff_info = CORPORATE_TARIFFS["3m"]
+        info_text = f"🏢 <b>{tariff_info['name']}</b>\n\n"
+        info_text += tariff_info['description']
+        info_text += f"\n\n💰 <b>Базовая цена за пользователя:</b> {tariff_info['base_price_per_user']}₽/месяц"
+        info_text += f"\n\n📊 <b>Скидки:</b>"
+        info_text += f"\n• 5 пользователей: без скидки"
+        info_text += f"\n• 10 пользователей: 10% скидка"
+        info_text += f"\n• 15 пользователей: 15% скидка"
+        info_text += f"\n• 20 пользователей: 15% скидка"
+        
+        # Создаем клавиатуру с вариантами количества пользователей
+        keyboard_buttons = [
+            [KeyboardButton(text="5 пользователей - 900₽")],
+            [KeyboardButton(text="10 пользователей - 1620₽")],
+            [KeyboardButton(text="15 пользователей - 2295₽")],
+            [KeyboardButton(text="20 пользователей - 3060₽")],
+            [KeyboardButton(text="Назад")]
+        ]
+        
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=keyboard_buttons,
+            resize_keyboard=True
+        )
+        
+        await message.answer(info_text, parse_mode="HTML", reply_markup=keyboard)
+        return
+        
+    elif message.text == "🧪 Тест корпоративный (1 рубль)":
+        # Проверяем, что пользователь админ
+        if not is_admin(message.from_user.id):
+            await message.answer("❌ Эта функция доступна только администраторам.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+            return
+            
+        # Создаем тестовый корпоративный платеж за 1 рубль
+        await create_test_corporate_payment(message, user)
+        return
+        
+    # Обработка выбора количества пользователей для корпоративных тарифов
+    elif "5 пользователей - 1000₽" in message.text:
+        await create_corporate_payment(message, user, "1m", 5, 1000)
+        return
+    elif "10 пользователей - 1800₽" in message.text:
+        await create_corporate_payment(message, user, "1m", 10, 1800)
+        return
+    elif "15 пользователей - 2550₽" in message.text:
+        await create_corporate_payment(message, user, "1m", 15, 2550)
+        return
+    elif "20 пользователей - 3400₽" in message.text:
+        await create_corporate_payment(message, user, "1m", 20, 3400)
+        return
+    elif "5 пользователей - 900₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 5, 900)
+        return
+    elif "10 пользователей - 1620₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 10, 1620)
+        return
+    elif "15 пользователей - 2295₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 15, 2295)
+        return
+    elif "20 пользователей - 3060₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 20, 3060)
+        return
     else:
         await message.answer("Неизвестный тариф. Выберите из списка:", reply_markup=get_tariffs_keyboard(is_admin(message.from_user.id)))
         return
@@ -738,9 +925,6 @@ async def tariff_handler(message: Message):
     if message.text == "Назад":
         await message.answer("Выберите действие:", reply_markup=get_user_keyboard(message.from_user.id))
         return
-    
-    # Для всех тарифов (включая тестовый) - создаем платеж в ЮKassa
-    await create_payment_for_tariff(message, user, tariff, price, days)
 
 async def create_test_subscription(message: Message, user):
     """Создание тестовой подписки"""
@@ -783,6 +967,7 @@ async def create_test_subscription(message: Message, user):
                     plan_name="Тестовый (1 день)",
                     status="active",
                     subscription_number=next_subscription_number,
+                    key_type="personal",
                     expires_at=expires_at
                 )
                 db.add(subscription)
@@ -816,6 +1001,154 @@ async def create_test_subscription(message: Message, user):
     except Exception as e:
         print(f"Ошибка создания тестовой подписки: {e}")
         await message.answer("❌ Произошла ошибка. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+
+async def create_test_corporate_subscription(message: Message, user):
+    """Создание тестовой корпоративной подписки"""
+    try:
+        print(f"DEBUG: Создание тестовой корпоративной подписки для пользователя {user.telegram_id}")
+        user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
+        print(f"DEBUG: Используемый email: {user_email}")
+        
+        # Определяем следующий номер подписки
+        db = SessionLocal()
+        try:
+            existing_subscriptions = db.query(Subscription).filter(
+                Subscription.user_id == user.id
+            ).all()
+            next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
+        finally:
+            db.close()
+            
+        print(f"DEBUG: Следующий номер подписки: {next_subscription_number}")
+        
+        # Создаем корпоративную подписку с лимитом 5 пользователей на 1 день
+        print(f"DEBUG: Вызываем xui_client.create_user с ip_limit=5")
+        xui_result = await xui_client.create_user(
+            user_email, 
+            1,  # 1 день
+            f"{user.full_name} (CORP TEST)", 
+            str(user.telegram_id), 
+            next_subscription_number,
+            ip_limit=5  # Лимит 5 пользователей для корпоративного тарифа
+        )
+        print(f"DEBUG: Результат xui_client.create_user: {xui_result}")
+        
+        if xui_result:
+            config_url = await xui_client.get_user_config(xui_result["email"], next_subscription_number)
+            
+            if not config_url:
+                await message.answer("❌ Ошибка получения конфигурации. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+                return
+                
+            # Сохраняем корпоративную подписку в БД
+            db = SessionLocal()
+            try:
+                expires_at = datetime.utcnow() + timedelta(days=1)
+                
+                subscription = Subscription(
+                    user_id=user.id,
+                    plan="corporate_test",
+                    plan_name="1 день, 5 пользователей",
+                    status="active",
+                    subscription_number=next_subscription_number,
+                    key_type="corporate",
+                    expires_at=expires_at
+                )
+                db.add(subscription)
+                db.commit()
+                
+                # Формируем сообщение
+                apps_text = "\n📱 <b>Рекомендуемые приложения:</b>\n\n"
+                apps_text += "<b>Android:</b>\n"
+                apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.v2ray.ang\">V2rayNG</a>\n"
+                apps_text += "• <a href=\"https://play.google.com/store/apps/details?id=com.github.kr328.clash\">Clash for Android</a>\n\n"
+                apps_text += "<b>iPhone:</b>\n"
+                apps_text += "• <a href=\"https://apps.apple.com/app/streisand/id6450534064\">Streisand</a>\n"
+                apps_text += "• <a href=\"https://apps.apple.com/app/shadowrocket/id932747118\">Shadowrocket</a>\n\n"
+                apps_text += "<b>Windows:</b>\n"
+                
+                # Отправляем сообщение с конфигурацией
+                success_message = f"✅ <b>Тестовая корпоративная подписка активирована!</b>\n\n"
+                success_message += f"📋 <b>Тариф:</b> Корпоративный тест (1 день)\n"
+                success_message += f"👥 <b>Лимит пользователей:</b> 5\n"
+                success_message += f"💰 <b>Стоимость:</b> 1₽ (тест)\n"
+                success_message += f"⏰ <b>Действует до:</b> {expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                success_message += f"🔗 <b>Конфигурация:</b>\n"
+                success_message += f"<code>{config_url}</code>\n\n"
+                success_message += apps_text
+                
+                await message.answer(success_message, parse_mode="HTML", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+                
+            finally:
+                db.close()
+        else:
+            await message.answer("❌ Ошибка создания пользователя в 3xUI. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+    except Exception as e:
+        print(f"Ошибка создания тестовой корпоративной подписки: {e}")
+        import traceback
+        print(f"Полный traceback: {traceback.format_exc()}")
+        await message.answer("❌ Произошла ошибка. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+
+async def create_test_corporate_payment(message: Message, user):
+    """Создание тестового корпоративного платежа за 1 рубль"""
+    try:
+        # Создаем платеж в ЮKassa за 1 рубль
+        description = "SeaVPN - Корпоративный тест (1 день, 5 пользователей)"
+        
+        payment_result = yookassa_client.create_payment(
+            amount=1,  # 1 рубль
+            description=description,
+            user_id=user.id,
+            subscription_type="corporate_test",
+            payment_type="new"
+        )
+        
+        if payment_result["success"]:
+            # Сохраняем платеж в БД
+            db = SessionLocal()
+            try:
+                payment = Payment(
+                    user_id=user.id,
+                    provider="yookassa",
+                    invoice_id=payment_result["payment_id"],
+                    amount=1,
+                    currency="RUB",
+                    status="pending",
+                    payment_method="yookassa",
+                    yookassa_payment_id=payment_result["payment_id"],
+                    subscription_type="corporate_test",
+                    description=description
+                )
+                db.add(payment)
+                db.commit()
+                
+                # Создаем клавиатуру для оплаты
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить 1₽", url=payment_result["confirmation_url"])],
+                    [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_payment_{payment_result['payment_id']}")]
+                ])
+                
+                payment_message = f"💳 <b>Тестовый корпоративный платеж</b>\n\n"
+                payment_message += f"📋 <b>Тариф:</b> Корпоративный тест (1 день, 5 пользователей)\n"
+                payment_message += f"👥 <b>Лимит пользователей:</b> 5\n"
+                payment_message += f"💰 <b>Сумма:</b> 1₽ (тест)\n"
+                payment_message += f"⏰ <b>Срок:</b> 1 день\n\n"
+                payment_message += f"🔗 <b>Ссылка для оплаты:</b>\n"
+                payment_message += f"Нажмите кнопку 'Оплатить 1₽' ниже\n\n"
+                payment_message += f"✅ <b>После оплаты корпоративная подписка активируется автоматически</b>"
+                
+                await message.answer(payment_message, parse_mode="HTML", reply_markup=keyboard)
+                
+            finally:
+                db.close()
+        else:
+            await message.answer(f"❌ Ошибка создания платежа: {payment_result.get('error', 'Неизвестная ошибка')}", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+            
+    except Exception as e:
+        print(f"Ошибка создания тестового корпоративного платежа: {e}")
+        import traceback
+        print(f"Полный traceback: {traceback.format_exc()}")
+        await message.answer("❌ Произошла ошибка при создании платежа. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
 
 async def create_payment_for_tariff(message: Message, user, tariff: str, price: int, days: int):
     """Создание платежа для тарифа"""
@@ -874,6 +1207,8 @@ async def create_payment_for_tariff(message: Message, user, tariff: str, price: 
     except Exception as e:
         print(f"Ошибка создания платежа: {e}")
         await message.answer("❌ Произошла ошибка при создании платежа. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+
+
 
 # Обработчик синхронизации с 3xUI
 @dp.message(F.text == "🔄 Синхронизировать с 3xUI")
@@ -1525,6 +1860,141 @@ async def check_payment_handler(callback: CallbackQuery):
         print(f"Ошибка проверки платежа: {e}")
         await callback.answer("❌ Произошла ошибка", show_alert=True)
 
+@dp.callback_query(lambda c: c.data.startswith('buy_tariff_'))
+async def buy_tariff_handler(callback: CallbackQuery):
+    """Обработчик покупки тарифа"""
+    try:
+        user = await get_user(callback.from_user.id)
+        if not user:
+            await callback.answer("Пожалуйста, сначала зарегистрируйтесь", show_alert=True)
+            return
+        
+        tariff = callback.data.split('_')[2]  # 1m, 3m, test
+        
+        if tariff == "test":
+            price = TARIFFS["test"]["price"]
+            days = TARIFFS["test"]["days"]
+        elif tariff == "1m":
+            price = TARIFFS["1m"]["price"]
+            days = TARIFFS["1m"]["days"]
+        elif tariff == "3m":
+            price = TARIFFS["3m"]["price"]
+            days = TARIFFS["3m"]["days"]
+        else:
+            await callback.answer("Неизвестный тариф", show_alert=True)
+            return
+        
+        # Создаем платеж
+        await create_payment_for_tariff(callback.message, user, tariff, price, days)
+        
+    except Exception as e:
+        print(f"Ошибка покупки тарифа: {e}")
+        await callback.answer("Произошла ошибка", show_alert=True)
+
+@dp.callback_query(lambda c: c.data in ['corporate_1m', 'corporate_3m'])
+async def corporate_tariff_handler(callback: CallbackQuery):
+    """Обработчик выбора корпоративного тарифа"""
+    try:
+        tariff_type = callback.data.split('_')[1]  # 1m или 3m
+        
+        if tariff_type not in ["1m", "3m"]:
+            await callback.answer("Неизвестный тип тарифа", show_alert=True)
+            return
+        
+        tariff_info = CORPORATE_TARIFFS[tariff_type]
+        
+        # Показываем информацию о корпоративном тарифе
+        info_text = f"🏢 <b>{tariff_info['name']}</b>\n\n"
+        info_text += tariff_info['description']
+        info_text += f"\n\n💰 <b>Базовая цена за пользователя:</b> {tariff_info['base_price_per_user']}₽/месяц"
+        info_text += f"\n\n📊 <b>Скидки:</b>"
+        info_text += f"\n• 5 пользователей: без скидки"
+        info_text += f"\n• 10 пользователей: 10% скидка"
+        info_text += f"\n• 15 пользователей: 15% скидка"
+        info_text += f"\n• 20 пользователей: 15% скидка"
+        
+    except Exception as e:
+        print(f"Ошибка корпоративного тарифа: {e}")
+        await callback.answer("Произошла ошибка", show_alert=True)
+
+
+@dp.callback_query(lambda c: c.data.startswith('buy_corporate_'))
+async def buy_corporate_handler(callback: CallbackQuery):
+    """Обработчик покупки корпоративного тарифа"""
+    try:
+        user = await get_user(callback.from_user.id)
+        if not user:
+            await callback.answer("Пожалуйста, сначала зарегистрируйтесь", show_alert=True)
+            return
+        
+        # Парсим данные из callback_data: buy_corporate_1m_10_1800
+        parts = callback.data.split('_')
+        tariff_type = parts[2]  # 1m или 3m
+        users_count = int(parts[3])  # количество пользователей
+        total_price = int(parts[4])  # общая стоимость
+        
+        # Создаем платеж для корпоративного тарифа
+        tariff_info = CORPORATE_TARIFFS[tariff_type]
+        description = f"SeaVPN - {tariff_info['name']} ({users_count} пользователей)"
+        
+        payment_result = yookassa_client.create_payment(
+            amount=total_price,
+            description=description,
+            user_id=user.id,
+            subscription_type=f"corporate_{tariff_type}",
+            payment_type="new"
+        )
+        
+        if payment_result["success"]:
+            # Сохраняем платеж в БД
+            db = SessionLocal()
+            try:
+                payment = Payment(
+                    user_id=user.id,
+                    provider="yookassa",
+                    invoice_id=payment_result["payment_id"],
+                    amount=total_price,
+                    currency="RUB",
+                    status="pending",
+                    payment_method="yookassa",
+                    yookassa_payment_id=payment_result["payment_id"],
+                    subscription_type=f"corporate_{tariff_type}",
+                    description=description,
+                    payment_metadata=json.dumps({
+                        "users_count": users_count,
+                        "tariff_type": tariff_type,
+                        "key_type": "corporate"
+                    })
+                )
+                db.add(payment)
+                db.commit()
+                
+                # Создаем клавиатуру для оплаты
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить", url=payment_result["confirmation_url"])],
+                    [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_payment_{payment_result['payment_id']}")]
+                ])
+                
+                payment_message = f"💳 <b>Оплата корпоративного тарифа</b>\n\n"
+                payment_message += f"📋 <b>Тариф:</b> {tariff_info['name']}\n"
+                payment_message += f"👥 <b>Пользователей:</b> {users_count}\n"
+                payment_message += f"💰 <b>Сумма:</b> {total_price}₽\n"
+                payment_message += f"⏰ <b>Срок:</b> {tariff_info['days']} дней\n\n"
+                payment_message += f"🔗 <b>Ссылка для оплаты:</b>\n"
+                payment_message += f"Нажмите кнопку 'Оплатить' ниже\n\n"
+                payment_message += f"✅ <b>После оплаты подписка активируется автоматически</b>"
+                
+                await callback.message.edit_text(payment_message, parse_mode="HTML", reply_markup=keyboard)
+                
+            finally:
+                db.close()
+        else:
+            await callback.answer(f"❌ Ошибка создания платежа: {payment_result.get('error', 'Неизвестная ошибка')}", show_alert=True)
+            
+    except Exception as e:
+        print(f"Ошибка покупки корпоративного тарифа: {e}")
+        await callback.answer("Произошла ошибка", show_alert=True)
+
 @dp.callback_query(lambda c: c.data.startswith('cancel_payment_'))
 async def cancel_payment_handler(callback: CallbackQuery):
     """Обработчик отмены платежа"""
@@ -1572,6 +2042,8 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
             
             # Определяем параметры подписки
             tariff = payment.subscription_type
+            key_type = "personal"  # по умолчанию личный ключ
+            
             if tariff == "test":
                 days = TARIFFS["test"]["days"]
                 tariff_name = TARIFFS["test"]["name"]
@@ -1581,6 +2053,31 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
             elif tariff == "3m":
                 days = TARIFFS["3m"]["days"]
                 tariff_name = TARIFFS["3m"]["name"]
+            elif tariff == "corporate_test":
+                # Тестовый корпоративный тариф
+                days = 1
+                tariff_name = "1 день, 5 пользователей"
+                key_type = "corporate"
+                users_count = 5
+            elif tariff.startswith("corporate_"):
+                # Корпоративный тариф
+                corporate_tariff_type = tariff.split("_")[1]  # 1m или 3m
+                days = CORPORATE_TARIFFS[corporate_tariff_type]["days"]
+                tariff_name = CORPORATE_TARIFFS[corporate_tariff_type]["name"]
+                key_type = "corporate"
+                
+                # Получаем количество пользователей из метаданных
+                if payment.payment_metadata:
+                    try:
+                        metadata = json.loads(payment.payment_metadata)
+                        users_count = metadata.get("users_count", 5)
+                        tariff_name += f" ({users_count} пользователей)"
+                    except:
+                        users_count = 5
+                        tariff_name += " (5 пользователей)"
+                else:
+                    users_count = 5
+                    tariff_name += " (5 пользователей)"
             else:
                 await callback.answer("❌ Неизвестный тариф", show_alert=True)
                 return
@@ -1592,12 +2089,18 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
             existing_subscriptions = db.query(Subscription).filter(Subscription.user_id == user.id).all()
             next_subscription_number = max([s.subscription_number for s in existing_subscriptions], default=0) + 1
             
+            # Определяем лимит IP для корпоративных тарифов
+            ip_limit = 3  # по умолчанию для личных тарифов
+            if key_type == "corporate":
+                ip_limit = users_count  # для корпоративных тарифов лимит = количество пользователей
+            
             xui_result = await xui_client.create_user(
                 user_email, 
                 days, 
                 f"{user.full_name} (PAID)", 
                 str(user.telegram_id), 
-                next_subscription_number
+                next_subscription_number,
+                ip_limit=ip_limit
             )
             
             if xui_result:
@@ -1613,6 +2116,7 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
                         plan_name=tariff_name,
                         status="active",
                         subscription_number=next_subscription_number,
+                        key_type=key_type,
                         expires_at=expires_at
                     )
                     db.add(subscription)
@@ -1690,6 +2194,277 @@ async def process_paid_payment(callback: CallbackQuery, payment_id: str, payment
     except Exception as e:
         print(f"Ошибка обработки оплаченного платежа: {e}")
         await callback.answer("❌ Произошла ошибка", show_alert=True)
+
+async def create_corporate_payment(message: Message, user, tariff_type: str, users_count: int, total_price: int):
+    """Создание платежа для корпоративного тарифа"""
+    try:
+        # Создаем платеж для корпоративного тарифа
+        tariff_info = CORPORATE_TARIFFS[tariff_type]
+        description = f"SeaVPN - {tariff_info['name']} ({users_count} пользователей)"
+        
+        payment_result = yookassa_client.create_payment(
+            amount=total_price,
+            description=description,
+            user_id=user.id,
+            subscription_type=f"corporate_{tariff_type}",
+            payment_type="new"
+        )
+        
+        if payment_result["success"]:
+            # Сохраняем платеж в БД
+            db = SessionLocal()
+            try:
+                payment = Payment(
+                    user_id=user.id,
+                    provider="yookassa",
+                    invoice_id=payment_result["payment_id"],
+                    amount=total_price,
+                    currency="RUB",
+                    status="pending",
+                    payment_method="yookassa",
+                    yookassa_payment_id=payment_result["payment_id"],
+                    subscription_type=f"corporate_{tariff_type}",
+                    description=description,
+                    payment_metadata=json.dumps({
+                        "users_count": users_count,
+                        "tariff_type": tariff_type,
+                        "key_type": "corporate"
+                    })
+                )
+                db.add(payment)
+                db.commit()
+                
+                # Создаем клавиатуру для оплаты
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить", url=payment_result["confirmation_url"])],
+                    [InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_payment_{payment_result['payment_id']}")]
+                ])
+                
+                payment_message = f"💳 <b>Оплата корпоративного тарифа</b>\n\n"
+                payment_message += f"📋 <b>Тариф:</b> {tariff_info['name']}\n"
+                payment_message += f"👥 <b>Пользователей:</b> {users_count}\n"
+                payment_message += f"💰 <b>Сумма:</b> {total_price}₽\n"
+                payment_message += f"⏰ <b>Срок:</b> {tariff_info['days']} дней\n\n"
+                payment_message += f"🔗 <b>Ссылка для оплаты:</b>\n"
+                payment_message += f"Нажмите кнопку 'Оплатить' ниже\n\n"
+                payment_message += f"✅ <b>После оплаты подписка активируется автоматически</b>"
+                
+                await message.answer(payment_message, parse_mode="HTML", reply_markup=keyboard)
+                
+            finally:
+                db.close()
+        else:
+            await message.answer(f"❌ Ошибка создания платежа: {payment_result.get('error', 'Неизвестная ошибка')}", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+            
+    except Exception as e:
+        print(f"Ошибка создания корпоративного платежа: {e}")
+        await message.answer("❌ Произошла ошибка при создании платежа. Попробуйте позже.", reply_markup=get_main_menu_keyboard(is_admin(message.from_user.id)))
+
+# ===== Обработчики для массовых уведомлений =====
+
+@dp.message(NotificationStates.waiting_for_title)
+async def notification_title_handler(message: Message, state: FSMContext):
+    if message.text == "Отмена":
+        await state.clear()
+        await message.answer("Отправка уведомления отменена.", reply_markup=get_main_menu_keyboard(is_admin=is_admin(message.from_user.id)))
+        return
+    
+    title = message.text.strip()
+    if len(title) < 3:
+        await message.answer("Заголовок должен содержать минимум 3 символа. Попробуйте еще раз:")
+        return
+    
+    await state.update_data(title=title)
+    await state.set_state(NotificationStates.waiting_for_recipient_type)
+    
+    keyboard = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="Все пользователи")],
+        [KeyboardButton(text="Только с активными подписками")],
+        [KeyboardButton(text="Только с истекшими подписками")],
+        [KeyboardButton(text="Новые пользователи (за 7 дней)")],
+        [KeyboardButton(text="Только администраторы")],
+        [KeyboardButton(text="Отмена")]
+    ], resize_keyboard=True)
+    
+    await message.answer(
+        f"📋 <b>Заголовок:</b> {title}\n\n"
+        "Выберите тип получателей:",
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+
+@dp.message(NotificationStates.waiting_for_recipient_type)
+async def notification_recipient_type_handler(message: Message, state: FSMContext):
+    if message.text == "Отмена":
+        await state.clear()
+        await message.answer("Отправка уведомления отменена.", reply_markup=get_main_menu_keyboard(is_admin=is_admin(message.from_user.id)))
+        return
+    
+    recipient_type_map = {
+        "Все пользователи": "all",
+        "Только с активными подписками": "active",
+        "Только с истекшими подписками": "expired",
+        "Новые пользователи (за 7 дней)": "new",
+        "Только администраторы": "admins"
+    }
+    
+    recipient_type = recipient_type_map.get(message.text)
+    if not recipient_type:
+        await message.answer("Пожалуйста, выберите тип получателей из списка:")
+        return
+    
+    await state.update_data(recipient_type=recipient_type)
+    await state.set_state(NotificationStates.waiting_for_message)
+    
+    await message.answer(
+        f"📋 <b>Заголовок:</b> {(await state.get_data())['title']}\n"
+        f"👥 <b>Получатели:</b> {message.text}\n\n"
+        "Введите текст сообщения:\n\n"
+        "<i>Подпись 'С уважением, команда разработки SeaVPN' будет добавлена автоматически.</i>",
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
+    )
+
+@dp.message(NotificationStates.waiting_for_message)
+async def notification_message_handler(message: Message, state: FSMContext):
+    if message.text == "Отмена":
+        await state.clear()
+        await message.answer("Отправка уведомления отменена.", reply_markup=get_main_menu_keyboard(is_admin=is_admin(message.from_user.id)))
+        return
+    
+    message_text = message.text.strip()
+    if len(message_text) < 5:
+        await message.answer("Сообщение должно содержать минимум 5 символов. Попробуйте еще раз:")
+        return
+    
+    data = await state.get_data()
+    title = data['title']
+    recipient_type = data['recipient_type']
+    
+    # Получаем количество получателей
+    db = SessionLocal()
+    try:
+        if recipient_type == 'all':
+            count = db.query(User).count()
+        elif recipient_type == 'active':
+            count = db.query(User).join(Subscription).filter(
+                Subscription.status == "active",
+                Subscription.expires_at > datetime.utcnow()
+            ).distinct().count()
+        elif recipient_type == 'expired':
+            count = db.query(User).join(Subscription).filter(
+                Subscription.status == "expired"
+            ).distinct().count()
+        elif recipient_type == 'new':
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            count = db.query(User).filter(User.created_at >= week_ago).count()
+        elif recipient_type == 'admins':
+            count = db.query(User).filter(User.telegram_id.in_(ADMIN_IDS)).count()
+        else:
+            count = 0
+    finally:
+        db.close()
+    
+    # Показываем предварительный просмотр
+    preview_text = f"📢 <b>Предварительный просмотр уведомления</b>\n\n"
+    preview_text += f"<b>{title}</b>\n\n"
+    preview_text += f"{message_text}\n\n"
+    preview_text += f"<i>С уважением,\nкоманда разработки SeaVPN</i>\n\n"
+    preview_text += f"👥 <b>Получателей:</b> {count}\n\n"
+    preview_text += "Отправить уведомление?"
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Отправить", callback_data=f"send_notification_{title}_{recipient_type}_{message_text}")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_notification")]
+    ])
+    
+    await message.answer(preview_text, parse_mode="HTML", reply_markup=keyboard)
+    await state.clear()
+
+# Обработчик callback для отправки уведомления
+@dp.callback_query(lambda c: c.data.startswith("send_notification_"))
+async def send_notification_callback(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещен", show_alert=True)
+        return
+    
+    # Парсим данные из callback
+    parts = callback.data.split("_", 3)
+    if len(parts) != 4:
+        await callback.answer("❌ Ошибка данных", show_alert=True)
+        return
+    
+    title = parts[1]
+    recipient_type = parts[2]
+    message_text = parts[3]
+    
+    # Отправляем уведомление
+    try:
+        # Получаем список пользователей
+        db = SessionLocal()
+        try:
+            if recipient_type == 'all':
+                users = db.query(User).all()
+            elif recipient_type == 'active':
+                users = db.query(User).join(Subscription).filter(
+                    Subscription.status == "active",
+                    Subscription.expires_at > datetime.utcnow()
+                ).distinct().all()
+            elif recipient_type == 'expired':
+                users = db.query(User).join(Subscription).filter(
+                    Subscription.status == "expired"
+                ).distinct().all()
+            elif recipient_type == 'new':
+                week_ago = datetime.utcnow() - timedelta(days=7)
+                users = db.query(User).filter(User.created_at >= week_ago).all()
+            elif recipient_type == 'admins':
+                users = db.query(User).filter(User.telegram_id.in_(ADMIN_IDS)).all()
+            else:
+                users = []
+        finally:
+            db.close()
+        
+        # Формируем полное сообщение
+        full_message = f"<b>{title}</b>\n\n{message_text}\n\n<i>С уважением,\nкоманда разработки SeaVPN</i>"
+        
+        # Отправляем уведомления
+        sent_count = 0
+        for user in users:
+            try:
+                await bot.send_message(
+                    chat_id=user.telegram_id,
+                    text=full_message,
+                    parse_mode="HTML"
+                )
+                sent_count += 1
+                
+                # Небольшая задержка между отправками
+                if sent_count % 10 == 0:
+                    await asyncio.sleep(1)
+                    
+            except Exception as e:
+                print(f"Ошибка отправки уведомления пользователю {user.telegram_id}: {e}")
+        
+        await callback.message.edit_text(
+            f"✅ <b>Уведомление отправлено!</b>\n\n"
+            f"📋 <b>Заголовок:</b> {title}\n"
+            f"👥 <b>Получателей:</b> {sent_count}/{len(users)}\n\n"
+            f"Уведомление успешно доставлено {sent_count} пользователям.",
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        print(f"Ошибка отправки массового уведомления: {e}")
+        await callback.message.edit_text(
+            "❌ <b>Ошибка отправки уведомления</b>\n\n"
+            f"Произошла ошибка: {str(e)}",
+            parse_mode="HTML"
+        )
+
+@dp.callback_query(lambda c: c.data == "cancel_notification")
+async def cancel_notification_callback(callback: CallbackQuery):
+    await callback.message.edit_text("❌ Отправка уведомления отменена.")
+    await callback.answer()
 
 # Функция запуска бота
 async def main():
