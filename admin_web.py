@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment, RecoveryRequest
+from sqlalchemy import func, or_, cast, String
 from config import ADMIN_IDS
 from xui_client import XUIClient
 from socketio_app import socketio
@@ -413,6 +414,95 @@ def tickets():
             ).order_by(TicketMessage.created_at).all()
         
         return render_template('tickets.html', tickets=tickets_query)
+    finally:
+        db.close()
+
+@app.route('/payments')
+@login_required
+def payments():
+    """Страница платежей"""
+    db = SessionLocal()
+    try:
+        # Получаем параметры фильтрации
+        status_filter = request.args.get('status', '')
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+        search_query = request.args.get('search', '')
+        
+        # Базовый запрос
+        payments_query = db.query(Payment)
+        
+        # Применяем фильтры
+        if status_filter:
+            payments_query = payments_query.filter(Payment.status == status_filter)
+        
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+                payments_query = payments_query.filter(Payment.created_at >= date_from_obj)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+                payments_query = payments_query.filter(Payment.created_at < date_to_obj)
+            except ValueError:
+                pass
+        
+        if search_query:
+            # Поиск по ID платежа, ID пользователя или описанию
+            payments_query = payments_query.join(User).filter(
+                or_(
+                    cast(Payment.id, String).ilike(f'%{search_query}%'),
+                    Payment.yookassa_payment_id.ilike(f'%{search_query}%'),
+                    User.full_name.ilike(f'%{search_query}%'),
+                    Payment.description.ilike(f'%{search_query}%')
+                )
+            )
+        
+        # Получаем общее количество для пагинации
+        total_payments = payments_query.count()
+        
+        # Пагинация
+        page = request.args.get('page', 1, type=int)
+        per_page = 50
+        offset = (page - 1) * per_page
+        
+        payments_list = payments_query.order_by(Payment.created_at.desc()).offset(offset).limit(per_page).all()
+        
+        # Для каждого платежа получаем информацию о пользователе
+        for payment in payments_list:
+            user = db.query(User).filter(User.id == payment.user_id).first()
+            if user:
+                payment.user_name = user.full_name
+                payment.user_telegram_id = user.telegram_id
+            else:
+                payment.user_name = "Неизвестный пользователь"
+                payment.user_telegram_id = None
+        
+        # Статистика
+        total_amount = db.query(func.sum(Payment.amount)).filter(Payment.status == 'completed').scalar() or 0
+        completed_payments = db.query(Payment).filter(Payment.status == 'completed').count()
+        failed_payments = db.query(Payment).filter(Payment.status == 'failed').count()
+        pending_payments = db.query(Payment).filter(Payment.status == 'pending').count()
+        
+        # Вычисляем пагинацию
+        total_pages = (total_payments + per_page - 1) // per_page
+        
+        return render_template('payments.html',
+                             payments=payments_list,
+                             total_payments=total_payments,
+                             total_amount=total_amount,
+                             completed_payments=completed_payments,
+                             failed_payments=failed_payments,
+                             pending_payments=pending_payments,
+                             current_page=page,
+                             total_pages=total_pages,
+                             status_filter=status_filter,
+                             date_from=date_from,
+                             date_to=date_to,
+                             search_query=search_query)
     finally:
         db.close()
 

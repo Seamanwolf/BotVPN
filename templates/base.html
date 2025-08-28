@@ -844,6 +844,12 @@
                                 Уведомления
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'payments' %}active{% endif %}" href="{{ url_for('payments') }}">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Платежи
+                            </a>
+                        </li>
 
                     </ul>
                     

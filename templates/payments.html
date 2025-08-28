@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}Платежи - SeaVPN Админ-панель{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-credit-card me-2"></i>
+            Платежи
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportPayments()">
+                    <i class="fas fa-download me-1"></i>
+                    Экспорт
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Всего платежей
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_payments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Успешные платежи
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_payments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Ожидающие
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_payments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Неудачные
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ failed_payments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Общая сумма -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Общая сумма успешных платежей
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "{:,.0f}".format(total_amount) }} ₽</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ruble-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                Фильтры
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('payments') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Статус</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Все статусы</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Ожидающий</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Завершен</option>
+                        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Неудачный</option>
+                        <option value="canceled" {% if status_filter == 'canceled' %}selected{% endif %}>Отменен</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">Дата с</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">Дата по</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Поиск</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="ID платежа, пользователь, описание...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="d-grid gap-2 w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>
+                            Применить
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Таблица платежей -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Список платежей
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>Сумма</th>
+                            <th>Статус</th>
+                            <th>Тип</th>
+                            <th>Описание</th>
+                            <th>Дата создания</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>
+                                <strong>#{{ payment.id }}</strong>
+                                {% if payment.yookassa_payment_id %}
+                                <br><small class="text-muted">YK: {{ payment.yookassa_payment_id }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ payment.user_name }}</strong>
+                                    {% if payment.user_telegram_id %}
+                                    <br><small class="text-muted">@{{ payment.user_telegram_id }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ "{:,.0f}".format(payment.amount) }} ₽</strong>
+                                <br><small class="text-muted">{{ payment.currency }}</small>
+                            </td>
+                            <td>
+                                {% if payment.status == 'completed' %}
+                                    <span class="badge bg-success">Завершен</span>
+                                {% elif payment.status == 'pending' %}
+                                    <span class="badge bg-warning">Ожидающий</span>
+                                {% elif payment.status == 'failed' %}
+                                    <span class="badge bg-danger">Неудачный</span>
+                                {% elif payment.status == 'canceled' %}
+                                    <span class="badge bg-secondary">Отменен</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ payment.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.payment_type == 'new' %}
+                                    <span class="badge bg-primary">Новая подписка</span>
+                                {% elif payment.payment_type == 'extension' %}
+                                    <span class="badge bg-info">Продление</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ payment.payment_type or 'Не указан' }}</span>
+                                {% endif %}
+                                {% if payment.subscription_type %}
+                                <br><small class="text-muted">{{ payment.subscription_type }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.description %}
+                                    {{ payment.description }}
+                                {% else %}
+                                    <span class="text-muted">Нет описания</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    {{ payment.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                    {% if payment.completed_at %}
+                                    <br><small class="text-muted">Завершен: {{ payment.completed_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="showPaymentDetails({{ payment.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if payment.status == 'pending' %}
+                                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="checkPaymentStatus({{ payment.id }})">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Пагинация -->
+            {% if total_pages > 1 %}
+            <nav aria-label="Навигация по страницам">
+                <ul class="pagination justify-content-center">
+                    {% if current_page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('payments', page=current_page-1, status=status_filter, date_from=date_from, date_to=date_to, search=search_query) }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in range(1, total_pages + 1) %}
+                        {% if page_num == current_page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% elif page_num <= 3 or page_num > total_pages - 3 or (page_num >= current_page - 1 and page_num <= current_page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('payments', page=page_num, status=status_filter, date_from=date_from, date_to=date_to, search=search_query) }}">{{ page_num }}</a>
+                        </li>
+                        {% elif page_num == 4 and current_page > 6 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% elif page_num == total_pages - 3 and current_page < total_pages - 5 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if current_page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('payments', page=current_page+1, status=status_filter, date_from=date_from, date_to=date_to, search=search_query) }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Платежи не найдены</h5>
+                <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно деталей платежа -->
+<div class="modal fade" id="paymentDetailsModal" tabindex="-1" aria-labelledby="paymentDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentDetailsModalLabel">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Детали платежа
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="paymentDetailsContent">
+                <!-- Контент будет загружен динамически -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showPaymentDetails(paymentId) {
+    // Здесь можно добавить AJAX запрос для получения деталей платежа
+    // Пока просто показываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
+    document.getElementById('paymentDetailsContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка деталей платежа...</p>
+        </div>
+    `;
+    modal.show();
+    
+    // TODO: Добавить AJAX запрос для получения деталей
+    // fetch(`/api/payments/${paymentId}`)
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         document.getElementById('paymentDetailsContent').innerHTML = data.html;
+    //     });
+}
+
+function checkPaymentStatus(paymentId) {
+    // TODO: Добавить AJAX запрос для проверки статуса платежа
+    alert('Функция проверки статуса платежа будет добавлена позже');
+}
+
+function exportPayments() {
+    // TODO: Добавить экспорт платежей в CSV/Excel
+    alert('Функция экспорта будет добавлена позже');
+}
+
+// Автоматическое обновление страницы каждые 30 секунд для новых платежей
+setInterval(function() {
+    // Проверяем, есть ли активные фильтры
+    const hasFilters = document.getElementById('status').value || 
+                      document.getElementById('date_from').value || 
+                      document.getElementById('date_to').value || 
+                      document.getElementById('search').value;
+    
+    // Обновляем только если нет активных фильтров
+    if (!hasFilters) {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %}
