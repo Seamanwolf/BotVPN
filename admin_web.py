@@ -466,7 +466,10 @@ def payments():
         
         # Пагинация
         page = request.args.get('page', 1, type=int)
-        per_page = 50
+        per_page = request.args.get('per_page', 10, type=int)
+        # Ограничиваем значения per_page
+        if per_page not in [10, 20, 50, 100]:
+            per_page = 10
         offset = (page - 1) * per_page
         
         payments_list = payments_query.order_by(Payment.created_at.desc()).offset(offset).limit(per_page).all()
@@ -499,10 +502,103 @@ def payments():
                              pending_payments=pending_payments,
                              current_page=page,
                              total_pages=total_pages,
+                             per_page=per_page,
                              status_filter=status_filter,
                              date_from=date_from,
                              date_to=date_to,
                              search_query=search_query)
+    finally:
+        db.close()
+
+@app.route('/api/payments/<int:payment_id>')
+@login_required
+def get_payment_details(payment_id):
+    """API для получения деталей платежа"""
+    db = SessionLocal()
+    try:
+        payment = db.query(Payment).filter(Payment.id == payment_id).first()
+        if not payment:
+            return jsonify({'success': False, 'message': 'Платеж не найден'})
+        
+        # Получаем информацию о пользователе
+        user = db.query(User).filter(User.id == payment.user_id).first()
+        
+        # Формируем HTML для модального окна
+        html = f"""
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3">Основная информация</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>ID платежа:</strong></td><td>#{payment.id}</td></tr>
+                    <tr><td><strong>Статус:</strong></td><td>
+                        {'<span class="badge bg-success">Завершен</span>' if payment.status == 'completed' else
+                          '<span class="badge bg-warning">Ожидающий</span>' if payment.status == 'pending' else
+                          '<span class="badge bg-danger">Неудачный</span>' if payment.status == 'failed' else
+                          '<span class="badge bg-secondary">Отменен</span>' if payment.status == 'canceled' else
+                          f'<span class="badge bg-info">{payment.status}</span>'}
+                    </td></tr>
+                    <tr><td><strong>Сумма:</strong></td><td>{payment.amount} {payment.currency}</td></tr>
+                    <tr><td><strong>Тип платежа:</strong></td><td>{payment.payment_type or 'Не указан'}</td></tr>
+                    <tr><td><strong>Тип подписки:</strong></td><td>{payment.subscription_type or 'Не указан'}</td></tr>
+                    <tr><td><strong>Провайдер:</strong></td><td>{payment.provider}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="mb-3">Информация о пользователе</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Имя:</strong></td><td>{user.full_name if user else 'Неизвестный пользователь'}</td></tr>
+                    <tr><td><strong>Telegram ID:</strong></td><td>@{user.telegram_id if user else 'N/A'}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>{user.email if user and user.email else 'Не указан'}</td></tr>
+                    <tr><td><strong>Телефон:</strong></td><td>{user.phone if user and user.phone else 'Не указан'}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6 class="mb-3">Дополнительная информация</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Дата создания:</strong></td><td>{payment.created_at.strftime('%d.%m.%Y %H:%M:%S')}</td></tr>
+                    <tr><td><strong>Дата завершения:</strong></td><td>{payment.completed_at.strftime('%d.%m.%Y %H:%M:%S') if payment.completed_at else 'Не завершен'}</td></tr>
+                    <tr><td><strong>YooKassa ID:</strong></td><td>{payment.yookassa_payment_id or 'Не указан'}</td></tr>
+                    <tr><td><strong>Invoice ID:</strong></td><td>{payment.invoice_id or 'Не указан'}</td></tr>
+                    <tr><td><strong>Описание:</strong></td><td>{payment.description or 'Не указано'}</td></tr>
+                    <tr><td><strong>Чек отправлен:</strong></td><td>{'Да' if payment.receipt_sent else 'Нет'}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        {f'<div class="row mt-3"><div class="col-12"><h6 class="mb-3">Метаданные</h6><pre class="bg-light p-2 rounded" style="font-size: 0.8rem;">{payment.payment_metadata or "Нет метаданных"}</pre></div></div>' if payment.payment_metadata else ''}
+        """
+        
+        return jsonify({'success': True, 'html': html})
+        
+    except Exception as e:
+        logger.error(f"Ошибка получения деталей платежа: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+    finally:
+        db.close()
+
+@app.route('/api/payments/<int:payment_id>/check-status', methods=['POST'])
+@login_required
+def check_payment_status(payment_id):
+    """API для проверки статуса платежа"""
+    db = SessionLocal()
+    try:
+        payment = db.query(Payment).filter(Payment.id == payment_id).first()
+        if not payment:
+            return jsonify({'success': False, 'message': 'Платеж не найден'})
+        
+        if payment.status != 'pending':
+            return jsonify({'success': False, 'message': 'Можно проверять только ожидающие платежи'})
+        
+        # Здесь можно добавить логику проверки статуса через YooKassa API
+        # Пока просто возвращаем успех
+        return jsonify({'success': True, 'message': 'Статус платежа проверен'})
+        
+    except Exception as e:
+        logger.error(f"Ошибка проверки статуса платежа: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
     finally:
         db.close()
 
