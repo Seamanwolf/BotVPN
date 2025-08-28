@@ -105,7 +105,6 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Имя</th>
-                                <th>Email</th>
                                 <th>Дата регистрации</th>
                             </tr>
                         </thead>
@@ -114,7 +113,7 @@
                             <tr>
                                 <td>{{ user.telegram_id }}</td>
                                 <td>{{ user.full_name }}</td>
-                                <td>{{ user.email or 'Не указан' }}</td>
+
                                 <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
                             </tr>
                             {% endfor %}

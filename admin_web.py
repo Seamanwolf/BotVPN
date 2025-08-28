@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment, RecoveryRequest
 from config import ADMIN_IDS
 from xui_client import XUIClient
 from socketio_app import socketio
@@ -104,18 +104,48 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        totp_code = request.form.get('totp')
         
         db = SessionLocal()
         try:
             admin = db.query(Admin).filter(Admin.username == username, Admin.is_active == True).first()
             if admin and check_password_hash(admin.password_hash, password):
+                # Проверяем, первый ли это вход
+                is_first_login = getattr(admin, 'first_login', True)
+                
+                # Если у админа включен TOTP — требуем корректный код
+                if getattr(admin, 'is_totp_enabled', False):
+                    import pyotp
+                    secret = getattr(admin, 'totp_secret', None)
+                    if not secret:
+                        flash('2FA настроено некорректно. Обратитесь к супер-админу.')
+                        return render_template('login.html')
+                    if not totp_code:
+                        flash('Введите 2FA код из приложения')
+                        return render_template('login.html')
+                    totp = pyotp.TOTP(secret)
+                    if not totp.verify(totp_code, valid_window=1):
+                        flash('Неверный 2FA код')
+                        return render_template('login.html')
+                
+                # Если это не первый вход и 2FA не настроено — блокируем
+                if not is_first_login and not getattr(admin, 'is_totp_enabled', False):
+                    flash('Для безопасности необходимо настроить 2FA. Обратитесь к администратору.')
+                    return render_template('login.html')
+
                 # Для суперадмина используем 'admin' как ID, для остальных - числовой ID
                 user_id = 'admin' if admin.is_superadmin else str(admin.id)
                 user = AdminUser(user_id, admin.telegram_id, admin.username, admin.is_superadmin)
                 login_user(user)
                 
-                # Обновляем время последнего входа
+                # Обновляем время последнего входа и отмечаем, что это уже не первый вход
                 admin.last_login = datetime.utcnow()
+                if is_first_login:
+                    admin.first_login = False
+                    # Показываем уведомление о необходимости настроить 2FA
+                    flash('Добро пожаловать! Для безопасности необходимо настроить 2FA. Вы будете перенаправлены на страницу настройки.')
+                    db.commit()
+                    return redirect(url_for('admins') + '?setup_2fa=true')
                 db.commit()
                 
                 return redirect(url_for('dashboard'))
@@ -132,6 +162,95 @@ def logout():
     """Выход из системы"""
     logout_user()
     return redirect(url_for('login'))
+
+# ===== 2FA (TOTP) для админов =====
+@app.route('/api/2fa/setup')
+@login_required
+def two_fa_setup():
+    db = SessionLocal()
+    try:
+        # Определяем текущего админа (учёт 'admin' для суперадмина)
+        admin = None
+        if str(current_user.id) == 'admin':
+            admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+        else:
+            try:
+                admin_id_int = int(current_user.id)
+                admin = db.query(Admin).filter(Admin.id == admin_id_int, Admin.is_active == True).first()
+            except Exception:
+                admin = None
+        if not admin:
+            return jsonify(success=False, message='Админ не найден')
+        import pyotp, base64
+        # Если уже включено — не генерируем новый секрет
+        if getattr(admin, 'is_totp_enabled', False) and getattr(admin, 'totp_secret', None):
+            return jsonify(success=True, enabled=True)
+        # Переиспользуем существующий секрет, если он уже сгенерирован, иначе создаем
+        if getattr(admin, 'totp_secret', None):
+            secret = admin.totp_secret
+        else:
+            secret = pyotp.random_base32()
+            admin.totp_secret = secret
+            db.commit()
+        issuer = 'SeaVPN-Admin'
+        account = admin.username or f'admin{admin.id}'
+        uri = pyotp.TOTP(secret, digits=6, interval=30).provisioning_uri(name=account, issuer_name=issuer)
+        # Генерируем data URI QR
+        try:
+            import qrcode, io
+            buf = io.BytesIO()
+            img = qrcode.make(uri)
+            img.save(buf, format='PNG')
+            b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+            qr_data_uri = f'data:image/png;base64,{b64}'
+        except Exception:
+            qr_data_uri = ''
+        return jsonify(success=True, enabled=False, qr_data_uri=qr_data_uri, otpauth_uri=uri)
+    finally:
+        db.close()
+
+@app.route('/api/2fa/enable', methods=['POST'])
+@login_required
+def two_fa_enable():
+    data = request.get_json(silent=True) or {}
+    code = (data.get('code') or '').strip()
+    if not code:
+        return jsonify(success=False, message='Код обязателен')
+    db = SessionLocal()
+    try:
+        if str(current_user.id) == 'admin':
+            admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+        else:
+            admin = db.query(Admin).filter(Admin.id == int(current_user.id), Admin.is_active == True).first()
+        if not admin or not getattr(admin, 'totp_secret', None):
+            return jsonify(success=False, message='Секрет не найден')
+        import pyotp
+        totp = pyotp.TOTP(admin.totp_secret)
+        if not totp.verify(code, valid_window=1):
+            return jsonify(success=False, message='Неверный код')
+        admin.is_totp_enabled = True
+        db.commit()
+        return jsonify(success=True)
+    finally:
+        db.close()
+
+@app.route('/api/2fa/disable', methods=['POST'])
+@login_required
+def two_fa_disable():
+    db = SessionLocal()
+    try:
+        if str(current_user.id) == 'admin':
+            admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+        else:
+            admin = db.query(Admin).filter(Admin.id == int(current_user.id), Admin.is_active == True).first()
+        if not admin:
+            return jsonify(success=False)
+        admin.is_totp_enabled = False
+        admin.totp_secret = None
+        db.commit()
+        return jsonify(success=True)
+    finally:
+        db.close()
 
 @app.route('/users')
 @login_required
@@ -235,7 +354,34 @@ def admins():
     db = SessionLocal()
     try:
         admins_list = db.query(Admin).order_by(Admin.created_at.desc()).all()
-        return render_template('admins.html', admins=admins_list)
+        
+        # Проверяем, нужно ли принудительно настроить 2FA
+        setup_2fa = request.args.get('setup_2fa') == 'true'
+        
+        # Определяем текущего админа
+        current_admin = None
+        if str(current_user.id) == 'admin':
+            current_admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+        else:
+            try:
+                admin_id_int = int(current_user.id)
+                current_admin = db.query(Admin).filter(Admin.id == admin_id_int, Admin.is_active == True).first()
+            except Exception:
+                pass
+        
+        # Проверяем, нужно ли показать уведомление о 2FA
+        show_2fa_notice = False
+        if current_admin and not getattr(current_admin, 'is_totp_enabled', False):
+            show_2fa_notice = True
+        
+        # Проверяем, является ли текущий пользователь супер-админом
+        is_superadmin = current_admin and getattr(current_admin, 'is_superadmin', False)
+        
+        return render_template('admins.html', 
+                             admins=admins_list, 
+                             setup_2fa=setup_2fa,
+                             show_2fa_notice=show_2fa_notice,
+                             current_user={'is_superadmin': is_superadmin})
     finally:
         db.close()
 
@@ -290,8 +436,6 @@ def get_user_details(user_id):
                     'id': user.id,
                     'telegram_id': user.telegram_id,
                     'full_name': user.full_name,
-                    'email': user.email,
-                    'phone': user.phone,
                     'created_at': user.created_at.isoformat() if user.created_at else None,
                     'bonus_coins': user.bonus_coins,
                     'referral_code': user.referral_code,
@@ -328,8 +472,7 @@ def get_user_subscriptions(user_id):
                 'user': {
                     'id': user.id,
                     'telegram_id': user.telegram_id,
-                    'full_name': user.full_name,
-                    'email': user.email
+                    'full_name': user.full_name
                 },
                 'subscriptions': [{
                     'id': sub.id,
@@ -362,7 +505,6 @@ def get_user_referrals(user_id):
                     'id': user.id,
                     'telegram_id': user.telegram_id,
                     'full_name': user.full_name,
-                    'email': user.email,
                     'referral_code': user.referral_code
                 },
                 'referrals': [{
@@ -581,7 +723,6 @@ def get_subscription_details(subscription_id):
                     'id': user.id,
                     'telegram_id': user.telegram_id,
                     'full_name': user.full_name,
-                    'email': user.email,
                     'created_at': user.created_at.isoformat() if user.created_at else None
                 } if user else None
             })
@@ -937,7 +1078,6 @@ def get_admin_details(admin_id):
                     'id': user.id,
                     'telegram_id': user.telegram_id,
                     'full_name': user.full_name,
-                    'email': user.email,
                     'created_at': user.created_at.isoformat() if user.created_at else None,
                     'subscriptions': len(user.subscriptions) if user else 0
                 } if user else None
@@ -1403,14 +1543,13 @@ def get_user_details_for_modal(user_id):
             referrals_count = db.query(User).filter(User.referred_by == user_id).count()
             
             user_data = {
-                'id': user.id,
-                'full_name': user.full_name,
-                'email': user.email,
-                'telegram_id': user.telegram_id,
-                'created_at': user.created_at.isoformat(),
-                'subscriptions_count': subscriptions_count,
-                'tickets_count': tickets_count,
-                'referrals_count': referrals_count
+                            'id': user.id,
+            'full_name': user.full_name,
+            'telegram_id': user.telegram_id,
+            'created_at': user.created_at.isoformat(),
+            'subscriptions_count': subscriptions_count,
+            'tickets_count': tickets_count,
+            'referrals_count': referrals_count
             }
             
             return jsonify({'success': True, 'user': user_data})
@@ -2259,6 +2398,188 @@ def internal_notify():
         socketio.emit('ticket:new_message', payload)
         # Глобально бейдж тикетов НЕ увеличиваем, это именно новое сообщение
         return ('', 204)
+
+# ===== Восстановление доступа =====
+
+@app.route('/api/recovery/request', methods=['POST'])
+def recovery_request():
+    """API для создания запроса восстановления доступа"""
+    try:
+        username = request.form.get('username')
+        request_type = request.form.get('request_type')
+        reason = request.form.get('reason')
+        contact = request.form.get('contact')
+        
+        if not all([username, request_type, reason, contact]):
+            return jsonify({'success': False, 'message': 'Все поля обязательны для заполнения'})
+        
+        db = SessionLocal()
+        try:
+            # Проверяем, существует ли пользователь
+            admin = db.query(Admin).filter(Admin.username == username, Admin.is_active == True).first()
+            if not admin:
+                return jsonify({'success': False, 'message': 'Пользователь не найден'})
+            
+            # Создаем запрос восстановления
+            recovery_request = RecoveryRequest(
+                username=username,
+                request_type=request_type,
+                reason=reason,
+                contact=contact
+            )
+            db.add(recovery_request)
+            db.commit()
+            
+            # Отправляем уведомление через Socket.IO
+            payload = {
+                "id": recovery_request.id,
+                "username": username,
+                "request_type": request_type,
+                "reason": reason,
+                "contact": contact,
+                "created_at": recovery_request.created_at.isoformat()
+            }
+            logger.info(f"[RECOVERY] Отправляем Socket.IO событие recovery:new_request: {payload}")
+            socketio.emit('recovery:new_request', payload)
+            logger.info(f"[RECOVERY] Socket.IO событие отправлено")
+            
+            return jsonify({'success': True, 'message': 'Запрос отправлен'})
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Ошибка создания запроса восстановления: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+
+@app.route('/api/recovery/requests')
+@login_required
+def get_recovery_requests():
+    """API для получения списка запросов восстановления"""
+    db = SessionLocal()
+    try:
+        requests = db.query(RecoveryRequest).order_by(RecoveryRequest.created_at.desc()).all()
+        return jsonify({
+            'success': True,
+            'requests': [{
+                'id': req.id,
+                'username': req.username,
+                'request_type': req.request_type,
+                'reason': req.reason,
+                'contact': req.contact,
+                'status': req.status,
+                'admin_notes': req.admin_notes,
+                'created_at': req.created_at.isoformat(),
+                'processed_at': req.processed_at.isoformat() if req.processed_at else None
+            } for req in requests]
+        })
+    except Exception as e:
+        logger.error(f"Ошибка получения запросов восстановления: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+    finally:
+        db.close()
+
+@app.route('/api/recovery/request/<int:request_id>/process', methods=['POST'])
+@login_required
+def process_recovery_request(request_id):
+    """API для обработки запроса восстановления"""
+    try:
+        action = request.json.get('action')  # 'approve', 'reject', 'complete'
+        notes = request.json.get('notes', '')
+        
+        db = SessionLocal()
+        try:
+            recovery_request = db.query(RecoveryRequest).filter(RecoveryRequest.id == request_id).first()
+            if not recovery_request:
+                return jsonify({'success': False, 'message': 'Запрос не найден'})
+            
+            # Определяем текущего админа
+            current_admin = None
+            if str(current_user.id) == 'admin':
+                current_admin = db.query(Admin).filter(Admin.is_superadmin == True, Admin.is_active == True).first()
+            else:
+                try:
+                    admin_id_int = int(current_user.id)
+                    current_admin = db.query(Admin).filter(Admin.id == admin_id_int, Admin.is_active == True).first()
+                except Exception:
+                    pass
+            
+            if not current_admin:
+                return jsonify({'success': False, 'message': 'Админ не найден'})
+            
+            # Обновляем статус запроса
+            recovery_request.status = action
+            recovery_request.admin_id = current_admin.id
+            recovery_request.admin_notes = notes
+            recovery_request.processed_at = datetime.utcnow()
+            
+            # Если одобряем сброс пароля или 2FA
+            if action == 'approve' and recovery_request.request_type in ['password', '2fa']:
+                admin_user = db.query(Admin).filter(Admin.username == recovery_request.username).first()
+                if admin_user:
+                    if recovery_request.request_type == 'password':
+                        # Генерируем новый пароль
+                        import secrets
+                        import string
+                        new_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+                        admin_user.password_hash = generate_password_hash(new_password)
+                        # Сбрасываем 2FA если запрашивался сброс пароля
+                        admin_user.is_totp_enabled = False
+                        admin_user.totp_secret = None
+                        admin_user.first_login = True  # Разрешаем первый вход без 2FA
+                    elif recovery_request.request_type == '2fa':
+                        # Сбрасываем только 2FA
+                        admin_user.is_totp_enabled = False
+                        admin_user.totp_secret = None
+                        admin_user.first_login = True  # Разрешаем первый вход без 2FA
+                        
+                        # Добавляем заметку о том, что нужно настроить 2FA при следующем входе
+                        if not recovery_request.admin_notes:
+                            recovery_request.admin_notes = "2FA сброшен. Пользователь должен настроить 2FA при следующем входе."
+                        else:
+                            recovery_request.admin_notes += "\n\n2FA сброшен. Пользователь должен настроить 2FA при следующем входе."
+            
+            db.commit()
+            
+            # Отправляем уведомление через Socket.IO
+            payload = {
+                "id": recovery_request.id,
+                "action": action,
+                "admin_username": current_admin.username or current_admin.full_name
+            }
+            socketio.emit('recovery:request_processed', payload)
+            
+            return jsonify({'success': True, 'message': 'Запрос обработан'})
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Ошибка обработки запроса восстановления: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
+
+@app.route('/api/recovery/request/<int:request_id>/delete', methods=['DELETE'])
+@login_required
+def delete_recovery_request(request_id):
+    """API для удаления запроса восстановления"""
+    try:
+        db = SessionLocal()
+        try:
+            recovery_request = db.query(RecoveryRequest).filter(RecoveryRequest.id == request_id).first()
+            if not recovery_request:
+                return jsonify({'success': False, 'message': 'Запрос не найден'})
+            
+            db.delete(recovery_request)
+            db.commit()
+            
+            return jsonify({'success': True, 'message': 'Запрос удален'})
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Ошибка удаления запроса восстановления: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'})
 
 if __name__ == '__main__':
     # Создаем папку для шаблонов если её нет

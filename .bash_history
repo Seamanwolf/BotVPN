@@ -1,69 +1,3 @@
-nginx -t
-systemctl restart nginx && systemctl status nginx
-certbot --nginx -d admin.universaltools.pro --non-interactive --agree-tos --email admin@universaltools.pro
-systemctl status nginx
-ps aux | grep "admin_web.py" | grep -v grep
-pkill -f "admin_web.py" && sleep 2
-systemctl daemon-reload && systemctl enable seavpn-admin && systemctl start seavpn-admin
-systemctl status seavpn-admin
-journalctl -u seavpn-admin -n 10
-systemctl restart seavpn-admin && systemctl status seavpn-admin
-curl -s https://admin.universaltools.pro | head -10
-systemctl status nginx seavpn-admin --no-pager
-journalctl -u seavpn-admin -n 5 --no-pager
-netstat -tlnp | grep :8080
-ss -tlnp | grep :8080
-kill -9 118667 118669
-systemctl restart seavpn-admin && sleep 3 && systemctl status seavpn-admin
-curl -s -I https://admin.universaltools.pro
-systemctl restart seavpn-admin && sleep 3 && systemctl status seavpn-admin
-curl -s https://admin.universaltools.pro/login | head -5
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -9 -f python && sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -9 -f python && sleep 5 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pkill -9 -f python && sleep 3 && python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-sleep 3 && python3 bot.py
-pkill -f bot
-python3 bot.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
@@ -1998,3 +1932,69 @@ journalctl -u seavpn-webhook.service -n 200 --no-pager | grep -A 50 "corporate_t
 journalctl -u seavpn-webhook.service -n 200 --no-pager | grep -A 30 "addClient.*200 OK"
 python3 check_subscriptions.py
 journalctl -u seavpn-webhook.service -n 100 --no-pager | grep -i error
+journalctl -u seavpn-bot.service -f --no-pager
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -f --no-pager
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-bot.service -f --no-pager | grep -E "(notify_new_user|INTERNAL_NOTIFY|new_user)"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-admin.service -f --no-pager | grep -E "(INTERNAL_NOTIFY|users:badge_inc|new_user)"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-bot.service -f --no-pager
+cd /root && python migrate_key_type.py
+cd /root && python -c "from config import TARIFFS, CORPORATE_TARIFFS, calculate_corporate_price; print('✅ Конфигурация загружена успешно'); print(f'Тарифы: {list(TARIFFS.keys())}'); print(f'Корпоративные тарифы: {list(CORPORATE_TARIFFS.keys())}'); print(f'Тест расчета: 10 пользователей 1 месяц = {calculate_corporate_price(10, \"1m\")}₽')"
+cd /root && python -c "from bot import bot, dp; print('✅ Бот загружен успешно')"
+cd /root && python -c "from admin_web import app; print('✅ Веб-админка загружена успешно')"
+cd /root && python -c "from config import calculate_corporate_price; print('Тест расчета корпоративных тарифов:'); print(f'5 пользователей 1 месяц: {calculate_corporate_price(5, \"1m\")}₽'); print(f'10 пользователей 1 месяц: {calculate_corporate_price(10, \"1m\")}₽'); print(f'15 пользователей 1 месяц: {calculate_corporate_price(15, \"1m\")}₽'); print(f'20 пользователей 1 месяц: {calculate_corporate_price(20, \"1m\")}₽'); print(f'10 пользователей 3 месяца: {calculate_corporate_price(10, \"3m\")}₽')"
+cd /root && python -c "from config import TARIFFS, CORPORATE_TARIFFS; print('Описания тарифов:'); print(f'1 месяц: {TARIFFS[\"1m\"][\"description\"][:50]}...'); print(f'Корпоративный 1 месяц: {CORPORATE_TARIFFS[\"1m\"][\"description\"][:50]}...')"
+ps aux | grep bot.py
+kill 228487
+nohup python bot.py > bot.log 2>&1 &
+sleep 3 && ps aux | grep bot.py
+tail -20 bot.log
+pkill -f "python.*bot.py"
+ps aux | grep bot.py
+nohup python bot.py > bot.log 2>&1 &
+sleep 3 && ps aux | grep bot.py
+tail -10 bot.log
+pkill -f "python.*bot.py" && sleep 2 && ps aux | grep -E "(bot\.py|python.*bot)"
+kill 253830
+ps aux | grep -E "(bot\.py|python.*bot)"
+kill -9 253830 253996
+ps aux | grep -E "(bot\.py|python.*bot)"
+systemctl status | grep -i bot
+systemctl stop seavpn-bot.service
+systemctl start seavpn-bot.service
+systemctl status seavpn-bot.service
+journalctl -u seavpn-bot.service -n 10 --no-pager
+cd /root && python -c "from config import calculate_corporate_price; print('Тест новой логики корпоративных тарифов:'); print(f'5 пользователей 1 месяц: {calculate_corporate_price(5, \"1m\")}₽'); print(f'10 пользователей 1 месяц: {calculate_corporate_price(10, \"1m\")}₽'); print(f'15 пользователей 1 месяц: {calculate_corporate_price(15, \"1m\")}₽'); print(f'20 пользователей 1 месяц: {calculate_corporate_price(20, \"1m\")}₽')"
+cd /root && python -c "from bot import bot, dp; print('✅ Бот загружен успешно с новой логикой')"
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+journalctl -u seavpn-bot.service -n 5 --no-pager
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 20 --no-pager
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+cd /root && python -c "from config import calculate_corporate_price; print('Тест корпоративных тарифов:'); print(f'5 пользователей 1 месяц: {calculate_corporate_price(5, \"1m\")}₽'); print(f'10 пользователей 1 месяц: {calculate_corporate_price(10, \"1m\")}₽'); print(f'15 пользователей 1 месяц: {calculate_corporate_price(15, \"1m\")}₽'); print(f'20 пользователей 1 месяц: {calculate_corporate_price(20, \"1m\")}₽')"
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service --no-pager
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-af58d92614edb1f72bdd756615d131bf8dfa5290/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service
+. "/root/.cursor-server/cli/servers/Stable-823f58d4f60b795a6aefb9955933f3a2f0331d70/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-bot.service
+systemctl restart seavpn-admin.service
+systemctl status seavpn-bot.service seavpn-admin.service
+journalctl -u seavpn-bot.service -n 20
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service
+. "/root/.cursor-server/cli/servers/Stable-823f58d4f60b795a6aefb9955933f3a2f0331d70/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"

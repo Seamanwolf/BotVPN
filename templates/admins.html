@@ -4,9 +4,36 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Уведомление о необходимости настройки 2FA -->
+    {% if show_2fa_notice %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Внимание!</strong> Для безопасности необходимо настроить двухфакторную аутентификацию (2FA).
+        <button type="button" class="btn btn-warning btn-sm ms-2" onclick="open2FASettings()">
+            <i class="fas fa-mobile-alt me-1"></i>Настроить 2FA
+        </button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    
+    <!-- Принудительная настройка 2FA для новых админов -->
+    {% if setup_2fa %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Добро пожаловать!</strong> Для завершения настройки аккаунта необходимо настроить 2FA.
+        <button type="button" class="btn btn-info btn-sm ms-2" onclick="open2FASettings()">
+            <i class="fas fa-mobile-alt me-1"></i>Настроить 2FA
+        </button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h3 mb-0">Администраторы</h1>
-        <div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="open2FASettings()">
+                <i class="fas fa-mobile-alt"></i> 2FA настройки
+            </button>
             <button class="btn btn-success" onclick="showAddAdminModal()">
                 <i class="fas fa-plus"></i> Добавить администратора
             </button>
@@ -69,9 +96,11 @@
                                             <i class="fas fa-check"></i>
                                         </button>
                                     {% endif %}
-                                    <button class="btn btn-sm btn-outline-danger" onclick="removeAdmin({{ admin.id }})" title="Удалить">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    {% if current_user.is_superadmin %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="removeAdmin({{ admin.id }})" title="Удалить">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-muted">Недоступно</span>
                                 {% endif %}
@@ -127,10 +156,59 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="button" class="btn btn-primary" onclick="addAdmin()">Добавить</button>
+                <button type="button" class="btn btn-outline-primary" onclick="open2FASettings()">2FA настройки</button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Модалка настроек 2FA для текущего администратора -->
+<div class="modal fade" id="twoFAModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Настройки 2FA (Google Authenticator)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="twoFAContent">
+        <p class="text-muted">Загрузка...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<script>
+function open2FASettings(){
+  fetch('/api/2fa/setup').then(r=>r.json()).then(data=>{
+    if(!data.success){ alert(data.message||'Ошибка'); return; }
+    let html = '';
+    if(data.enabled){
+      html += '<p>2FA включена.</p>';
+      html += '<button class="btn btn-danger" onclick="disable2FA()">Отключить 2FA</button>';
+    } else {
+      html += '<p>Отсканируйте QR в приложении Google Authenticator и введите код:</p>';
+      html += `<img src="${data.qr_data_uri}" class="img-fluid mb-3" alt="QR">`;
+      html += '<div class="mb-3"><label class="form-label">Код</label><input id="totpInput" class="form-control" placeholder="6-значный код" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></div>';
+      html += '<button class="btn btn-primary" onclick="enable2FA()">Включить</button>';
+    }
+    document.getElementById('twoFAContent').innerHTML = html;
+    new bootstrap.Modal(document.getElementById('twoFAModal')).show();
+  });
+}
+function enable2FA(){
+  const code = document.getElementById('totpInput').value.trim();
+  fetch('/api/2fa/enable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})})
+    .then(r=>r.json()).then(data=>{
+      if(data.success){ location.reload(); } else { alert(data.message||'Неверный код'); }
+    });
+}
+function disable2FA(){
+  fetch('/api/2fa/disable',{method:'POST'}).then(r=>r.json()).then(data=>{ if(data.success){ location.reload(); } else { alert(data.message||'Ошибка'); } });
+}
+</script>
 
 <!-- Модальное окно удаления администратора -->
 <div class="modal fade" id="removeAdminModal" tabindex="-1">
@@ -433,4 +511,17 @@ document.head.insertAdjacentHTML('beforeend', `
     </style>
 `);
 </script>
+
+<script>
+    // Автоматическое открытие модального окна 2FA при принудительной настройке
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if setup_2fa %}
+            // Небольшая задержка для корректного отображения
+            setTimeout(function() {
+                open2FASettings();
+            }, 500);
+        {% endif %}
+    });
+</script>
 {% endblock %}
+

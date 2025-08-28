@@ -166,8 +166,7 @@ class NotificationManager:
             
             message = f"🛒 **Новая покупка!**\n\n"
             message += f"👤 **Пользователь:** {user.full_name or 'Не указано'}\n"
-            message += f"🆔 **Telegram ID:** {user.telegram_id}\n"
-            message += f"📧 **Email:** {user.email or 'Не указан'}\n\n"
+            message += f"🆔 **Telegram ID:** {user.telegram_id}\n\n"
             message += f"📦 **Тариф:** {subscription.plan_name}\n"
             message += f"💰 **Сумма:** {payment_amount}₽\n"
             message += f"📅 **Действует до:** {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n"
@@ -200,8 +199,7 @@ class NotificationManager:
             
             message = f"🔄 **Продление подписки!**\n\n"
             message += f"👤 **Пользователь:** {user.full_name or 'Не указано'}\n"
-            message += f"🆔 **Telegram ID:** {user.telegram_id}\n"
-            message += f"📧 **Email:** {user.email or 'Не указан'}\n\n"
+            message += f"🆔 **Telegram ID:** {user.telegram_id}\n\n"
             message += f"📦 **Тариф:** {subscription.plan_name}\n"
             message += f"💰 **Сумма:** {payment_amount}₽\n"
             message += f"⏰ **Добавлено дней:** {days_added}\n"

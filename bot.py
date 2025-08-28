@@ -2,7 +2,7 @@ import asyncio
 import re
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, Contact, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -10,16 +10,13 @@ import json
 
 
 from config import BOT_TOKEN, TARIFFS, CORPORATE_TARIFFS, calculate_corporate_price, REFERRAL_BONUS, BONUS_TO_SUBSCRIPTION, SUPPORT_BOT, ADMIN_IDS
-from database import SessionLocal, User, Subscription, Admin, AdminSettings, Payment, generate_referral_code, get_user_by_referral_code, check_telegram_id_exists, check_email_exists
+from database import SessionLocal, User, Subscription, Admin, AdminSettings, Payment, generate_referral_code, get_user_by_referral_code, check_telegram_id_exists
 from xui_client import XUIClient
 from yookassa_client import YooKassaClient
 from notifications import NotificationManager, run_notification_scheduler
 
 # Состояния для FSM
-class RegistrationStates(StatesGroup):
-    waiting_for_contact = State()
-    waiting_for_name = State()
-    waiting_for_email = State()
+
 
 class CorporateStates(StatesGroup):
     waiting_for_users_count = State()
@@ -44,15 +41,7 @@ notification_manager = None
 
 
 
-# Клавиатуры
-def get_contact_keyboard():
-    """Клавиатура для запроса контакта"""
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="Поделиться номером ☎️", request_contact=True)]],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
-    return keyboard
+
 
 def get_main_menu_keyboard(is_admin=False):
     """Главное меню"""
@@ -255,16 +244,14 @@ async def send_admin_notification(message: str):
         db.close()
 
 # Сохранение пользователя в БД
-async def save_user(telegram_id: int, phone: str, full_name: str, email: str = None, referral_code: str = None) -> User:
+async def save_user(telegram_id: int, full_name: str, referral_code: str = None) -> User:
     db = SessionLocal()
     try:
         # Проверяем уникальность Telegram ID
         if check_telegram_id_exists(telegram_id):
             raise ValueError(f"Пользователь с Telegram ID {telegram_id} уже существует")
         
-        # Проверяем уникальность email (если передан)
-        if email and check_email_exists(email):
-            raise ValueError(f"Пользователь с email {email} уже существует")
+
         
         # Генерируем уникальный реферальный код
         user_referral_code = generate_referral_code()
@@ -278,8 +265,6 @@ async def save_user(telegram_id: int, phone: str, full_name: str, email: str = N
         
         user = User(
             telegram_id=telegram_id,
-            phone=phone,
-            email=email,
             full_name=full_name,
             referral_code=user_referral_code,
             referred_by=referred_by
@@ -318,14 +303,40 @@ async def start_handler(message: Message, state: FSMContext):
         if len(message.text.split()) > 1:
             referral_code = message.text.split()[1]
         
-        await state.set_state(RegistrationStates.waiting_for_contact)
-        await state.update_data(referral_code=referral_code)
+        # Получаем имя из профиля Telegram
+        full_name = message.from_user.full_name or message.from_user.first_name or f"Пользователь {message.from_user.id}"
         
-        welcome_text = "Добро пожаловать! 🚀\n\nДля регистрации поделитесь своим номером телефона:"
+        # Сохраняем пользователя сразу
+        try:
+            user = await save_user(message.from_user.id, full_name, referral_code)
         
         await message.answer(
-            welcome_text,
-            reply_markup=get_contact_keyboard()
+            f"Регистрация завершена! 🎉\n\nДобро пожаловать, {full_name}!\n\nВыберите действие:",
+            reply_markup=get_user_keyboard(message.from_user.id)
+        )
+        
+        # Отправляем уведомление администраторам о новом пользователе
+        settings = get_admin_settings()
+        if settings.notifications_enabled and settings.new_user_notifications:
+            notification_text = (
+                f"🆕 **Новый пользователь зарегистрировался!**\n\n"
+                f"👤 Имя: {full_name}\n"
+                f"🆔 Telegram ID: {message.from_user.id}\n"
+                f"🎁 Бонусные монеты: {user.bonus_coins}\n"
+                f"🕐 Время: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+            )
+            await send_admin_notification(notification_text)
+            
+            # Отправляем уведомление через Socket.IO
+            try:
+                from notifications import notify_new_user
+                    notify_new_user(str(user.id), full_name, "", "")
+            except Exception as e:
+                print(f"Ошибка при отправке Socket.IO уведомления о новом пользователе: {e}")
+    except ValueError as e:
+        await message.answer(
+            f"❌ Ошибка регистрации: {str(e)}\n\nПопробуйте еще раз или обратитесь в поддержку.",
+            reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/start")]], resize_keyboard=True)
         )
 
 # Команда для отправки массовых уведомлений (только для админов)
@@ -343,117 +354,7 @@ async def send_notification_command(message: Message, state: FSMContext):
         reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
     )
 
-# Обработчик получения контакта
-@dp.message(RegistrationStates.waiting_for_contact, F.contact)
-async def contact_handler(message: Message, state: FSMContext):
-    contact: Contact = message.contact
-    
-    # Проверяем, что контакт принадлежит пользователю
-    if contact.user_id != message.from_user.id:
-        await message.answer("Пожалуйста, поделитесь своим собственным номером телефона.")
-        return
-    
-    # Сохраняем номер телефона
-    await state.update_data(phone=contact.phone_number)
-    await state.set_state(RegistrationStates.waiting_for_name)
-    
-    await message.answer(
-        "Отлично! Теперь введите ваше имя:",
-        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
-    )
 
-
-
-# Обработчик ввода имени
-@dp.message(RegistrationStates.waiting_for_name)
-async def name_handler(message: Message, state: FSMContext):
-    if message.text == "Отмена":
-        await state.clear()
-        await message.answer("Регистрация отменена. Нажмите /start для начала.", reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/start")]], resize_keyboard=True))
-        return
-    
-    full_name = message.text.strip()
-    
-    if len(full_name) < 2:
-        await message.answer("Имя должно содержать минимум 2 символа. Попробуйте еще раз:")
-        return
-    
-    # Получаем данные
-    data = await state.get_data()
-    phone = data.get("phone")
-    referral_code = data.get("referral_code")
-    
-    # Сохраняем имя и переходим к вводу email
-    await state.update_data(full_name=full_name)
-    await state.set_state(RegistrationStates.waiting_for_email)
-    
-    await message.answer(
-        "Отлично! Теперь введите ваш email:",
-        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
-    )
-
-# Обработчик ввода email
-@dp.message(RegistrationStates.waiting_for_email)
-async def email_handler(message: Message, state: FSMContext):
-    if message.text == "Отмена":
-        await state.clear()
-        await message.answer("Регистрация отменена. Нажмите /start для начала.", reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/start")]], resize_keyboard=True))
-        return
-    
-    email = message.text.strip()
-    
-    # Простая валидация email
-    if "@" not in email or "." not in email:
-        await message.answer("Пожалуйста, введите корректный email адрес:")
-        return
-    
-    # Проверяем уникальность email
-    if check_email_exists(email):
-        await message.answer("Этот email уже используется. Пожалуйста, введите другой email:")
-        return
-    
-    # Получаем данные
-    data = await state.get_data()
-    phone = data.get("phone")
-    full_name = data.get("full_name")
-    referral_code = data.get("referral_code")
-    
-    # Сохраняем пользователя
-    try:
-        user = await save_user(message.from_user.id, phone, full_name, email, referral_code)
-        
-        await state.clear()
-        
-        await message.answer(
-            f"Регистрация завершена! 🎉\n\nДобро пожаловать, {full_name}!\n\nВыберите действие:",
-            reply_markup=get_user_keyboard(message.from_user.id)
-        )
-        
-        # Отправляем уведомление администраторам о новом пользователе
-        settings = get_admin_settings()
-        if settings.notifications_enabled and settings.new_user_notifications:
-            notification_text = (
-                f"🆕 **Новый пользователь зарегистрировался!**\n\n"
-                f"👤 Имя: {full_name}\n"
-                f"🆔 Telegram ID: {message.from_user.id}\n"
-                f"📱 Телефон: {phone}\n"
-                f"📧 Email: {email or 'Не указан'}\n"
-                f"🎁 Бонусные монеты: {user.bonus_coins}\n"
-                f"🕐 Время: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
-            )
-            await send_admin_notification(notification_text)
-            
-            # Отправляем уведомление через Socket.IO
-            try:
-                from notifications import notify_new_user
-                notify_new_user(str(user.id), full_name, phone, email or "")
-            except Exception as e:
-                print(f"Ошибка при отправке Socket.IO уведомления о новом пользователе: {e}")
-    except ValueError as e:
-        await message.answer(
-            f"❌ Ошибка регистрации: {str(e)}\n\nПопробуйте еще раз или обратитесь в поддержку.",
-            reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/start")]], resize_keyboard=True)
-        )
 
 # Обработчик главного меню
 @dp.message(F.text.in_(["👤 Профиль", "🔑 Мои ключи", "💳 Купить ключ", "🎁 Реферальная система", "❓ Помощь", "⚙️ Админ-панель", "📋 Получить ссылку для копирования", "🚀 Почему наш VPN?"]))
@@ -486,8 +387,6 @@ async def main_menu_handler(message: Message):
         await message.answer(
             f"📋 Профиль\n\n"
             f"Имя: {user.full_name}\n"
-            f"Email: {user.email or 'Не указан'}\n"
-            f"Телефон: {user.phone}\n"
             f"Дата регистрации: {user.created_at.strftime('%d.%m.%Y')}\n"
             f"Бонусные монеты: {user.bonus_coins} 🪙"
             f"{subscription_info}",
@@ -754,7 +653,7 @@ async def main_menu_handler(message: Message):
         )
 
 # Обработчик выбора тарифа
-@dp.message(F.text.in_(["1 месяц - 149₽", "3 месяца - 399₽", "Купить тест (1 день)", "🏢 Корпоративные ключи", "🏢 Корпоративный 1 месяц", "🏢 Корпоративный 3 месяца", "🧪 Тест корпоративный (1 рубль)", "5 пользователей - 1000₽", "10 пользователей - 1800₽", "15 пользователей - 2550₽", "20 пользователей - 3400₽", "5 пользователей - 900₽", "10 пользователей - 1620₽", "15 пользователей - 2295₽", "20 пользователей - 3060₽"]))
+@dp.message(F.text.in_(["1 месяц - 149₽", "3 месяца - 399₽", "Купить тест (1 день)", "🏢 Корпоративные ключи", "🏢 Корпоративный 1 месяц", "🏢 Корпоративный 3 месяца", "🧪 Тест корпоративный (1 рубль)", "5 пользователей - 1000₽", "10 пользователей - 1800₽", "15 пользователей - 2550₽", "20 пользователей - 3400₽", "5 пользователей - 3000₽", "10 пользователей - 5400₽", "15 пользователей - 7650₽", "20 пользователей - 10200₽"]))
 async def tariff_handler(message: Message):
     user = await get_user(message.from_user.id)
     
@@ -868,10 +767,10 @@ async def tariff_handler(message: Message):
         
         # Создаем клавиатуру с вариантами количества пользователей
         keyboard_buttons = [
-            [KeyboardButton(text="5 пользователей - 900₽")],
-            [KeyboardButton(text="10 пользователей - 1620₽")],
-            [KeyboardButton(text="15 пользователей - 2295₽")],
-            [KeyboardButton(text="20 пользователей - 3060₽")],
+            [KeyboardButton(text="5 пользователей - 3000₽")],
+            [KeyboardButton(text="10 пользователей - 5400₽")],
+            [KeyboardButton(text="15 пользователей - 7650₽")],
+            [KeyboardButton(text="20 пользователей - 10200₽")],
             [KeyboardButton(text="Назад")]
         ]
         
@@ -906,17 +805,17 @@ async def tariff_handler(message: Message):
     elif "20 пользователей - 3400₽" in message.text:
         await create_corporate_payment(message, user, "1m", 20, 3400)
         return
-    elif "5 пользователей - 900₽" in message.text:
-        await create_corporate_payment(message, user, "3m", 5, 900)
+    elif "5 пользователей - 3000₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 5, 3000)
         return
-    elif "10 пользователей - 1620₽" in message.text:
-        await create_corporate_payment(message, user, "3m", 10, 1620)
+    elif "10 пользователей - 5400₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 10, 5400)
         return
-    elif "15 пользователей - 2295₽" in message.text:
-        await create_corporate_payment(message, user, "3m", 15, 2295)
+    elif "15 пользователей - 7650₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 15, 7650)
         return
-    elif "20 пользователей - 3060₽" in message.text:
-        await create_corporate_payment(message, user, "3m", 20, 3060)
+    elif "20 пользователей - 10200₽" in message.text:
+        await create_corporate_payment(message, user, "3m", 20, 10200)
         return
     else:
         await message.answer("Неизвестный тариф. Выберите из списка:", reply_markup=get_tariffs_keyboard(is_admin(message.from_user.id)))
@@ -1572,36 +1471,7 @@ async def notifications_status_handler(message: Message):
         reply_markup=get_user_keyboard(message.from_user.id)
     )
 
-# Обработчик для всех сообщений в состоянии регистрации (кроме специальных)
-@dp.message(RegistrationStates.waiting_for_contact)
-async def registration_contact_handler(message: Message, state: FSMContext):
-    if message.text == "/start":
-        await start_handler(message, state)
-    else:
-        await message.answer(
-            "Пожалуйста, поделитесь своим номером телефона, нажав на кнопку ниже:",
-            reply_markup=get_contact_keyboard()
-        )
 
-@dp.message(RegistrationStates.waiting_for_name)
-async def registration_name_handler(message: Message, state: FSMContext):
-    if message.text == "/start":
-        await start_handler(message, state)
-    else:
-        await message.answer(
-            "Пожалуйста, введите ваше имя или нажмите 'Отмена':",
-            reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
-        )
-
-@dp.message(RegistrationStates.waiting_for_email)
-async def registration_email_handler(message: Message, state: FSMContext):
-    if message.text == "/start":
-        await start_handler(message, state)
-    else:
-        await message.answer(
-            "Пожалуйста, введите ваш email или нажмите 'Отмена':",
-            reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
-        )
 
 # Обработчики кнопок продления подписки
 @dp.callback_query(lambda c: c.data.startswith('extend_'))

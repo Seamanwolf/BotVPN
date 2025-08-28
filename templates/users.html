@@ -73,7 +73,6 @@
                             <th>ID</th>
                             <th>Имя</th>
                             <th>Telegram ID</th>
-                            <th>Email</th>
                             <th>Монеты</th>
                             <th>Подписки</th>
                             <th>Рефералы</th>
@@ -92,7 +91,6 @@
                                 {% endif %}
                             </td>
                             <td>{{ user.telegram_id }}</td>
-                            <td>{{ user.email or 'Не указан' }}</td>
                             <td>
                                 <span class="badge bg-warning coins-badge">{{ user.bonus_coins }} 🪙</span>
                             </td>
@@ -327,8 +325,6 @@ function viewUserDetails(userId) {
                             <p><strong>ID:</strong> ${user.id}</p>
                             <p><strong>Имя:</strong> ${user.full_name || 'Не указано'}</p>
                             <p><strong>Telegram ID:</strong> ${user.telegram_id}</p>
-                            <p><strong>Email:</strong> ${user.email || 'Не указан'}</p>
-                            <p><strong>Телефон:</strong> ${user.phone || 'Не указан'}</p>
                             <div class="mt-2">
                                 <button class="btn btn-primary btn-sm" onclick="showExtendSubscriptionModal(${user.id})">
                                     <i class="fas fa-clock"></i> Продлить подписку

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, BigInteger, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, BigInteger, ForeignKey, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -75,6 +75,10 @@ class Admin(Base):
     password_hash = Column(String, nullable=False)
     is_superadmin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    # 2FA (TOTP)
+    totp_secret = Column(String, nullable=True)
+    is_totp_enabled = Column(Boolean, default=False)
+    first_login = Column(Boolean, default=True)  # Первый вход - разрешен без 2FA
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 
@@ -98,6 +102,15 @@ class AdminSettings(Base):
 
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)
+
+# Обеспечиваем наличие колонок для 2FA без отдельной миграции (минимально инвазивно)
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_secret VARCHAR"))
+        conn.execute(text("ALTER TABLE admins ADD COLUMN IF NOT EXISTS is_totp_enabled BOOLEAN DEFAULT FALSE"))
+except Exception as migration_error:
+    # Безопасно логируем в stdout, чтобы не падать при старте
+    print(f"[DB MIGRATION WARN] 2FA columns ensure failed: {migration_error}")
 
 def generate_referral_code(length=8):
     """Генерация уникального реферального кода"""
@@ -130,14 +143,7 @@ def check_telegram_id_exists(telegram_id: int) -> bool:
     finally:
         db.close()
 
-def check_email_exists(email: str) -> bool:
-    """Проверка существования пользователя по email"""
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.email == email).first()
-        return user is not None
-    finally:
-        db.close()
+
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -225,3 +231,20 @@ class MassNotification(Base):
     
     # Отношения
     created_by_admin = relationship("Admin", backref="sent_notifications")
+
+class RecoveryRequest(Base):
+    __tablename__ = "recovery_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, nullable=False)
+    request_type = Column(String, nullable=False)  # 'admin', 'password', '2fa'
+    reason = Column(Text, nullable=False)
+    contact = Column(String, nullable=False)
+    status = Column(String, default="pending")  # 'pending', 'approved', 'rejected', 'completed'
+    admin_id = Column(Integer, ForeignKey("admins.id"), nullable=True)  # Кто обработал
+    admin_notes = Column(Text, nullable=True)  # Заметки администратора
+    created_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, nullable=True)
+    
+    # Отношения
+    admin = relationship("Admin", backref="processed_recovery_requests")
