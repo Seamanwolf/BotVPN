@@ -4,72 +4,76 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">📢 Массовые уведомления</h1>
-        <div>
-            <button class="btn btn-primary btn-sm" onclick="refreshStats()">
-                <i class="fas fa-refresh"></i> Обновить статистику
-            </button>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-bell me-2"></i>Массовые уведомления
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="refreshStats()">
+                    <i class="fas fa-refresh me-1"></i>Обновить статистику
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Статистика -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+    <div class="row mb-3">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title mb-1">Всего пользователей</h6>
-                            <h4 class="mb-0" id="totalUsers">{{ total_users }}</h4>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Всего пользователей</div>
+                            <div class="h5 mb-0 font-weight-bold" id="totalUsers">{{ total_users }}</div>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-users fa-lg"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-white-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title mb-1">Активные подписки</h6>
-                            <h4 class="mb-0" id="activeSubscriptions">{{ active_subscriptions }}</h4>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Активные подписки</div>
+                            <div class="h5 mb-0 font-weight-bold" id="activeSubscriptions">{{ active_subscriptions }}</div>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-key fa-lg"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-key fa-2x text-white-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title mb-1">Отправлено сегодня</h6>
-                            <h4 class="mb-0" id="sentToday">{{ sent_today }}</h4>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Отправлено сегодня</div>
+                            <div class="h5 mb-0 font-weight-bold" id="sentToday">{{ sent_today }}</div>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-paper-plane fa-lg"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-paper-plane fa-2x text-white-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title mb-1">Всего отправлено</h6>
-                            <h4 class="mb-0" id="totalSent">{{ total_sent }}</h4>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Всего отправлено</div>
+                            <div class="h5 mb-0 font-weight-bold" id="totalSent">{{ total_sent }}</div>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-chart-line fa-lg"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-white-50"></i>
                         </div>
                     </div>
                 </div>

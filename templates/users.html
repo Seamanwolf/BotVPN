@@ -4,20 +4,88 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">Пользователи</h1>
-        <div>
-            <button class="btn btn-primary" onclick="refreshUsers()">
-                <i class="fas fa-sync-alt"></i> Обновить
-            </button>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-users me-2"></i>Пользователи
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="refreshUsers()">
+                    <i class="fas fa-sync-alt me-1"></i>Обновить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-3">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Всего пользователей</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ total_users_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Активные пользователи</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ active_users }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Новые за 24ч</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ new_users_24h }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">С монетами</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ users_with_coins }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Фильтры -->
     <div class="card mb-3 filter-card">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
+            <div class="d-flex align-items-center gap-2 flex-nowrap filter-toolbar">
+                <div class="flex-shrink-0" style="min-width: 280px;">
                     <div class="input-group">
                         <span class="input-group-text bg-primary text-white">
                             <i class="fas fa-search"></i>
@@ -25,7 +93,7 @@
                         <input type="text" class="form-control search-input" id="searchInput" placeholder="Поиск по имени или email...">
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="flex-shrink-0" style="min-width: 200px;">
                     <div class="input-group">
                         <span class="input-group-text bg-success text-white">
                             <i class="fas fa-toggle-on"></i>
@@ -37,7 +105,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="flex-shrink-0" style="min-width: 240px;">
                     <div class="input-group">
                         <span class="input-group-text bg-info text-white">
                             <i class="fas fa-credit-card"></i>
@@ -49,12 +117,20 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="flex-shrink-0" style="min-width: 200px;">
+                    <div class="form-check ms-2">
+                        <input class="form-check-input" type="checkbox" id="favoritesOnly" {% if favorites_only %}checked{% endif %}>
+                        <label class="form-check-label" for="favoritesOnly">
+                            <i class="fas fa-star text-warning"></i> Только избранные
+                        </label>
+                    </div>
+                </div>
+                <div class="flex-shrink-0">
                     <button class="btn btn-primary filter-btn" onclick="applyFilters()">
                         <i class="fas fa-filter"></i> Применить
                     </button>
                 </div>
-                <div class="col-md-3">
+                <div class="flex-shrink-0">
                     <button class="btn btn-outline-secondary" onclick="clearFilters()">
                         <i class="fas fa-times"></i> Очистить
                     </button>
@@ -85,6 +161,9 @@
                         <tr data-user-id="{{ user.id }}" {% if user.is_new %}class="new-user-row"{% endif %}>
                             <td>{{ user.id }}</td>
                             <td>
+                                <span class="favorite-star" data-user-id="{{ user.id }}" title="Избранный">
+                                    <i class="fa-star {% if user.is_favorite %}fas text-warning{% else %}far text-secondary{% endif %}"></i>
+                                </span>
                                 {{ user.full_name or 'Не указано' }}
                                 {% if user.is_new %}
                                     <span class="new-user-badge">Новый</span>
@@ -934,6 +1013,7 @@ function applyFilters() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
     const subscriptionFilter = document.getElementById('subscriptionFilter').value;
+    const favoritesOnly = document.getElementById('favoritesOnly')?.checked;
     
     const rows = document.querySelectorAll('#usersTable tbody tr');
     
@@ -941,6 +1021,7 @@ function applyFilters() {
         const name = row.cells[1].textContent.toLowerCase();
         const email = row.cells[3].textContent.toLowerCase();
         const subscriptions = row.cells[5].textContent;
+        const isFav = row.querySelector('.favorite-star i')?.classList.contains('fa-star') && !row.querySelector('.favorite-star i')?.classList.contains('fa-star-o');
         
         let show = true;
         
@@ -953,6 +1034,11 @@ function applyFilters() {
         if (subscriptionFilter === 'has_subscription' && !subscriptions.includes('активных')) {
             show = false;
         } else if (subscriptionFilter === 'no_subscription' && subscriptions.includes('активных')) {
+            show = false;
+        }
+
+        // Фильтр избранных на клиенте (для мгновенной реакции)
+        if (favoritesOnly && !isFav) {
             show = false;
         }
         
@@ -974,6 +1060,48 @@ document.getElementById('subscriptionFilter').addEventListener('change', applyFi
 
 // Обработчик изменения выбранного тарифа
 document.addEventListener('DOMContentLoaded', function() {
+    // Переключение "Только избранные" — перезагружаем с параметром
+    const favCheckbox = document.getElementById('favoritesOnly');
+    if (favCheckbox) {
+        favCheckbox.addEventListener('change', function() {
+            const baseUrl = window.location.pathname;
+            const params = new URLSearchParams(window.location.search);
+            if (this.checked) {
+                params.set('favorites', '1');
+            } else {
+                params.delete('favorites');
+            }
+            window.location.href = `${baseUrl}?${params.toString()}`;
+        });
+    }
+
+    // Наведение и клик по звездочке
+    document.querySelectorAll('.favorite-star').forEach(el => {
+        const icon = el.querySelector('i');
+        // Инициализация активного состояния из разметки
+        if (icon.classList.contains('fas')) {
+            el.classList.add('active-fav');
+        }
+        el.addEventListener('click', () => {
+            const userId = el.getAttribute('data-user-id');
+            fetch(`/api/user/${userId}/toggle_favorite`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.is_favorite) {
+                            el.classList.add('active-fav');
+                            icon.classList.remove('far');
+                            icon.classList.add('fas', 'text-warning');
+                        } else {
+                            el.classList.remove('active-fav');
+                            icon.classList.remove('fas', 'text-warning');
+                            icon.classList.add('far', 'text-secondary');
+                        }
+                        applyFilters();
+                    }
+                });
+        });
+    });
     // Проверяем, есть ли параметр open_user в URL
     const urlParams = new URLSearchParams(window.location.search);
     const openUserId = urlParams.get('open_user');
@@ -1108,6 +1236,8 @@ document.head.insertAdjacentHTML('beforeend', `
             backdrop-filter: blur(10px);
             border-radius: 0.75rem;
         }
+        .filter-toolbar { overflow-x: auto; }
+        .filter-toolbar .form-select, .filter-toolbar .search-input { min-width: 0; }
         
         .search-input, .form-select {
             height: 38px;
@@ -1361,6 +1491,14 @@ document.head.insertAdjacentHTML('beforeend', `
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
+    </style>
+    <style>
+        .favorite-star { cursor: pointer; margin-right: 6px; }
+        .favorite-star i { transition: color .2s ease; }
+        /* Показываем звездочку только при наведении строки или если активна */
+        .users-table tbody tr .favorite-star { visibility: hidden; }
+        .users-table tbody tr:hover .favorite-star { visibility: visible; }
+        .users-table tbody tr .favorite-star.active-fav { visibility: visible; }
     </style>
 `);
 </script>

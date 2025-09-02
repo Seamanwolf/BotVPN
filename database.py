@@ -26,6 +26,8 @@ class User(Base):
     referred_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     bonus_coins = Column(Integer, default=0)
     has_made_first_purchase = Column(Boolean, default=False)
+    # Признак избранного пользователя для админки
+    is_favorite = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Subscription(Base):
@@ -108,6 +110,8 @@ try:
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_secret VARCHAR"))
         conn.execute(text("ALTER TABLE admins ADD COLUMN IF NOT EXISTS is_totp_enabled BOOLEAN DEFAULT FALSE"))
+        # Добавляем колонку is_favorite для пользователей, если её нет
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE"))
 except Exception as migration_error:
     # Безопасно логируем в stdout, чтобы не падать при старте
     print(f"[DB MIGRATION WARN] 2FA columns ensure failed: {migration_error}")

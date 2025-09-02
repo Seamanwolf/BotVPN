@@ -309,6 +309,12 @@ async def start_handler(message: Message, state: FSMContext):
         # Сохраняем пользователя сразу
         try:
             user = await save_user(message.from_user.id, full_name, referral_code)
+        except ValueError as e:
+            await message.answer(
+                f"❌ Ошибка регистрации: {str(e)}\n\nПопробуйте еще раз или обратитесь в поддержку.",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/start")]], resize_keyboard=True)
+            )
+            return
         
         await message.answer(
             f"Регистрация завершена! 🎉\n\nДобро пожаловать, {full_name}!\n\nВыберите действие:",
@@ -330,14 +336,9 @@ async def start_handler(message: Message, state: FSMContext):
             # Отправляем уведомление через Socket.IO
             try:
                 from notifications import notify_new_user
-                    notify_new_user(str(user.id), full_name, "", "")
+                notify_new_user(str(user.id), full_name, "", "")
             except Exception as e:
                 print(f"Ошибка при отправке Socket.IO уведомления о новом пользователе: {e}")
-    except ValueError as e:
-        await message.answer(
-            f"❌ Ошибка регистрации: {str(e)}\n\nПопробуйте еще раз или обратитесь в поддержку.",
-            reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/start")]], resize_keyboard=True)
-        )
 
 # Команда для отправки массовых уведомлений (только для админов)
 @dp.message(F.text == "/send_notification")

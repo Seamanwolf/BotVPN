@@ -1,112 +1,3 @@
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-pip install -r requirements.txt
-apt update && apt install -y python3-pip
-pip3 install -r requirements.txt
-apt install -y postgresql postgresql-contrib
-systemctl start postgresql && systemctl enable postgresql
-sudo -u postgres psql -c "CREATE DATABASE vpn_bot;"
-sudo -u postgres psql -c "CREATE USER vpn_user WITH PASSWORD 'vpn_password';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE vpn_bot TO vpn_user;"
-cp env_example.txt .env
-sed -i 's/postgresql:\/\/username:password@localhost\/vpn_bot/postgresql:\/\/vpn_user:vpn_password@localhost\/vpn_bot/' .env
-ps aux | grep bot
-sudo -u postgres psql -d vpn_bot -c "SELECT COUNT(*) FROM users;"
-ps aux | grep bot
-pkill -f bot
-pkill -f python
-python3 bot.py
-cp env_example.txt .env
-cat .env
-sed -i 's/postgresql:\/\/username:password@localhost\/vpn_bot/postgresql:\/\/vpn_user:vpn_password@localhost\/vpn_bot/' .env
-cat .env
-sed -i 's|XUI_BASE_URL=https://nl.universaltools.pro|XUI_BASE_URL=https://nl.universaltools.pro/panel|' .env
-cat .env
-pkill -f python
-ps aux | grep bot
-python3 bot.py
-pkill -f python
-cat .env
-pkill -f python
-python3 bot.py
-ps aux | grep bot
-python3 bot.py
-pkill -f python
-python3 bot.py
-python3 test_xui_api.py
-pkill -f python
-ps aux | grep bot
-python3 bot.py
-python3 test_xui_api.py
-python3 test_create_user.py
-ps aux | grep bot
-pkill -f python
-ps aux | grep bot
-python3 test_add_client.py
-pkill -f python
-ps aux | grep bot
-pkill -f python
-ps aux | grep bot
-pkill -f python
-ps aux | grep bot
-python3 bot.py
-pkill -9 -f python
-ps aux | grep bot
-python3 -c "import bot; print('Код корректен')"
-python3 bot.py
-pkill -9 -f python
-ps aux | grep bot
-python3 -c "import bot; print('Код корректен')"
-python3 bot.py
-pkill -9 -f python
-ps aux | grep bot
-python3 -c "import bot; print('Код корректен')"
-python3 bot.py
-python3 migrate_email_unique.py
-pkill -9 -f python
-python3 migrate_email_unique.py
-ps aux | grep bot
-python3 -c "import bot; print('Код корректен')"
-python3 bot.py
-ps aux | grep bot
-python3 migrate_telegram_id_bigint.py
-pkill -9 -f python
-ps aux | grep bot
-python3 migrate_first_purchase.py
-pkill -9 -f python
-ps aux | grep bot
-pkill -9 -f python
-ps aux | grep bot
-tail -f /dev/null & sleep 2 && pkill -f "tail -f"
-pkill -9 -f python
-ps aux | grep bot
-python3 bot.py
-sleep 5 && ps aux | grep bot
-python3 -c "import bot; print('Код корректен')"
-python3 bot.py
-python3 sync_subscriptions.py
-sleep 5 && ps aux | grep bot
-sleep 10 && echo "Проверяем логи бота..."
-python3 check_subscriptions.py
-python3 check_xui.py
-. "/root/.cursor-server/cli/servers/Stable-e50823e9ded15fddfd743c7122b4724130c25df0/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
-python3 add_key_numbers.py
-pkill -f "python3 bot.py" && sleep 2
-XUI_BASE_URL="nl.universaltools.pro" XUI_PORT="34235" XUI_WEBBASEPATH="CVbzPVZjXGDiTsw" XUI_USERNAME="XBYiLVDMb5" XUI_PASSWORD="zclNU7rzrF" DATABASE_URL="postgresql://vpn_user:vpn_password@localhost/vpn_bot" python3 bot.py &
-psql -U vpn_user -d vpn_bot -c "SELECT id, user_id, plan, status, expires_at, key_number FROM subscriptions WHERE id = 11;"
-sudo -u postgres psql -d vpn_bot -c "SELECT id, user_id, plan, status, expires_at, key_number FROM subscriptions WHERE id = 11;"
-pkill -9 -f python
-python3 bot.py
-pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
-python3 create_superadmin.py
-systemctl status seavpn-admin
-systemctl restart seavpn-admin && sleep 3 && systemctl status seavpn-admin
-curl -s -I https://admin.universaltools.pro
-systemctl restart seavpn-admin && sleep 3 && systemctl status seavpn-admin
 curl -s -I https://admin.universaltools.pro
 systemctl restart seavpn-admin && sleep 2 && pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
 systemctl status seavpn-admin && echo "---" && ps aux | grep "python3 bot.py"
@@ -1998,3 +1889,112 @@ systemctl status seavpn-bot.service
 systemctl restart seavpn-bot.service
 systemctl status seavpn-bot.service
 . "/root/.cursor-server/cli/servers/Stable-823f58d4f60b795a6aefb9955933f3a2f0331d70/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+cd /root && python3 admin_web.py
+systemctl restart seavpn-bot.service
+cd /root && python3 admin_web.py
+cd /root && python3 admin_web.py
+python3 migrate_first_login.py
+python3 migrate_recovery_requests.py
+systemctl restart seavpn-admin.service
+ls -la /root/static/socket.io.js
+systemctl restart seavpn-admin.service
+python3 -c "from database import SessionLocal, Admin; from werkzeug.security import generate_password_hash; s=SessionLocal(); admin=s.query(Admin).filter(Admin.username=='Admin').first(); 
+import sys; 
+if not admin:
+  sys.exit(2)
+admin.password_hash=generate_password_hash('Gfzkmybr72!'); s.add(admin); s.commit(); print('UPDATED', admin.id, admin.username); s.close()" | cat
+pip3 install --no-input --quiet pyotp
+pip3 install pyotp --quiet | cat
+python3 -c "import psycopg2, os; from urllib.parse import urlparse; d=os.getenv('DATABASE_URL') or os.getenv('DB_URL') or 'postgresql://postgres:postgres@localhost:5432/postgres'; u=urlparse(d); conn=psycopg2.connect(dbname=u.path[1:], user=u.username, password=u.password, host=u.hostname, port=u.port); cur=conn.cursor(); cur.execute('ALTER TABLE admin ADD COLUMN IF NOT EXISTS totp_secret VARCHAR;'); cur.execute('ALTER TABLE admin ADD COLUMN IF NOT EXISTS is_totp_enabled BOOLEAN DEFAULT FALSE;'); conn.commit(); print('DB: columns ensured'); cur.close(); conn.close()" | cat
+systemctl restart seavpn-admin.service
+systemctl status seavpn-admin.service | cat
+pip3 install qrcode[pil] --quiet | cat
+systemctl restart seavpn-admin.service
+. "/root/.cursor-server/cli/servers/Stable-823f58d4f60b795a6aefb9955933f3a2f0331d70/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-823f58d4f60b795a6aefb9955933f3a2f0331d70/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+cd /root && pkill -f admin_web.py || true && nohup python3 admin_web.py >/dev/null 2>&1 &
+ls
+sudo start.sh
+sudo sh start.sh
+sudo docker ps
+sh logs.sh
+la
+cd support_bot
+ls
+python3 bot.py
+sh start.sh
+sudo apt update
+sudo apt upgrade
+docker-compose down
+docker-compose build
+ls
+python3 bot.py
+sh stop.sh
+sh start.sh
+. "/root/.cursor-server/cli/servers/Stable-6aa7b3af0d578b9a3aa3ab443571e1a51ebb4e80/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+journalctl -u seavpn-bot.service -f --no-pager
+. "/root/.cursor-server/cli/servers/Stable-6aa7b3af0d578b9a3aa3ab443571e1a51ebb4e80/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+ls -la | grep env
+docker-compose up --build
+netstat -tlnp | grep :5001
+ps aux | grep 676
+kill 676
+netstat -tlnp | grep :5001
+ps aux | grep bot.py
+kill 674
+docker-compose up --build
+docker-compose down
+docker system prune -f
+docker-compose up --build
+netstat -tlnp | grep :5001
+ps aux | grep 9746
+systemctl list-units --type=service | grep -i seavpn
+systemctl stop seavpn-webhook.service
+systemctl stop seavpn-bot.service
+systemctl stop seavpn-support-bot.service
+systemctl restart seavpn-bot.service
+systemctl restart seavpn-webhook.service
+systemctl status seavpn-bot.service seavpn-webhook.service
+journalctl -u seavpn-bot.service -n 20 --no-pager
+python3 -m py_compile bot.py
+systemctl restart seavpn-bot.service
+systemctl status seavpn-bot.service seavpn-webhook.service
+journalctl -u seavpn-bot.service -n 20 --no-pager
+curl -X POST "https://api.telegram.org/bot8394863099:AAGQ3w7Y7WnYr9kfji_UcFc3jV-I--TIIvQ/deleteWebhook"
+systemctl restart seavpn-bot.service
+journalctl -u seavpn-bot.service -n 10 --no-pager
+systemctl status seavpn-bot.service
+systemctl status seavpn-support-bot.service
+curl -X POST "https://api.telegram.org/bot8261852911:AAHFkocNITb8VDYZnjyQ_Wcy7A25oLANwtY/deleteWebhook"
+systemctl restart seavpn-support-bot.service
+systemctl status seavpn-support-bot.service
+rm -f Dockerfile docker-compose.yml .dockerignore
+rm -f support_bot/Dockerfile support_bot/docker-compose.yml
+systemctl status seavpn-*.service --no-pager
+systemctl list-units --type=service | grep seavpn
+apt update && apt install -y mailutils
+echo "Какой email вы хотите использовать для уведомлений? (например: admin@yourdomain.com)"
+ls -la | grep env
+cat .env
+echo "" >> .env && echo "# Monitoring" >> .env && echo "ADMIN_EMAIL=admin@seavpn.local" >> .env
+cp systemd/seavpn-monitor.service /etc/systemd/system/ && systemctl daemon-reload
+chmod +x service_monitor.py
+systemctl enable seavpn-monitor.service && systemctl start seavpn-monitor.service
+systemctl status seavpn-monitor.service
+journalctl -u seavpn-monitor.service -n 10 --no-pager
+systemctl restart seavpn-monitor.service
+systemctl status seavpn-monitor.service
+sed -i 's/ADMIN_EMAIL=admin@seavpn.local/ADMIN_EMAIL=Fenix_220291@mail.ru/' .env
+systemctl status seavpn-monitor.service
+systemctl status seavpn-monitor.service --no-pager
+systemctl stop seavpn-bot.service
+sleep 35 && journalctl -u seavpn-monitor.service -n 20 --no-pager
+journalctl -u seavpn-monitor.service -n 10 --no-pager
+systemctl start seavpn-bot.service
+sleep 35 && journalctl -u seavpn-monitor.service -n 5 --no-pager
+systemctl restart seavpn-monitor.service
+systemctl status seavpn-monitor.service --no-pager
+. "/root/.cursor-server/cli/servers/Stable-6aa7b3af0d578b9a3aa3ab443571e1a51ebb4e80/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-de327274300c6f38ec9f4240d11e82c3b0660b20/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+python3 migrate_add_favorite_field.py
+systemctl restart seavpn-admin.service

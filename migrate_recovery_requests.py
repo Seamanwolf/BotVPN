@@ -57,3 +57,4 @@ def migrate_recovery_requests():
 
 if __name__ == "__main__":
     migrate_recovery_requests()
+

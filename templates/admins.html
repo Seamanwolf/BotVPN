@@ -28,15 +28,83 @@
     </div>
     {% endif %}
     
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">Администраторы</h1>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary" onclick="open2FASettings()">
-                <i class="fas fa-mobile-alt"></i> 2FA настройки
-            </button>
-            <button class="btn btn-success" onclick="showAddAdminModal()">
-                <i class="fas fa-plus"></i> Добавить администратора
-            </button>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-user-shield me-2"></i>Администраторы
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="open2FASettings()">
+                    <i class="fas fa-mobile-alt me-1"></i>2FA настройки
+                </button>
+                <button class="btn btn-sm btn-success" onclick="showAddAdminModal()">
+                    <i class="fas fa-plus me-1"></i>Добавить администратора
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-3">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Всего администраторов</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ total_admins }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-shield fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Активные</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ active_admins }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">Супер-админы</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ super_admins }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-crown fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">С 2FA</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ admins_with_2fa }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-mobile-alt fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

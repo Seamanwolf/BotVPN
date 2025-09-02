@@ -3,7 +3,7 @@
 Веб-админ-панель для Telegram-бота SeaVPN
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_socketio import join_room, emit
@@ -14,6 +14,8 @@ import sys
 import asyncio
 import logging
 from dotenv import load_dotenv
+import io
+import csv
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -96,6 +98,91 @@ def dashboard():
                              expired_subscriptions=expired_subscriptions,
                              recent_users=recent_users,
                              recent_subscriptions=recent_subscriptions)
+    finally:
+        db.close()
+
+@app.route('/api/payments/export')
+@login_required
+def export_payments_csv():
+    """Экспорт платежей в CSV с учетом текущих фильтров"""
+    db = SessionLocal()
+    try:
+        status_filter = request.args.get('status', '')
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+        search_query = request.args.get('search', '')
+
+        payments_query = db.query(Payment)
+
+        if status_filter:
+            payments_query = payments_query.filter(Payment.status == status_filter)
+
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+                payments_query = payments_query.filter(Payment.created_at >= date_from_obj)
+            except ValueError:
+                pass
+
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+                payments_query = payments_query.filter(Payment.created_at < date_to_obj)
+            except ValueError:
+                pass
+
+        if search_query:
+            payments_query = payments_query.join(User).filter(
+                or_(
+                    cast(Payment.id, String).ilike(f'%{search_query}%'),
+                    Payment.yookassa_payment_id.ilike(f'%{search_query}%'),
+                    User.full_name.ilike(f'%{search_query}%'),
+                    Payment.description.ilike(f'%{search_query}%')
+                )
+            )
+
+        payments_list = payments_query.order_by(Payment.created_at.desc()).all()
+
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=';')
+        writer.writerow([
+            'id', 'user_id', 'user_name', 'user_telegram_id', 'amount', 'currency', 'status',
+            'payment_type', 'subscription_type', 'description', 'provider', 'yookassa_payment_id',
+            'invoice_id', 'receipt_sent', 'created_at', 'completed_at'
+        ])
+
+        for payment in payments_list:
+            user = db.query(User).filter(User.id == payment.user_id).first()
+            writer.writerow([
+                payment.id,
+                payment.user_id,
+                (user.full_name if user else ''),
+                (user.telegram_id if user else ''),
+                payment.amount,
+                payment.currency or 'RUB',
+                payment.status,
+                payment.payment_type or '',
+                payment.subscription_type or '',
+                (payment.description or '').replace('\n', ' ').replace('\r', ' '),
+                payment.provider or 'yookassa',
+                payment.yookassa_payment_id or '',
+                payment.invoice_id or '',
+                'yes' if payment.receipt_sent else 'no',
+                payment.created_at.strftime('%Y-%m-%d %H:%M:%S') if payment.created_at else '',
+                payment.completed_at.strftime('%Y-%m-%d %H:%M:%S') if payment.completed_at else ''
+            ])
+
+        csv_data = output.getvalue().encode('utf-8-sig')
+        filename = f"payments_{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Type': 'text/csv; charset=utf-8'
+        }
+        return Response(csv_data, headers=headers)
+
+    except Exception as e:
+        logger.error(f"Ошибка экспорта платежей: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка экспорта: {str(e)}'}), 500
     finally:
         db.close()
 
@@ -259,11 +346,15 @@ def users():
     """Страница управления пользователями"""
     db = SessionLocal()
     try:
+        favorites_only = request.args.get('favorites') == '1'
         # Получаем всех администраторов
         admin_telegram_ids = [admin.telegram_id for admin in db.query(Admin).all()]
         
         # Исключаем администраторов из списка пользователей
-        users = db.query(User).filter(~User.telegram_id.in_(admin_telegram_ids)).order_by(User.created_at.desc()).all()
+        users_query = db.query(User).filter(~User.telegram_id.in_(admin_telegram_ids))
+        if favorites_only:
+            users_query = users_query.filter(User.is_favorite == True)
+        users = users_query.order_by(User.created_at.desc()).all()
         
         # Получаем все подписки для подсчета
         subscriptions = db.query(Subscription).all()
@@ -303,7 +394,41 @@ def users():
             if is_new:
                 new_users_count += 1
         
-        return render_template('users.html', users=users, subscriptions=subscriptions, now=now, timedelta=timedelta, new_users_count=new_users_count)
+        # Статистика для карточек
+        total_users_count = len(users)
+        active_users = db.query(User).join(Subscription).filter(Subscription.status == "active").distinct().count()
+        new_users_24h = db.query(User).filter(User.created_at >= now - timedelta(days=1)).count()
+        users_with_coins = db.query(User).filter(User.bonus_coins > 0).count()
+        
+        return render_template('users.html', 
+                             users=users, 
+                             subscriptions=subscriptions, 
+                             now=now, 
+                             timedelta=timedelta, 
+                             new_users_count=new_users_count,
+                             total_users_count=total_users_count,
+                             active_users=active_users,
+                             new_users_24h=new_users_24h,
+                             users_with_coins=users_with_coins,
+                             favorites_only=favorites_only)
+    finally:
+        db.close()
+
+@app.route('/api/user/<int:user_id>/toggle_favorite', methods=['POST'])
+@login_required
+def toggle_favorite(user_id):
+    """Переключить признак избранного пользователя"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify(success=False, message='Пользователь не найден'), 404
+        user.is_favorite = not bool(user.is_favorite)
+        db.commit()
+        return jsonify(success=True, is_favorite=user.is_favorite)
+    except Exception as e:
+        logger.error(f"toggle_favorite error for user {user_id}: {e}")
+        return jsonify(success=False, message='Внутренняя ошибка'), 500
     finally:
         db.close()
 
@@ -316,7 +441,20 @@ def subscriptions():
         subscriptions = db.query(Subscription).order_by(Subscription.created_at.desc()).all()
         users = db.query(User).all()  # Добавляем пользователей для модального окна создания подписки
         now = datetime.utcnow()
-        return render_template('subscriptions.html', subscriptions=subscriptions, users=users, now=now)
+        # Статистика для карточек
+        total_subscriptions = len(subscriptions)
+        active_subscriptions_count = db.query(Subscription).filter(Subscription.status == "active").count()
+        expired_subscriptions_count = db.query(Subscription).filter(Subscription.status == "expired").count()
+        paused_subscriptions_count = db.query(Subscription).filter(Subscription.status == "paused").count()
+        
+        return render_template('subscriptions.html', 
+                             subscriptions=subscriptions, 
+                             users=users, 
+                             now=now,
+                             total_subscriptions=total_subscriptions,
+                             active_subscriptions_count=active_subscriptions_count,
+                             expired_subscriptions_count=expired_subscriptions_count,
+                             paused_subscriptions_count=paused_subscriptions_count)
     finally:
         db.close()
 
@@ -378,11 +516,21 @@ def admins():
         # Проверяем, является ли текущий пользователь супер-админом
         is_superadmin = current_admin and getattr(current_admin, 'is_superadmin', False)
         
+        # Статистика для карточек
+        total_admins = len(admins_list)
+        active_admins = db.query(Admin).filter(Admin.is_active == True).count()
+        super_admins = db.query(Admin).filter(Admin.is_superadmin == True).count()
+        admins_with_2fa = db.query(Admin).filter(Admin.is_totp_enabled == True).count()
+        
         return render_template('admins.html', 
                              admins=admins_list, 
                              setup_2fa=setup_2fa,
                              show_2fa_notice=show_2fa_notice,
-                             current_user={'is_superadmin': is_superadmin})
+                             current_user={'is_superadmin': is_superadmin},
+                             total_admins=total_admins,
+                             active_admins=active_admins,
+                             super_admins=super_admins,
+                             admins_with_2fa=admins_with_2fa)
     finally:
         db.close()
 
@@ -413,7 +561,18 @@ def tickets():
                 TicketMessage.ticket_id == ticket.id
             ).order_by(TicketMessage.created_at).all()
         
-        return render_template('tickets.html', tickets=tickets_query)
+        # Статистика для карточек
+        total_tickets = len(tickets_query)
+        open_tickets = db.query(Ticket).filter(Ticket.status == "open").count()
+        closed_tickets = db.query(Ticket).filter(Ticket.status == "closed").count()
+        support_tickets = db.query(Ticket).filter(Ticket.ticket_type == "support").count()
+        
+        return render_template('tickets.html', 
+                             tickets=tickets_query,
+                             total_tickets=total_tickets,
+                             open_tickets=open_tickets,
+                             closed_tickets=closed_tickets,
+                             support_tickets=support_tickets)
     finally:
         db.close()
 

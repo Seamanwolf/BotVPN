@@ -49,3 +49,4 @@ def migrate_first_login():
 
 if __name__ == "__main__":
     migrate_first_login()
+

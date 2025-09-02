@@ -77,6 +77,22 @@
             color: #ffffff !important;
         }
 
+        /* Убираем чередование цветов в таблицах для темной темы */
+        [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > td,
+        [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > th {
+            background-color: transparent !important;
+        }
+
+        [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(even) > td,
+        [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(even) > th {
+            background-color: transparent !important;
+        }
+
+        [data-theme="dark"] .table > tbody > tr:hover > td,
+        [data-theme="dark"] .table > tbody > tr:hover > th {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
         [data-theme="dark"] .alert {
             background-color: #2d2d2d;
             border-color: #404040;
