@@ -1,8 +1,3 @@
-curl -s -I https://admin.universaltools.pro
-systemctl restart seavpn-admin && sleep 2 && pkill -f "python3 bot.py" && sleep 2 && python3 bot.py &
-systemctl status seavpn-admin && echo "---" && ps aux | grep "python3 bot.py"
-python3 bot.py &
-curl -s -I https://admin.universaltools.pro
 python3 bot.py &
 ps aux | grep "python3 bot.py"
 python3 bot.py
@@ -1997,4 +1992,9 @@ systemctl status seavpn-monitor.service --no-pager
 . "/root/.cursor-server/cli/servers/Stable-6aa7b3af0d578b9a3aa3ab443571e1a51ebb4e80/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 . "/root/.cursor-server/cli/servers/Stable-de327274300c6f38ec9f4240d11e82c3b0660b20/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
 python3 migrate_add_favorite_field.py
+systemctl restart seavpn-admin.service
+. "/root/.cursor-server/cli/servers/Stable-de327274300c6f38ec9f4240d11e82c3b0660b20/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+. "/root/.cursor-server/cli/servers/Stable-de327274300c6f38ec9f4240d11e82c3b0660b20/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+systemctl restart seavpn-admin.service
+git add -A && git commit -m "feat(admin): favorites star + toolbar in one line; add service monitor; remove Docker; webhook fixes" && git push
 systemctl restart seavpn-admin.service

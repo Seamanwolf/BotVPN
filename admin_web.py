@@ -347,6 +347,14 @@ def users():
     db = SessionLocal()
     try:
         favorites_only = request.args.get('favorites') == '1'
+        # Параметр размера страницы
+        page_size_param = (request.args.get('page_size') or '').lower()
+        page_size = None
+        if page_size_param and page_size_param != 'all':
+            try:
+                page_size = max(1, min(5000, int(page_size_param)))  # ограничим адекватно
+            except ValueError:
+                page_size = None
         # Получаем всех администраторов
         admin_telegram_ids = [admin.telegram_id for admin in db.query(Admin).all()]
         
@@ -354,7 +362,10 @@ def users():
         users_query = db.query(User).filter(~User.telegram_id.in_(admin_telegram_ids))
         if favorites_only:
             users_query = users_query.filter(User.is_favorite == True)
-        users = users_query.order_by(User.created_at.desc()).all()
+        users_query = users_query.order_by(User.created_at.desc())
+        if page_size:
+            users_query = users_query.limit(page_size)
+        users = users_query.all()
         
         # Получаем все подписки для подсчета
         subscriptions = db.query(Subscription).all()
@@ -410,7 +421,8 @@ def users():
                              active_users=active_users,
                              new_users_24h=new_users_24h,
                              users_with_coins=users_with_coins,
-                             favorites_only=favorites_only)
+                             favorites_only=favorites_only,
+                             page_size=page_size_param or 'all')
     finally:
         db.close()
 
