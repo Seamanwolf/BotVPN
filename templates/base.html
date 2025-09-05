@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Подключение Socket.IO клиента версии 4.x -->
-    <script src="/static/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-+l7L4l6V4bpg7m1z2ZqF4oHBywOLH9Dnmv5x1fRSDhcT7cOa9ATmKpM2B0j2J4B8" crossorigin="anonymous"></script>
     <style>
         :root {
             /* Морская цветовая схема */
@@ -2453,6 +2453,18 @@
                 // Проверяем, доступен ли Socket.IO
                 if (typeof io === 'undefined') {
                     console.error('[Socket.IO] io не определен. Socket.IO клиент не загружен.');
+                    // Попробуем загрузить Socket.IO из CDN
+                    console.log('[Socket.IO] Пытаемся загрузить Socket.IO из CDN...');
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+                    script.onload = () => {
+                        console.log('[Socket.IO] Socket.IO загружен из CDN, повторная инициализация...');
+                        setTimeout(initSocketIO, 100);
+                    };
+                    script.onerror = () => {
+                        console.error('[Socket.IO] Не удалось загрузить Socket.IO из CDN');
+                    };
+                    document.head.appendChild(script);
                     return;
                 }
                 
@@ -2467,6 +2479,14 @@
                 
                 socket.on('connect', () => {
                     console.log('[Socket.IO] Подключено! ID:', socket.id);
+                });
+                
+                socket.on('connect_error', (error) => {
+                    console.error('[Socket.IO] Ошибка подключения:', error);
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    console.log('[Socket.IO] Отключено:', reason);
                 });
                 
                 // Глобальный инкремент бейджа в шапке и звук
