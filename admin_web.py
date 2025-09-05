@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment, RecoveryRequest, CoinsHistory
-from sqlalchemy import func, or_, cast, String
+from sqlalchemy import func, or_, cast, String, text
 from config import ADMIN_IDS
 from xui_client import XUIClient
 from socketio_app import socketio
@@ -1019,6 +1019,10 @@ def delete_user(user_id):
         # Удаляем записи истории монет пользователя
         coins_history_deleted = db.query(CoinsHistory).filter(CoinsHistory.user_id == user_id).delete(synchronize_session=False)
         print(f"Удалено записей истории монет: {coins_history_deleted}")
+
+        # Удаляем записи истории пользователя
+        user_history_deleted = db.execute(text("DELETE FROM user_history WHERE user_id = :user_id"), {"user_id": user_id}).rowcount
+        print(f"Удалено записей истории пользователя: {user_history_deleted}")
 
         # Удаляем тикеты пользователя вместе с сообщениями и связями чтения
         tickets = db.query(Ticket).filter(Ticket.user_id == user_id).all()
