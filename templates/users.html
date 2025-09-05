@@ -403,6 +403,8 @@ function viewUserDetails(userId, fromHistory = false) {
         if (userNavigationHistory.length > 10) {
             userNavigationHistory.shift();
         }
+    } else if (!fromHistory && !currentUserId) {
+        console.log(`Первый пользователь, currentUserId был null`);
     }
     
     // Отмечаем пользователя как просмотренного
