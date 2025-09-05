@@ -1895,53 +1895,13 @@ function loadUserUsageStats(userId) {
         .then(data => {
             if (data.success) {
                 const stats = data.stats;
-                const statsContent = `
+                let statsContent = `
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-primary mb-3">
-                                        <i class="fas fa-download me-2"></i>Скачивания
-                                    </h6>
-                                    <div class="mb-2">
-                                        <strong>Всего скачиваний:</strong> 
-                                        <span class="badge bg-primary">${stats.total_downloads}</span>
-                                    </div>
-                                    <div class="mb-0">
-                                        <strong>Последнее скачивание:</strong><br>
-                                        <small class="text-muted">
-                                            ${stats.last_download ? new Date(stats.last_download).toLocaleString() : 'Никогда'}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-success mb-3">
-                                        <i class="fas fa-wifi me-2"></i>Подключения
-                                    </h6>
-                                    <div class="mb-2">
-                                        <strong>Всего подключений:</strong> 
-                                        <span class="badge bg-success">${stats.total_connections}</span>
-                                    </div>
-                                    <div class="mb-0">
-                                        <strong>Последнее подключение:</strong><br>
-                                        <small class="text-muted">
-                                            ${stats.last_connection ? new Date(stats.last_connection).toLocaleString() : 'Никогда'}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
                         <div class="col-12">
                             <div class="card border-0 bg-light">
                                 <div class="card-body p-3">
                                     <h6 class="card-title text-info mb-3">
-                                        <i class="fas fa-chart-line me-2"></i>Трафик
+                                        <i class="fas fa-chart-line me-2"></i>Трафик (данные из 3xUI)
                                     </h6>
                                     <div class="row">
                                         <div class="col-md-4">
@@ -1952,14 +1912,14 @@ function loadUserUsageStats(userId) {
                                         </div>
                                         <div class="col-md-4">
                                             <div class="text-center">
-                                                <div class="h5 text-warning">${stats.current_traffic_used}</div>
-                                                <small class="text-muted">Текущий период</small>
+                                                <div class="h5 text-secondary">${stats.total_traffic_limit}</div>
+                                                <small class="text-muted">Лимит</small>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="text-center">
-                                                <div class="h5 text-secondary">${stats.current_traffic_limit}</div>
-                                                <small class="text-muted">Лимит</small>
+                                                <div class="h5 text-primary">${stats.active_subscriptions}</div>
+                                                <small class="text-muted">Активных подписок</small>
                                             </div>
                                         </div>
                                     </div>
@@ -1982,6 +1942,55 @@ function loadUserUsageStats(userId) {
                         </div>
                     </div>
                 `;
+                
+                // Добавляем детальную статистику по подпискам
+                if (stats.xui_stats && stats.xui_stats.length > 0) {
+                    statsContent += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title text-primary mb-3">
+                                            <i class="fas fa-list me-2"></i>Детали по подпискам
+                                        </h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Подписка #</th>
+                                                        <th>Трафик использовано</th>
+                                                        <th>Лимит</th>
+                                                        <th>Статус</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                    `;
+                    
+                    stats.xui_stats.forEach(subStat => {
+                        statsContent += `
+                            <tr>
+                                <td>${subStat.subscription_number}</td>
+                                <td>${subStat.traffic_used}</td>
+                                <td>${subStat.traffic_limit}</td>
+                                <td>
+                                    <span class="badge ${subStat.enable ? 'bg-success' : 'bg-danger'}">
+                                        ${subStat.enable ? 'Активна' : 'Неактивна'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    statsContent += `
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
                 document.getElementById('usageStatsContent').innerHTML = statsContent;
             } else {
                 document.getElementById('usageStatsContent').innerHTML = `

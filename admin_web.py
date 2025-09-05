@@ -1201,30 +1201,12 @@ def get_user_usage_stats(user_id):
             if not user:
                 return jsonify({'success': False, 'error': 'Пользователь не найден'})
             
-            from database import UserUsageStats
-            # Получаем последнюю статистику пользователя
-            latest_stats = db.query(UserUsageStats).filter(
-                UserUsageStats.user_id == user_id
-            ).order_by(UserUsageStats.updated_at.desc()).first()
-            
-            # Получаем общую статистику за все время
-            total_stats = db.query(UserUsageStats).filter(
-                UserUsageStats.user_id == user_id
+            # Получаем активные подписки пользователя
+            from database import Subscription
+            active_subscriptions = db.query(Subscription).filter(
+                Subscription.user_id == user_id,
+                Subscription.status == 'active'
             ).all()
-            
-            # Агрегируем данные
-            total_downloads = sum(stat.download_count for stat in total_stats)
-            total_connections = sum(stat.connection_count for stat in total_stats)
-            total_traffic = sum(stat.traffic_used for stat in total_stats)
-            
-            # Находим последние активности
-            last_download = None
-            last_connection = None
-            for stat in total_stats:
-                if stat.last_download and (not last_download or stat.last_download > last_download):
-                    last_download = stat.last_download
-                if stat.last_connection and (not last_connection or stat.last_connection > last_connection):
-                    last_connection = stat.last_connection
             
             # Форматируем трафик
             def format_bytes(bytes_value):
@@ -1236,15 +1218,53 @@ def get_user_usage_stats(user_id):
                     bytes_value /= 1024.0
                 return f"{bytes_value:.1f} PB"
             
+            # Получаем данные из 3xUI для каждой активной подписки
+            import asyncio
+            from xui_client import XUIClient
+            
+            async def get_xui_stats():
+                xui_client = XUIClient()
+                total_traffic_used = 0
+                total_traffic_limit = 0
+                xui_stats = []
+                
+                for subscription in active_subscriptions:
+                    unique_email = f'SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}'
+                    stats = await xui_client.get_user_stats(unique_email)
+                    if stats:
+                        total_traffic_used += stats.get('traffic_used', 0)
+                        total_traffic_limit += stats.get('traffic_limit', 0)
+                        xui_stats.append({
+                            'subscription_id': subscription.id,
+                            'subscription_number': subscription.subscription_number,
+                            'traffic_used': format_bytes(stats.get('traffic_used', 0)),
+                            'traffic_limit': format_bytes(stats.get('traffic_limit', 0)),
+                            'enable': stats.get('enable', False),
+                            'expiry_time': stats.get('expiry_time', 0)
+                        })
+                
+                return total_traffic_used, total_traffic_limit, xui_stats
+            
+            # Запускаем асинхронную функцию
+            try:
+                total_traffic_used, total_traffic_limit, xui_stats = asyncio.run(get_xui_stats())
+            except Exception as e:
+                print(f"Ошибка получения данных из 3xUI: {e}")
+                total_traffic_used = 0
+                total_traffic_limit = 0
+                xui_stats = []
+            
+            # Вычисляем процент использования трафика
+            traffic_usage_percent = 0
+            if total_traffic_limit > 0:
+                traffic_usage_percent = round((total_traffic_used / total_traffic_limit * 100), 1)
+            
             stats = {
-                'total_downloads': total_downloads,
-                'total_connections': total_connections,
-                'total_traffic_used': format_bytes(total_traffic),
-                'last_download': last_download.isoformat() if last_download else None,
-                'last_connection': last_connection.isoformat() if last_connection else None,
-                'current_traffic_used': format_bytes(latest_stats.traffic_used) if latest_stats else "0 B",
-                'current_traffic_limit': format_bytes(latest_stats.traffic_limit) if latest_stats and latest_stats.traffic_limit > 0 else "Безлимит",
-                'traffic_usage_percent': round((latest_stats.traffic_used / latest_stats.traffic_limit * 100), 1) if latest_stats and latest_stats.traffic_limit > 0 else 0
+                'total_traffic_used': format_bytes(total_traffic_used),
+                'total_traffic_limit': format_bytes(total_traffic_limit) if total_traffic_limit > 0 else "Безлимит",
+                'active_subscriptions': len(active_subscriptions),
+                'xui_stats': xui_stats,
+                'traffic_usage_percent': traffic_usage_percent
             }
             
             return jsonify({
@@ -1292,7 +1312,7 @@ def get_user_history(user_id):
                     'description': f'Приглашен пользователем @{referrer.telegram_id}',
                     'details': f'Реферальный код: {referrer.referral_code}',
                     'referrer_id': referrer.id,
-                    'referrer_name': referrer.full_name
+                    'referrer_name': referrer.telegram_id  # Используем telegram_id для поиска в JS
                 })
         
         # Получаем всех рефералов пользователя

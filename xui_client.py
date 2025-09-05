@@ -485,6 +485,56 @@ class XUIClient:
             print(f"Ошибка при синхронизации: {e}")
             return {"success": False, "msg": str(e)}
     
+    async def get_user_stats(self, unique_email: str) -> Optional[Dict[str, Any]]:
+        """Получение статистики пользователя из 3xUI"""
+        await self.ensure_login()
+        try:
+            # Получаем список inbounds
+            inbounds = await self.get_inbounds()
+            if not inbounds or not inbounds.get("obj"):
+                print("Не удалось получить inbounds для статистики")
+                return None
+            
+            # Ищем пользователя во всех inbounds
+            for inbound in inbounds["obj"]:
+                if not inbound.get("enable", False):
+                    continue
+                    
+                inbound_id = inbound.get("id")
+                settings = inbound.get("settings", {})
+                
+                if isinstance(settings, str):
+                    try:
+                        settings = json.loads(settings)
+                    except:
+                        continue
+                
+                clients = settings.get("clients", [])
+                for client in clients:
+                    if client.get("email") == unique_email:
+                        # Найдем пользователя, получаем его статистику
+                        stats = {
+                            "email": unique_email,
+                            "inbound_id": inbound_id,
+                            "traffic_used": client.get("totalGB", 0) * 1024 * 1024 * 1024,  # Конвертируем GB в байты
+                            "traffic_limit": client.get("totalGB", 0) * 1024 * 1024 * 1024,
+                            "expiry_time": client.get("expiryTime", 0),
+                            "enable": client.get("enable", False),
+                            "limit_ip": client.get("limitIp", 0),
+                            "tg_id": client.get("tgId", ""),
+                            "sub_id": client.get("subId", ""),
+                            "comment": client.get("comment", "")
+                        }
+                        print(f"Статистика пользователя {unique_email}: {stats}")
+                        return stats
+            
+            print(f"Пользователь {unique_email} не найден в 3xUI")
+            return None
+            
+        except Exception as e:
+            print(f"Ошибка при получении статистики пользователя {unique_email}: {e}")
+            return None
+    
     # Метод delete_user удален - НИКОГДА не удаляем пользователей из 3xUI!
     
     async def delete_user(self, email: str) -> bool:
