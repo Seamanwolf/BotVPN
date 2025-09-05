@@ -391,8 +391,18 @@
 <script>
 let currentUserId = null;
 let currentUserCoins = 0;
+let userNavigationHistory = []; // История навигации по пользователям
 
-function viewUserDetails(userId) {
+function viewUserDetails(userId, fromHistory = false) {
+    // Добавляем текущего пользователя в историю навигации (если не из истории)
+    if (!fromHistory && currentUserId && currentUserId !== userId) {
+        userNavigationHistory.push(currentUserId);
+        // Ограничиваем историю 10 элементами
+        if (userNavigationHistory.length > 10) {
+            userNavigationHistory.shift();
+        }
+    }
+    
     // Отмечаем пользователя как просмотренного
     fetch(`/api/user/${userId}/mark-viewed`, {
         method: 'POST',
@@ -427,6 +437,13 @@ function viewUserDetails(userId) {
                 currentUserId = user.id;
                 currentUserCoins = user.bonus_coins;
                 const content = `
+                    ${userNavigationHistory.length > 0 ? `
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="goBackToPreviousUser()">
+                                <i class="fas fa-arrow-left me-2"></i>Назад к предыдущему пользователю
+                            </button>
+                        </div>
+                    ` : ''}
                     <div class="row">
                         <div class="col-md-6">
                             <h6>Основная информация</h6>
@@ -737,6 +754,13 @@ function viewUserReferrals(userId) {
 
 function refreshUsers() {
     location.reload();
+}
+
+function goBackToPreviousUser() {
+    if (userNavigationHistory.length > 0) {
+        const previousUserId = userNavigationHistory.pop(); // Убираем последнего из истории
+        viewUserDetails(previousUserId, true); // Открываем предыдущего пользователя
+    }
 }
 
 function showAddSubscriptionModal(userId) {
