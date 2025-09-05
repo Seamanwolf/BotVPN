@@ -395,8 +395,10 @@ let userNavigationHistory = []; // История навигации по пол
 
 function viewUserDetails(userId, fromHistory = false) {
     // Добавляем текущего пользователя в историю навигации (если не из истории)
+    console.log(`viewUserDetails: userId=${userId}, fromHistory=${fromHistory}, currentUserId=${currentUserId}`);
     if (!fromHistory && currentUserId && currentUserId !== userId) {
         userNavigationHistory.push(currentUserId);
+        console.log(`Добавлен в историю навигации: ${currentUserId}, история: ${userNavigationHistory}`);
         // Ограничиваем историю 10 элементами
         if (userNavigationHistory.length > 10) {
             userNavigationHistory.shift();
@@ -436,6 +438,7 @@ function viewUserDetails(userId, fromHistory = false) {
                 const user = data.user;
                 currentUserId = user.id;
                 currentUserCoins = user.bonus_coins;
+                console.log(`Создание контента для пользователя ${user.id}, история навигации: ${userNavigationHistory}`);
                 const content = `
                     ${userNavigationHistory.length > 0 ? `
                         <div class="mb-3">
@@ -757,9 +760,13 @@ function refreshUsers() {
 }
 
 function goBackToPreviousUser() {
+    console.log(`goBackToPreviousUser: история навигации: ${userNavigationHistory}`);
     if (userNavigationHistory.length > 0) {
         const previousUserId = userNavigationHistory.pop(); // Убираем последнего из истории
+        console.log(`Возвращаемся к пользователю: ${previousUserId}`);
         viewUserDetails(previousUserId, true); // Открываем предыдущего пользователя
+    } else {
+        console.log('История навигации пуста');
     }
 }
 
