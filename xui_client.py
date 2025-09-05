@@ -485,6 +485,37 @@ class XUIClient:
             print(f"Ошибка при синхронизации: {e}")
             return {"success": False, "msg": str(e)}
     
+    async def get_client_traffics(self, email: str) -> Optional[Dict[str, Any]]:
+        """Получение трафика клиента через специальный API endpoint"""
+        await self.ensure_login()
+        try:
+            client = await self._get_client()
+            traffics_url = f"{self.base_url}/panel/api/inbounds/getClientTraffics/{email}"
+            
+            print(f"Запрос трафика для {email}: {traffics_url}")
+            response = await client.get(
+                traffics_url,
+                cookies=self.session_cookies,
+                headers={"Accept": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                traffics_data = response.json()
+                print(f"Данные трафика для {email}: {traffics_data}")
+                return traffics_data
+            else:
+                print(f"Ошибка получения трафика: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Ошибка при получении трафика клиента {email}: {e}")
+            return None
+        finally:
+            try:
+                await client.aclose()
+            except:
+                pass
+
     async def get_user_stats(self, unique_email: str) -> Optional[Dict[str, Any]]:
         """Получение статистики пользователя из 3xUI"""
         await self.ensure_login()
@@ -512,18 +543,52 @@ class XUIClient:
                 clients = settings.get("clients", [])
                 for client in clients:
                     if client.get("email") == unique_email:
-                        # Найдем пользователя, получаем его статистику
+                        # Получаем реальный трафик через специальный API
+                        traffics_data = await self.get_client_traffics(unique_email)
+                        
+                        # Извлекаем данные трафика
+                        traffic_used = 0
+                        traffic_limit = 0
+                        
+                        if traffics_data and traffics_data.get("success"):
+                            traffic_info = traffics_data.get("obj", {})
+                            # Трафик может быть в разных полях, проверим несколько вариантов
+                            if "up" in traffic_info and "down" in traffic_info:
+                                traffic_used = traffic_info.get("up", 0) + traffic_info.get("down", 0)
+                            elif "total" in traffic_info:
+                                traffic_used = traffic_info.get("total", 0)
+                            elif "used" in traffic_info:
+                                traffic_used = traffic_info.get("used", 0)
+                            
+                            # Лимит трафика
+                            if "totalGB" in traffic_info:
+                                traffic_limit = traffic_info.get("totalGB", 0) * 1024 * 1024 * 1024
+                            elif "limit" in traffic_info:
+                                traffic_limit = traffic_info.get("limit", 0)
+                        
+                        # Если не удалось получить трафик через API, используем данные из клиента
+                        if traffic_used == 0 and traffic_limit == 0:
+                            # Проверяем разные поля для трафика в клиенте
+                            if "up" in client and "down" in client:
+                                traffic_used = client.get("up", 0) + client.get("down", 0)
+                            elif "total" in client:
+                                traffic_used = client.get("total", 0)
+                            
+                            if "totalGB" in client:
+                                traffic_limit = client.get("totalGB", 0) * 1024 * 1024 * 1024
+                        
                         stats = {
                             "email": unique_email,
                             "inbound_id": inbound_id,
-                            "traffic_used": client.get("totalGB", 0) * 1024 * 1024 * 1024,  # Конвертируем GB в байты
-                            "traffic_limit": client.get("totalGB", 0) * 1024 * 1024 * 1024,
+                            "traffic_used": traffic_used,
+                            "traffic_limit": traffic_limit,
                             "expiry_time": client.get("expiryTime", 0),
                             "enable": client.get("enable", False),
                             "limit_ip": client.get("limitIp", 0),
                             "tg_id": client.get("tgId", ""),
                             "sub_id": client.get("subId", ""),
-                            "comment": client.get("comment", "")
+                            "comment": client.get("comment", ""),
+                            "raw_traffics_data": traffics_data  # Добавляем сырые данные для отладки
                         }
                         print(f"Статистика пользователя {unique_email}: {stats}")
                         return stats
