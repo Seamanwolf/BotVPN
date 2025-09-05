@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
-from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment, RecoveryRequest
+from database import SessionLocal, User, Subscription, Admin, Ticket, TicketMessage, AdminReadMessages, AdminNotificationsViewed, AdminViewedUsers, AdminSettings, MassNotification, Payment, RecoveryRequest, CoinsHistory
 from sqlalchemy import func, or_, cast, String
 from config import ADMIN_IDS
 from xui_client import XUIClient
@@ -1015,6 +1015,10 @@ def delete_user(user_id):
         # Удаляем записи о просмотренных пользователях у админов
         viewed_deleted = db.query(AdminViewedUsers).filter(AdminViewedUsers.user_id == user_id).delete(synchronize_session=False)
         print(f"Удалено отметок о просмотре пользователя у админов: {viewed_deleted}")
+
+        # Удаляем записи истории монет пользователя
+        coins_history_deleted = db.query(CoinsHistory).filter(CoinsHistory.user_id == user_id).delete(synchronize_session=False)
+        print(f"Удалено записей истории монет: {coins_history_deleted}")
 
         # Удаляем тикеты пользователя вместе с сообщениями и связями чтения
         tickets = db.query(Ticket).filter(Ticket.user_id == user_id).all()
