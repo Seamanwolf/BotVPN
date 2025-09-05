@@ -1295,6 +1295,7 @@ def get_user_usage_stats(user_id):
 def get_users_online_status():
     """API для получения статуса онлайн всех пользователей"""
     try:
+        print(f"Запрос статуса онлайн от пользователя: {session.get('user_id')}")
         import asyncio
         from xui_client import XUIClient
         
@@ -1324,6 +1325,8 @@ def get_users_online_status():
         
     except Exception as e:
         print(f"Ошибка получения статуса онлайн пользователей: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e),

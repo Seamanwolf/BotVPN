@@ -1277,19 +1277,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Функция для загрузки статуса онлайн пользователей
 function loadOnlineStatus() {
-    fetch('/api/users/online-status')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateOnlineStatusIndicators(data.online_status);
-                console.log(`Загружен статус онлайн: ${data.online_count} пользователей онлайн`);
-            } else {
-                console.error('Ошибка загрузки статуса онлайн:', data.error);
+    fetch('/api/users/online-status', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text().then(text => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Ответ не является JSON:', text.substring(0, 200));
+                throw new Error('Сервер вернул не JSON ответ');
             }
-        })
-        .catch(error => {
-            console.error('Ошибка запроса статуса онлайн:', error);
         });
+    })
+    .then(data => {
+        if (data.success) {
+            updateOnlineStatusIndicators(data.online_status);
+            console.log(`Загружен статус онлайн: ${data.online_count} пользователей онлайн`);
+        } else {
+            console.error('Ошибка загрузки статуса онлайн:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка запроса статуса онлайн:', error);
+        // Не показываем ошибку пользователю, просто логируем
+    });
 }
 
 // Функция для обновления индикаторов онлайн статуса
