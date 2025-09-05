@@ -405,6 +405,8 @@ function viewUserDetails(userId, fromHistory = false) {
         }
     } else if (!fromHistory && !currentUserId) {
         console.log(`Первый пользователь, currentUserId был null`);
+    } else if (!fromHistory && currentUserId === userId) {
+        console.log(`Тот же пользователь, не добавляем в историю`);
     }
     
     // Отмечаем пользователя как просмотренного
@@ -438,6 +440,7 @@ function viewUserDetails(userId, fromHistory = false) {
         .then(data => {
             if (data.success) {
                 const user = data.user;
+                console.log(`Устанавливаем currentUserId: ${currentUserId} -> ${user.id}`);
                 currentUserId = user.id;
                 currentUserCoins = user.bonus_coins;
                 console.log(`Создание контента для пользователя ${user.id}, история навигации: ${userNavigationHistory}`);
