@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Подключение Socket.IO клиента версии 4.x -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-+l7L4l6V4bpg7m1z2ZqF4oHBywOLH9Dnmv5x1fRSDhcT7cOa9ATmKpM2B0j2J4B8" crossorigin="anonymous"></script>
+    <script src="/static/socket.io.js?v=4.7.2&t={{ range(1000000, 9999999) | random }}"></script>
     <style>
         :root {
             /* Морская цветовая схема */
@@ -399,7 +399,7 @@
         }
         h2, .h2 { 
             font-size: var(--font-size-2xl); 
-            font-weight: 600; 
+            font-weight: 600;
             line-height: 1.3; 
             margin-bottom: var(--spacing-md);
         }
@@ -2463,6 +2463,11 @@
                     };
                     script.onerror = () => {
                         console.error('[Socket.IO] Не удалось загрузить Socket.IO из CDN');
+                        // Попробуем еще раз через некоторое время
+                        setTimeout(() => {
+                            console.log('[Socket.IO] Повторная попытка инициализации...');
+                            initSocketIO();
+                        }, 2000);
                     };
                     document.head.appendChild(script);
                     return;
@@ -2640,6 +2645,11 @@
                 
             } catch (error) {
                 console.error('[Socket.IO] Ошибка при инициализации:', error);
+                // Попробуем еще раз через некоторое время
+                setTimeout(() => {
+                    console.log('[Socket.IO] Повторная попытка инициализации после ошибки...');
+                    initSocketIO();
+                }, 3000);
             }
         }
         
