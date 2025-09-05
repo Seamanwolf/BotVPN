@@ -662,6 +662,44 @@ class XUIClient:
             print(f"Ошибка при удалении пользователя: {e}")
             return False
     
+    async def get_online_users(self) -> Optional[List[str]]:
+        """Получение списка онлайн пользователей"""
+        await self.ensure_login()
+        try:
+            client = await self._get_client()
+            onlines_url = f"{self.base_url}/panel/api/inbounds/onlines"
+            
+            print(f"Запрос онлайн пользователей: {onlines_url}")
+            response = await client.post(
+                onlines_url,
+                cookies=self.session_cookies,
+                headers={"Accept": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                onlines_data = response.json()
+                print(f"Данные онлайн пользователей: {onlines_data}")
+                
+                if onlines_data.get("success") and isinstance(onlines_data.get("obj"), list):
+                    online_emails = onlines_data.get("obj", [])
+                    print(f"Найдено онлайн пользователей: {len(online_emails)}")
+                    return online_emails
+                else:
+                    print("Некорректный формат ответа для онлайн пользователей")
+                    return []
+            else:
+                print(f"Ошибка получения онлайн пользователей: {response.status_code} - {response.text}")
+                return []
+                
+        except Exception as e:
+            print(f"Ошибка при получении онлайн пользователей: {e}")
+            return []
+        finally:
+            try:
+                await client.aclose()
+            except:
+                pass
+
     async def close(self):
         """Закрытие соединения"""
         if self.client:

@@ -178,6 +178,9 @@
                                 <span class="favorite-star" data-user-id="{{ user.id }}" title="Избранный">
                                     <i class="fa-star {% if user.is_favorite %}fas text-warning{% else %}far text-secondary{% endif %}"></i>
                                 </span>
+                                <span class="online-status-indicator" data-telegram-id="{{ user.telegram_id }}" title="Статус онлайн">
+                                    <i class="fas fa-circle text-secondary"></i>
+                                </span>
                                 {{ user.full_name or 'Не указано' }}
                                 {% if user.is_new %}
                                     <span class="new-user-badge">Новый</span>
@@ -1272,6 +1275,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Функция для загрузки статуса онлайн пользователей
+function loadOnlineStatus() {
+    fetch('/api/users/online-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateOnlineStatusIndicators(data.online_status);
+                console.log(`Загружен статус онлайн: ${data.online_count} пользователей онлайн`);
+            } else {
+                console.error('Ошибка загрузки статуса онлайн:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка запроса статуса онлайн:', error);
+        });
+}
+
+// Функция для обновления индикаторов онлайн статуса
+function updateOnlineStatusIndicators(onlineStatus) {
+    document.querySelectorAll('.online-status-indicator').forEach(indicator => {
+        const telegramId = indicator.getAttribute('data-telegram-id');
+        const icon = indicator.querySelector('i');
+        
+        if (onlineStatus[telegramId]) {
+            // Пользователь онлайн
+            indicator.classList.remove('offline');
+            indicator.classList.add('online');
+            indicator.setAttribute('title', 'Онлайн');
+        } else {
+            // Пользователь офлайн
+            indicator.classList.remove('online');
+            indicator.classList.add('offline');
+            indicator.setAttribute('title', 'Офлайн');
+        }
+    });
+}
+
+// Автоматическое обновление статуса каждые 30 секунд
+setInterval(loadOnlineStatus, 30000);
+
 function viewUserTickets(userId, telegramId) {
     // Запрос к API для получения тикетов пользователя
     fetch(`/api/user/${userId}/tickets`)
@@ -1624,6 +1667,15 @@ document.head.insertAdjacentHTML('beforeend', `
         .users-table tbody tr .favorite-star { visibility: hidden; }
         .users-table tbody tr:hover .favorite-star { visibility: visible; }
         .users-table tbody tr .favorite-star.active-fav { visibility: visible; }
+
+        /* Стили для индикатора онлайн статуса */
+        .online-status-indicator { 
+            margin-right: 8px; 
+            font-size: 8px;
+            transition: color .3s ease;
+        }
+        .online-status-indicator.online i { color: #10b981 !important; } /* Зеленый для онлайн */
+        .online-status-indicator.offline i { color: #ef4444 !important; } /* Красный для офлайн */
 
         /* Стили для истории подписки */
         .history-item {

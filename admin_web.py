@@ -1290,6 +1290,47 @@ def get_user_usage_stats(user_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/users/online-status')
+@login_required
+def get_users_online_status():
+    """API для получения статуса онлайн всех пользователей"""
+    try:
+        import asyncio
+        from xui_client import XUIClient
+        
+        async def get_online_status():
+            xui_client = XUIClient()
+            online_emails = await xui_client.get_online_users()
+            return online_emails or []
+        
+        # Получаем список онлайн пользователей из 3xUI
+        online_emails = asyncio.run(get_online_status())
+        
+        # Создаем словарь для быстрого поиска
+        online_status = {}
+        for email in online_emails:
+            # Извлекаем telegram_id из email (формат: SeaMiniVpn-{telegram_id}-{subscription_number})
+            if email.startswith('SeaMiniVpn-'):
+                parts = email.split('-')
+                if len(parts) >= 2:
+                    telegram_id = parts[1]
+                    online_status[telegram_id] = True
+        
+        return jsonify({
+            'success': True,
+            'online_status': online_status,
+            'online_count': len(online_emails)
+        })
+        
+    except Exception as e:
+        print(f"Ошибка получения статуса онлайн пользователей: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'online_status': {},
+            'online_count': 0
+        })
+
 @app.route('/api/user/<int:user_id>/history')
 @login_required
 def get_user_history(user_id):
