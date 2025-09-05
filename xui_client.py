@@ -10,7 +10,10 @@ class XUIClient:
     def __init__(self):
         from config import XUI_BASE_URL, XUI_PORT, XUI_WEBBASEPATH, XUI_USERNAME, XUI_PASSWORD
         
-        self.base_url = f"http://{XUI_BASE_URL}:{XUI_PORT}/{XUI_WEBBASEPATH}"
+        # Пробуем сначала HTTPS, потом HTTP
+        self.base_url_https = f"https://{XUI_BASE_URL}:{XUI_PORT}/{XUI_WEBBASEPATH}"
+        self.base_url_http = f"http://{XUI_BASE_URL}:{XUI_PORT}/{XUI_WEBBASEPATH}"
+        self.base_url = self.base_url_https  # Начинаем с HTTPS
         self.username = XUI_USERNAME
         self.password = XUI_PASSWORD
         self.session_cookies = None
@@ -19,41 +22,78 @@ class XUIClient:
     async def _get_client(self):
         """Создает новый httpx клиент для каждого запроса"""
         try:
-            # Всегда создаем новый клиент для каждого запроса
-            return httpx.AsyncClient(verify=False, timeout=30.0)
+            # Всегда создаем новый клиент для каждого запроса с поддержкой редиректов
+            return httpx.AsyncClient(
+                verify=False, 
+                timeout=30.0,
+                follow_redirects=True,  # Автоматически следуем редиректам
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+            )
         except Exception as e:
             logging.error(f"Ошибка создания httpx клиента: {e}")
             # Создаем новый клиент при ошибке
-            return httpx.AsyncClient(verify=False, timeout=30.0)
+            return httpx.AsyncClient(
+                verify=False, 
+                timeout=30.0,
+                follow_redirects=True,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+            )
+    
+    def _switch_protocol(self):
+        """Переключает между HTTP и HTTPS"""
+        if self.base_url == self.base_url_https:
+            self.base_url = self.base_url_http
+            print("Переключились на HTTP")
+        else:
+            self.base_url = self.base_url_https
+            print("Переключились на HTTPS")
+        # Сбрасываем cookies при смене протокола
+        self.session_cookies = None
     
     async def ensure_login(self):
         """Обеспечивает авторизацию в 3xUI"""
         if self.session_cookies:
             return
         
-        client = await self._get_client()
-        login_url = f"{self.base_url}/login"
-        login_data = {
-            "username": self.username,
-            "password": self.password
-        }
-        
-        try:
-            response = await client.post(login_url, json=login_data)
-            if response.status_code == 200:
-                self.session_cookies = response.cookies
-                print("Успешная авторизация в 3xUI")
-            else:
-                print(f"Ошибка авторизации: {response.status_code}")
-                raise Exception("Ошибка авторизации в 3xUI")
-        except Exception as e:
-            print(f"Ошибка при авторизации: {e}")
-            raise
-        finally:
+        max_attempts = 2  # Пробуем HTTPS и HTTP
+        for attempt in range(max_attempts):
+            client = await self._get_client()
+            login_url = f"{self.base_url}/login"
+            login_data = {
+                "username": self.username,
+                "password": self.password
+            }
+            
             try:
-                await client.aclose()
-            except:
-                pass
+                print(f"Попытка авторизации {attempt + 1}: {self.base_url}")
+                response = await client.post(login_url, json=login_data)
+                
+                if response.status_code == 200:
+                    self.session_cookies = response.cookies
+                    print("Успешная авторизация в 3xUI")
+                    await client.aclose()
+                    return
+                else:
+                    print(f"Ошибка авторизации: {response.status_code}")
+                    if attempt < max_attempts - 1:
+                        self._switch_protocol()
+                        continue
+                    else:
+                        raise Exception(f"Ошибка авторизации в 3xUI: {response.status_code}")
+                        
+            except Exception as e:
+                print(f"Ошибка при авторизации (попытка {attempt + 1}): {e}")
+                if attempt < max_attempts - 1:
+                    self._switch_protocol()
+                    continue
+                else:
+                    await client.aclose()
+                    raise
+            finally:
+                try:
+                    await client.aclose()
+                except:
+                    pass
     
     async def get_inbounds(self) -> Optional[Dict[str, Any]]:
         """Получение списка inbounds"""
@@ -182,6 +222,31 @@ class XUIClient:
                     return None
             else:
                 print(f"Ошибка HTTP при создании пользователя: {response.status_code}")
+                print(f"Ответ сервера: {response.text}")
+                # Если получили 307, пробуем переключить протокол
+                if response.status_code == 307:
+                    print("Получен HTTP 307, пробуем переключить протокол...")
+                    self._switch_protocol()
+                    # Повторяем попытку с новым протоколом
+                    await self.ensure_login()
+                    response = await client.post(
+                        add_client_url, 
+                        json=payload, 
+                        cookies=self.session_cookies,
+                        headers={"Content-Type": "application/json", "Accept": "application/json"}
+                    )
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get("success"):
+                            print(f"Пользователь {unique_email} успешно создан в 3xUI после переключения протокола")
+                            return {
+                                "success": True,
+                                "email": unique_email,
+                                "user_email": user_email,
+                                "vless_id": vless_id,
+                                "sub_id": sub_id,
+                                "expiry_time": expiry_time_ms
+                            }
                 return None
                 
         except Exception as e:

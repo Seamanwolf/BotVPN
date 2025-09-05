@@ -120,7 +120,7 @@ class NotificationManager:
         except Exception as e:
             print(f"Ошибка при отправке уведомления о реферальном бонусе: {e}")
     
-    async def notify_coins_added(self, user, coins_amount: int):
+    async def notify_coins_added(self, user, coins_amount: int, comment: str = None):
         """Уведомление пользователя о начислении бонусных монет"""
         try:
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -128,6 +128,11 @@ class NotificationManager:
             message = f"🎁 **Вам начислены бонусные монеты!**\n\n"
             message += f"💰 **Количество:** {coins_amount} 🪙\n"
             message += f"💼 **Текущий баланс:** {user.bonus_coins} 🪙\n\n"
+            
+            # Добавляем комментарий, если он есть
+            if comment and comment.strip():
+                message += f"💬 **Комментарий:** **{comment}**\n\n"
+            
             message += f"💎 Вы можете использовать монеты для покупки подписки:\n"
             message += f"• 150 монет = 1 месяц подписки\n"
             message += f"• 450 монет = 3 месяца подписки\n\n"

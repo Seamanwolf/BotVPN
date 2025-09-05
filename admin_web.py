@@ -1088,6 +1088,349 @@ def get_subscription_details(subscription_id):
     finally:
         db.close()
 
+@app.route('/api/subscription/<int:subscription_id>/history')
+@login_required
+def get_subscription_history(subscription_id):
+    """API для получения истории подписки"""
+    db = SessionLocal()
+    try:
+        subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+        if not subscription:
+            return jsonify({'success': False, 'message': 'Подписка не найдена'})
+        
+        user = db.query(User).filter(User.id == subscription.user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'Пользователь не найден'})
+        
+        # Получаем все платежи пользователя, связанные с подписками
+        payments = db.query(Payment).filter(
+            Payment.user_id == user.id,
+            Payment.status == 'completed'
+        ).order_by(Payment.created_at.desc()).all()
+        
+        history = []
+        
+        # Добавляем создание подписки
+        history.append({
+            'type': 'created',
+            'date': subscription.created_at.isoformat(),
+            'description': f'Подписка создана (план: {subscription.plan_name})',
+            'details': f'ID подписки: {subscription.id}, Номер: {subscription.subscription_number or 1}'
+        })
+        
+        # Добавляем платежи
+        for payment in payments:
+            if payment.payment_type == 'new':
+                history.append({
+                    'type': 'purchased',
+                    'date': payment.created_at.isoformat(),
+                    'description': f'Покупка подписки ({payment.description or payment.subscription_type})',
+                    'details': f'Сумма: {payment.amount} {payment.currency}, Платеж #{payment.id}'
+                })
+            elif payment.payment_type == 'extension':
+                history.append({
+                    'type': 'extended',
+                    'date': payment.created_at.isoformat(),
+                    'description': f'Продление подписки ({payment.description or payment.subscription_type})',
+                    'details': f'Сумма: {payment.amount} {payment.currency}, Платеж #{payment.id}'
+                })
+        
+        # Добавляем информацию о продлениях (если есть)
+        if subscription.extensions_count and subscription.extensions_count > 0:
+            history.append({
+                'type': 'extensions_summary',
+                'date': subscription.last_extension_date.isoformat() if subscription.last_extension_date else subscription.created_at.isoformat(),
+                'description': f'Всего продлений: {subscription.extensions_count}',
+                'details': f'Добавлено дней: {subscription.total_days_added or 0}'
+            })
+        
+        # Добавляем текущий статус
+        if subscription.status == 'expired':
+            history.append({
+                'type': 'expired',
+                'date': subscription.expires_at.isoformat(),
+                'description': 'Подписка истекла',
+                'details': f'Окончание: {subscription.expires_at.strftime("%d.%m.%Y %H:%M")}'
+            })
+        elif subscription.status == 'paused':
+            history.append({
+                'type': 'paused',
+                'date': subscription.last_extension_date.isoformat() if subscription.last_extension_date else subscription.created_at.isoformat(),
+                'description': 'Подписка приостановлена',
+                'details': 'Статус: Приостановлена'
+            })
+        else:
+            history.append({
+                'type': 'active',
+                'date': subscription.expires_at.isoformat(),
+                'description': 'Подписка активна',
+                'details': f'Действует до: {subscription.expires_at.strftime("%d.%m.%Y %H:%M")}'
+            })
+        
+        # Сортируем по дате (от новых к старым)
+        history.sort(key=lambda x: x['date'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'history': history,
+            'subscription': {
+                'id': subscription.id,
+                'plan_name': subscription.plan_name,
+                'status': subscription.status
+            },
+            'user': {
+                'id': user.id,
+                'full_name': user.full_name,
+                'telegram_id': user.telegram_id
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка получения истории: {str(e)}'})
+    finally:
+        db.close()
+
+@app.route('/api/user/<int:user_id>/usage-stats')
+@login_required
+def get_user_usage_stats(user_id):
+    """API для получения статистики использования пользователя"""
+    try:
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return jsonify({'success': False, 'error': 'Пользователь не найден'})
+            
+            from database import UserUsageStats
+            # Получаем последнюю статистику пользователя
+            latest_stats = db.query(UserUsageStats).filter(
+                UserUsageStats.user_id == user_id
+            ).order_by(UserUsageStats.updated_at.desc()).first()
+            
+            # Получаем общую статистику за все время
+            total_stats = db.query(UserUsageStats).filter(
+                UserUsageStats.user_id == user_id
+            ).all()
+            
+            # Агрегируем данные
+            total_downloads = sum(stat.download_count for stat in total_stats)
+            total_connections = sum(stat.connection_count for stat in total_stats)
+            total_traffic = sum(stat.traffic_used for stat in total_stats)
+            
+            # Находим последние активности
+            last_download = None
+            last_connection = None
+            for stat in total_stats:
+                if stat.last_download and (not last_download or stat.last_download > last_download):
+                    last_download = stat.last_download
+                if stat.last_connection and (not last_connection or stat.last_connection > last_connection):
+                    last_connection = stat.last_connection
+            
+            # Форматируем трафик
+            def format_bytes(bytes_value):
+                if bytes_value == 0:
+                    return "0 B"
+                for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                    if bytes_value < 1024.0:
+                        return f"{bytes_value:.1f} {unit}"
+                    bytes_value /= 1024.0
+                return f"{bytes_value:.1f} PB"
+            
+            stats = {
+                'total_downloads': total_downloads,
+                'total_connections': total_connections,
+                'total_traffic_used': format_bytes(total_traffic),
+                'last_download': last_download.isoformat() if last_download else None,
+                'last_connection': last_connection.isoformat() if last_connection else None,
+                'current_traffic_used': format_bytes(latest_stats.traffic_used) if latest_stats else "0 B",
+                'current_traffic_limit': format_bytes(latest_stats.traffic_limit) if latest_stats and latest_stats.traffic_limit > 0 else "Безлимит",
+                'traffic_usage_percent': round((latest_stats.traffic_used / latest_stats.traffic_limit * 100), 1) if latest_stats and latest_stats.traffic_limit > 0 else 0
+            }
+            
+            return jsonify({
+                'success': True,
+                'stats': stats,
+                'user': {
+                    'id': user.id,
+                    'full_name': user.full_name,
+                    'telegram_id': user.telegram_id
+                }
+            })
+            
+        finally:
+            db.close()
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/user/<int:user_id>/history')
+@login_required
+def get_user_history(user_id):
+    """API для получения истории пользователя"""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'Пользователь не найден'})
+        
+        history = []
+        
+        # Добавляем регистрацию пользователя
+        history.append({
+            'type': 'registered',
+            'date': user.created_at.isoformat(),
+            'description': 'Пользователь зарегистрирован',
+            'details': f'Telegram ID: @{user.telegram_id}, Реферальный код: {user.referral_code}'
+        })
+        
+        # Добавляем информацию о приглашении (если есть)
+        if user.referred_by:
+            referrer = db.query(User).filter(User.id == user.referred_by).first()
+            if referrer:
+                history.append({
+                    'type': 'referred',
+                    'date': user.created_at.isoformat(),
+                    'description': f'Приглашен пользователем @{referrer.telegram_id}',
+                    'details': f'Реферальный код: {referrer.referral_code}',
+                    'referrer_id': referrer.id,
+                    'referrer_name': referrer.full_name
+                })
+        
+        # Получаем всех рефералов пользователя
+        referrals = db.query(User).filter(User.referred_by == user.id).order_by(User.created_at.desc()).all()
+        for referral in referrals:
+            history.append({
+                'type': 'referral_joined',
+                'date': referral.created_at.isoformat(),
+                'description': f'Пригласил пользователя @{referral.telegram_id}',
+                'details': f'Имя: {referral.full_name}, ID: {referral.id}',
+                'referral_id': referral.id,
+                'referral_name': referral.full_name
+            })
+        
+        # Получаем все платежи пользователя
+        payments = db.query(Payment).filter(
+            Payment.user_id == user.id,
+            Payment.status == 'completed'
+        ).order_by(Payment.created_at.desc()).all()
+        
+        for payment in payments:
+            if payment.payment_type == 'new':
+                history.append({
+                    'type': 'purchase',
+                    'date': payment.created_at.isoformat(),
+                    'description': f'Покупка подписки ({payment.description or payment.subscription_type})',
+                    'details': f'Сумма: {payment.amount} {payment.currency}, Платеж #{payment.id}'
+                })
+            elif payment.payment_type == 'extension':
+                history.append({
+                    'type': 'extension',
+                    'date': payment.created_at.isoformat(),
+                    'description': f'Продление подписки ({payment.description or payment.subscription_type})',
+                    'details': f'Сумма: {payment.amount} {payment.currency}, Платеж #{payment.id}'
+                })
+        
+        # Получаем подписки пользователя
+        subscriptions = db.query(Subscription).filter(Subscription.user_id == user.id).order_by(Subscription.created_at.desc()).all()
+        for subscription in subscriptions:
+            history.append({
+                'type': 'subscription_created',
+                'date': subscription.created_at.isoformat(),
+                'description': f'Создана подписка: {subscription.plan_name}',
+                'details': f'ID подписки: {subscription.id}, Статус: {subscription.status}'
+            })
+            
+            # Добавляем информацию о продлениях подписки
+            if subscription.extensions_count and subscription.extensions_count > 0:
+                history.append({
+                    'type': 'subscription_extended',
+                    'date': subscription.last_extension_date.isoformat() if subscription.last_extension_date else subscription.created_at.isoformat(),
+                    'description': f'Подписка продлена {subscription.extensions_count} раз',
+                    'details': f'Добавлено дней: {subscription.total_days_added or 0}'
+                })
+        
+        # Получаем историю операций с монетами
+        from database import CoinsHistory
+        coins_operations = db.query(CoinsHistory).filter(
+            CoinsHistory.user_id == user.id
+        ).order_by(CoinsHistory.created_at.desc()).all()
+        
+        for operation in coins_operations:
+            if operation.operation_type == 'add':
+                admin_name = f"администратор" if operation.admin_id else "система"
+                description = f'Начислено {operation.amount} монет ({admin_name})'
+                details = f'Баланс: {operation.balance_before} → {operation.balance_after}'
+                if operation.comment:
+                    details += f', Комментарий: {operation.comment}'
+                history.append({
+                    'type': 'coins_added',
+                    'date': operation.created_at.isoformat(),
+                    'description': description,
+                    'details': details
+                })
+            elif operation.operation_type == 'remove':
+                admin_name = f"администратор" if operation.admin_id else "система"
+                description = f'Списано {abs(operation.amount)} монет ({admin_name})'
+                details = f'Баланс: {operation.balance_before} → {operation.balance_after}'
+                if operation.comment:
+                    details += f', Комментарий: {operation.comment}'
+                history.append({
+                    'type': 'coins_removed',
+                    'date': operation.created_at.isoformat(),
+                    'description': description,
+                    'details': details
+                })
+            elif operation.operation_type == 'subscription_extension':
+                admin_name = f"администратор" if operation.admin_id else "система"
+                description = f'Продление подписки на {operation.amount} дней ({admin_name})'
+                details = operation.comment or f'Продлено на {operation.amount} дней'
+                history.append({
+                    'type': 'subscription_extension',
+                    'date': operation.created_at.isoformat(),
+                    'description': description,
+                    'details': details
+                })
+        
+        # Получаем тикеты пользователя
+        from database import Ticket
+        tickets = db.query(Ticket).filter(Ticket.user_id == user.id).order_by(Ticket.created_at.desc()).all()
+        for ticket in tickets:
+            # Создание тикета
+            history.append({
+                'type': 'ticket_created',
+                'date': ticket.created_at.isoformat(),
+                'description': f'Создан тикет: {ticket.subject}',
+                'details': f'ID тикета: {ticket.id}, Статус: {ticket.status}'
+            })
+            
+            # Закрытие тикета (если закрыт)
+            if ticket.status == 'closed' and ticket.updated_at:
+                history.append({
+                    'type': 'ticket_closed',
+                    'date': ticket.updated_at.isoformat(),
+                    'description': f'Закрыт тикет: {ticket.subject}',
+                    'details': f'ID тикета: {ticket.id}'
+                })
+        
+        # Сортируем по дате (от новых к старым)
+        history.sort(key=lambda x: x['date'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'history': history,
+            'user': {
+                'id': user.id,
+                'full_name': user.full_name,
+                'telegram_id': user.telegram_id,
+                'referral_code': user.referral_code,
+                'bonus_coins': user.bonus_coins
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Ошибка получения истории: {str(e)}'})
+    finally:
+        db.close()
+
 @app.route('/api/subscription/<int:subscription_id>/extend', methods=['POST'])
 @login_required
 def extend_subscription(subscription_id):
@@ -1101,10 +1444,31 @@ def extend_subscription(subscription_id):
         try:
             subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
             if subscription:
+                # Сохраняем старую дату истечения
+                old_expires_at = subscription.expires_at
+                
                 if subscription.expires_at:
                     subscription.expires_at += timedelta(days=days)
                 else:
                     subscription.expires_at = datetime.utcnow() + timedelta(days=days)
+                
+                # Обновляем счетчики продлений
+                subscription.extensions_count = (subscription.extensions_count or 0) + 1
+                subscription.total_days_added = (subscription.total_days_added or 0) + days
+                subscription.last_extension_date = datetime.utcnow()
+                
+                # Записываем событие в историю монет (используем как общую историю)
+                from database import CoinsHistory
+                history_event = CoinsHistory(
+                    user_id=subscription.user_id,
+                    admin_id=session.get('admin_id'),
+                    operation_type='subscription_extension',
+                    amount=days,
+                    comment=f'Продление подписки #{subscription.id} на {days} дней',
+                    balance_before=0,  # Не используется для продлений
+                    balance_after=0    # Не используется для продлений
+                )
+                db.add(history_event)
                 
                 db.commit()
                 return jsonify({'success': True, 'message': f'Подписка продлена на {days} дней'})
@@ -1140,6 +1504,8 @@ def add_coins(user_id):
     """API для начисления бонусных монет пользователю"""
     try:
         coins = request.json.get('coins', 0)
+        comment = request.json.get('comment', '')
+        
         if coins <= 0:
             return jsonify({'success': False, 'message': 'Количество монет должно быть больше 0'})
         
@@ -1147,8 +1513,25 @@ def add_coins(user_id):
         try:
             user = db.query(User).filter(User.id == user_id).first()
             if user:
+                # Сохраняем баланс до операции
+                balance_before = user.bonus_coins
+                
                 # Начисляем монеты
                 user.bonus_coins += coins
+                
+                # Записываем операцию в историю
+                from database import CoinsHistory
+                coins_history = CoinsHistory(
+                    user_id=user.id,
+                    admin_id=session.get('admin_id'),  # ID текущего админа
+                    operation_type='add',
+                    amount=coins,
+                    comment=comment,
+                    balance_before=balance_before,
+                    balance_after=user.bonus_coins
+                )
+                db.add(coins_history)
+                
                 db.commit()
                 
                 # Отправляем уведомление пользователю
@@ -1157,13 +1540,18 @@ def add_coins(user_id):
                     import asyncio
                     
                     notification_manager = NotificationManager()
-                    asyncio.run(notification_manager.notify_coins_added(user, coins))
+                    asyncio.run(notification_manager.notify_coins_added(user, coins, comment))
                 except Exception as e:
                     print(f"Ошибка при отправке уведомления о начислении монет: {e}")
                 
+                # Формируем сообщение для админа
+                admin_message = f'Пользователю {user.full_name or user.telegram_id} начислено {coins} монет'
+                if comment:
+                    admin_message += f' с комментарием: "{comment}"'
+                
                 return jsonify({
                     'success': True, 
-                    'message': f'Пользователю {user.full_name or user.telegram_id} начислено {coins} монет',
+                    'message': admin_message,
                     'new_balance': user.bonus_coins
                 })
             else:
@@ -2219,7 +2607,25 @@ def remove_coins_from_user(user_id):
             if user.bonus_coins < coins_to_remove:
                 return jsonify({'success': False, 'error': 'Недостаточно монет для списания'})
             
+            # Сохраняем баланс до операции
+            balance_before = user.bonus_coins
+            
+            # Списываем монеты
             user.bonus_coins -= coins_to_remove
+            
+            # Записываем операцию в историю
+            from database import CoinsHistory
+            coins_history = CoinsHistory(
+                user_id=user.id,
+                admin_id=session.get('admin_id'),  # ID текущего админа
+                operation_type='remove',
+                amount=-coins_to_remove,  # Отрицательное значение для списания
+                comment=data.get('comment', ''),
+                balance_before=balance_before,
+                balance_after=user.bonus_coins
+            )
+            db.add(coins_history)
+            
             db.commit()
             
             return jsonify({

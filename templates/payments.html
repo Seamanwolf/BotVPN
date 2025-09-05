@@ -139,7 +139,7 @@
                     </div>
                 </div>
                 <div class="col-md-1">
-                    <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                    <button type="submit" class="btn btn-primary btn-sm compact-btn">
                         <i class="fas fa-filter"></i>
                     </button>
                 </div>
@@ -158,17 +158,17 @@
         <div class="card-body p-2">
             {% if payments %}
             <div class="table-responsive">
-                <table class="table table-hover table-sm" style="font-size: 0.85rem;">
+                <table class="table table-hover table-sm payments-table">
                     <thead>
                         <tr>
-                            <th style="width: 8%;">ID</th>
-                            <th style="width: 15%;">Пользователь</th>
-                            <th style="width: 10%;">Сумма</th>
-                            <th style="width: 10%;">Статус</th>
-                            <th style="width: 12%;">Тип</th>
-                            <th style="width: 20%;">Описание</th>
-                            <th style="width: 15%;">Дата создания</th>
-                            <th style="width: 10%;">Действия</th>
+                            <th class="w-8">ID</th>
+                            <th class="w-15">Пользователь</th>
+                            <th class="w-10">Сумма</th>
+                            <th class="w-10">Статус</th>
+                            <th class="w-12">Тип</th>
+                            <th class="w-20">Описание</th>
+                            <th class="w-15">Дата создания</th>
+                            <th class="w-10">Действия</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -176,69 +176,66 @@
                         <tr>
                             <td>
                                 <strong>#{{ payment.id }}</strong>
-                                {% if payment.yookassa_payment_id %}
-                                <br><small class="text-muted" style="font-size: 0.75rem;">YK: {{ payment.yookassa_payment_id }}</small>
-                                {% endif %}
                             </td>
                             <td>
                                 <div>
                                     <strong>{{ payment.user_name }}</strong>
                                     {% if payment.user_telegram_id %}
-                                    <br><small class="text-muted" style="font-size: 0.75rem;">@{{ payment.user_telegram_id }}</small>
+                                    <br><small class="text-muted small-text">@{{ payment.user_telegram_id }}</small>
                                     {% endif %}
                                 </div>
                             </td>
                             <td>
                                 <strong>{{ "{:,.0f}".format(payment.amount) }} ₽</strong>
-                                <br><small class="text-muted" style="font-size: 0.75rem;">{{ payment.currency }}</small>
+                                <br><small class="text-muted small-text">{{ payment.currency }}</small>
                             </td>
                             <td>
                                 {% if payment.status == 'completed' %}
-                                    <span class="badge bg-success" style="font-size: 0.7rem;">Завершен</span>
+                                    <span class="badge bg-success">Завершен</span>
                                 {% elif payment.status == 'pending' %}
-                                    <span class="badge bg-warning" style="font-size: 0.7rem;">Ожидающий</span>
+                                    <span class="badge bg-warning">Ожидающий</span>
                                 {% elif payment.status == 'failed' %}
-                                    <span class="badge bg-danger" style="font-size: 0.7rem;">Неудачный</span>
+                                    <span class="badge bg-danger">Неудачный</span>
                                 {% elif payment.status == 'canceled' %}
-                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">Отменен</span>
+                                    <span class="badge bg-secondary">Отменен</span>
                                 {% else %}
-                                    <span class="badge bg-info" style="font-size: 0.7rem;">{{ payment.status }}</span>
+                                    <span class="badge bg-info">{{ payment.status }}</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if payment.payment_type == 'new' %}
-                                    <span class="badge bg-primary" style="font-size: 0.7rem;">Новая подписка</span>
+                                    <span class="badge bg-primary">Новая подписка</span>
                                 {% elif payment.payment_type == 'extension' %}
-                                    <span class="badge bg-info" style="font-size: 0.7rem;">Продление</span>
+                                    <span class="badge bg-info">Продление</span>
                                 {% else %}
-                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ payment.payment_type or 'Не указан' }}</span>
+                                    <span class="badge bg-secondary">{{ payment.payment_type or 'Не указан' }}</span>
                                 {% endif %}
                                 {% if payment.subscription_type %}
-                                <br><small class="text-muted" style="font-size: 0.75rem;">{{ payment.subscription_type }}</small>
+                                <br><small class="text-muted small-text">{{ payment.subscription_type }}</small>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if payment.description %}
-                                    <span style="font-size: 0.8rem;">{{ payment.description }}</span>
+                                    <span class="medium-text">{{ payment.description }}</span>
                                 {% else %}
-                                    <span class="text-muted" style="font-size: 0.8rem;">Нет описания</span>
+                                    <span class="text-muted medium-text">Нет описания</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <div style="font-size: 0.8rem;">
+                                <div class="medium-text">
                                     {{ payment.created_at.strftime('%d.%m.%Y %H:%M') }}
                                     {% if payment.completed_at %}
-                                    <br><small class="text-muted" style="font-size: 0.75rem;">Завершен: {{ payment.completed_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                    <br><small class="text-muted small-text">Завершен: {{ payment.completed_at.strftime('%d.%m.%Y %H:%M') }}</small>
                                     {% endif %}
                                 </div>
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="showPaymentDetails({{ payment.id }})" title="Детали платежа">
+                                    <button type="button" class="btn btn-sm btn-outline-primary compact-btn" onclick="showPaymentDetails({{ payment.id }})" title="Детали платежа">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     {% if payment.status == 'pending' %}
-                                    <button type="button" class="btn btn-sm btn-outline-warning" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="checkPaymentStatus({{ payment.id }})" title="Проверить статус">
+                                    <button type="button" class="btn btn-sm btn-outline-warning compact-btn" onclick="checkPaymentStatus({{ payment.id }})" title="Проверить статус">
                                         <i class="fas fa-sync"></i>
                                     </button>
                                     {% endif %}

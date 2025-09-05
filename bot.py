@@ -2337,6 +2337,135 @@ async def cancel_notification_callback(callback: CallbackQuery):
     await callback.message.edit_text("❌ Отправка уведомления отменена.")
     await callback.answer()
 
+@dp.callback_query(lambda c: c.data in ['buy_bonus_1m', 'buy_bonus_3m'])
+async def buy_bonus_subscription_handler(callback: CallbackQuery):
+    """Обработчик покупки подписки за бонусы"""
+    try:
+        user = await get_user(callback.from_user.id)
+        if not user:
+            await callback.answer("Пользователь не найден")
+            return
+        
+        # Определяем параметры покупки
+        if callback.data == 'buy_bonus_1m':
+            days = 30
+            required_coins = 150
+            tariff_name = "1 месяц (бонусная)"
+        elif callback.data == 'buy_bonus_3m':
+            days = 90
+            required_coins = 450
+            tariff_name = "3 месяца (бонусная)"
+        else:
+            await callback.answer("Неизвестный тариф")
+            return
+        
+        # Проверяем достаточность бонусов
+        if user.bonus_coins < required_coins:
+            await callback.answer(f"Недостаточно монет! Нужно: {required_coins}, у вас: {user.bonus_coins}")
+            return
+        
+        # Проверяем, есть ли у пользователя активная подписка
+        db = SessionLocal()
+        try:
+            active_subscription = db.query(Subscription).filter(
+                Subscription.user_id == user.id,
+                Subscription.status == "active"
+            ).first()
+            
+            if active_subscription:
+                # Продлеваем существующую подписку
+                await extend_subscription_with_bonus(callback, user, active_subscription, callback.data.split('_')[2], days, required_coins, tariff_name)
+            else:
+                # Создаем новую подписку за бонусы
+                await create_bonus_subscription(callback, user, days, required_coins, tariff_name)
+                
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Ошибка при покупке подписки за бонусы: {e}")
+        await callback.answer("Произошла ошибка при покупке подписки")
+
+async def create_bonus_subscription(callback: CallbackQuery, user, days: int, required_coins: int, tariff_name: str):
+    """Создание новой подписки за бонусы"""
+    try:
+        db = SessionLocal()
+        try:
+            # Создаем подписку в базе данных
+            subscription = Subscription(
+                user_id=user.id,
+                plan="bonus",
+                plan_name=tariff_name,
+                status="active",
+                subscription_number=1,
+                expires_at=datetime.utcnow() + timedelta(days=days)
+            )
+            db.add(subscription)
+            
+            # Списываем бонусы
+            user.bonus_coins -= required_coins
+            
+            # Записываем операцию в историю монет
+            from database import CoinsHistory
+            coins_history = CoinsHistory(
+                user_id=user.id,
+                admin_id=None,  # Покупка пользователем
+                operation_type='remove',
+                amount=-required_coins,
+                comment=f'Покупка подписки: {tariff_name}',
+                balance_before=user.bonus_coins + required_coins,
+                balance_after=user.bonus_coins
+            )
+            db.add(coins_history)
+            
+            # Создаем пользователя в 3xUI
+            user_email = user.email if user.email else f"user_{user.telegram_id}@vpn.local"
+            unique_email = f"SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}"
+            
+            xui_result = await xui_client.create_user(
+                user_email, 
+                days, 
+                f"{user.full_name} (BONUS)", 
+                str(user.telegram_id),
+                unique_email
+            )
+            
+            if xui_result['success']:
+                subscription.unique_name = unique_email
+                db.commit()
+                
+                # Отправляем уведомление
+                await callback.message.edit_text(
+                    f"🎉 **Подписка успешно создана!**\n\n"
+                    f"📦 **Тариф:** {tariff_name}\n"
+                    f"💰 **Потрачено монет:** {required_coins} 🪙\n"
+                    f"💼 **Остаток монет:** {user.bonus_coins} 🪙\n"
+                    f"📅 **Действует до:** {subscription.expires_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                    f"🔑 **Ваш ключ:** SeaMiniVpn-{user.telegram_id}-{subscription.subscription_number}\n\n"
+                    f"💡 Используйте команду /start для получения конфигурации!",
+                    parse_mode="Markdown"
+                )
+                
+                # Уведомляем администраторов
+                from notifications import notification_manager
+                if notification_manager:
+                    await notification_manager.notify_admin_new_purchase(user, subscription, required_coins)
+                
+            else:
+                db.rollback()
+                await callback.message.edit_text(
+                    f"❌ **Ошибка создания подписки**\n\n"
+                    f"Не удалось создать VPN-ключ. Обратитесь в поддержку.",
+                    parse_mode="Markdown"
+                )
+                
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"Ошибка при создании бонусной подписки: {e}")
+        await callback.message.edit_text("Произошла ошибка при создании подписки")
+
 # Функция запуска бота
 async def main():
     global notification_manager

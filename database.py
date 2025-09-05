@@ -219,6 +219,23 @@ class AdminViewedUsers(Base):
     admin = relationship("Admin", backref="viewed_users")
     user = relationship("User", backref="viewed_by_admins")
 
+class CoinsHistory(Base):
+    __tablename__ = "coins_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    admin_id = Column(Integer, ForeignKey("admins.id"), nullable=True)  # NULL если операция не от админа
+    operation_type = Column(String, nullable=False)  # "add", "remove", "bonus", "referral"
+    amount = Column(Integer, nullable=False)  # Количество монет (положительное для добавления, отрицательное для списания)
+    comment = Column(Text, nullable=True)  # Комментарий к операции
+    balance_before = Column(Integer, nullable=False)  # Баланс до операции
+    balance_after = Column(Integer, nullable=False)  # Баланс после операции
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Отношения
+    user = relationship("User", backref="coins_history")
+    admin = relationship("Admin", backref="coins_operations")
+
 class MassNotification(Base):
     __tablename__ = "mass_notifications"
     
@@ -252,3 +269,23 @@ class RecoveryRequest(Base):
     
     # Отношения
     admin = relationship("Admin", backref="processed_recovery_requests")
+
+class UserUsageStats(Base):
+    __tablename__ = "user_usage_stats"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True)
+    date = Column(DateTime, default=datetime.utcnow)
+    download_count = Column(Integer, default=0)  # Количество скачиваний конфига
+    last_download = Column(DateTime, nullable=True)  # Последнее скачивание
+    traffic_used = Column(BigInteger, default=0)  # Использованный трафик в байтах
+    traffic_limit = Column(BigInteger, default=0)  # Лимит трафика в байтах
+    connection_count = Column(Integer, default=0)  # Количество подключений
+    last_connection = Column(DateTime, nullable=True)  # Последнее подключение
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Отношения
+    user = relationship("User", backref="usage_stats")
+    subscription = relationship("Subscription", backref="usage_stats")
