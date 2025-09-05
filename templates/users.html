@@ -2012,39 +2012,19 @@ function loadUserUsageStats(userId) {
                                         <i class="fas fa-chart-line me-2"></i>Трафик (данные из 3xUI)
                                     </h6>
                                     <div class="row">
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <div class="text-center">
                                                 <div class="h5 text-info">${stats.total_traffic_used}</div>
                                                 <small class="text-muted">Всего использовано</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="text-center">
-                                                <div class="h5 text-secondary">${stats.total_traffic_limit}</div>
-                                                <small class="text-muted">Лимит</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <div class="text-center">
                                                 <div class="h5 text-primary">${stats.active_subscriptions}</div>
                                                 <small class="text-muted">Активных подписок</small>
                                             </div>
                                         </div>
                                     </div>
-                                    ${stats.traffic_usage_percent > 0 ? `
-                                        <div class="mt-3">
-                                            <div class="progress" style="height: 8px;">
-                                                <div class="progress-bar ${stats.traffic_usage_percent > 80 ? 'bg-danger' : stats.traffic_usage_percent > 60 ? 'bg-warning' : 'bg-success'}" 
-                                                     role="progressbar" 
-                                                     style="width: ${Math.min(stats.traffic_usage_percent, 100)}%"
-                                                     aria-valuenow="${stats.traffic_usage_percent}" 
-                                                     aria-valuemin="0" 
-                                                     aria-valuemax="100">
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">Использовано: ${stats.traffic_usage_percent}%</small>
-                                        </div>
-                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -2067,7 +2047,6 @@ function loadUserUsageStats(userId) {
                                                     <tr>
                                                         <th>Подписка #</th>
                                                         <th>Трафик использовано</th>
-                                                        <th>Лимит</th>
                                                         <th>Статус</th>
                                                     </tr>
                                                 </thead>
@@ -2079,7 +2058,6 @@ function loadUserUsageStats(userId) {
                             <tr>
                                 <td>${subStat.subscription_number}</td>
                                 <td>${subStat.traffic_used}</td>
-                                <td>${subStat.traffic_limit}</td>
                                 <td>
                                     <span class="badge ${subStat.enable ? 'bg-success' : 'bg-danger'}">
                                         ${subStat.enable ? 'Активна' : 'Неактивна'}
